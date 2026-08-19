@@ -9,7 +9,8 @@
     "build:site": "bunx @11ty/eleventy",
     "build:assets": "bun build src/assets/main.js --outdir _site/assets --minify",
     "start": "bun run dev",
-    "check": "bun run build"
+    "check": "bun run build",
+    "webhook": "bun run webhook/server.js"
   },
   "private": true,
   "packageManager": "bun@1.3.14",

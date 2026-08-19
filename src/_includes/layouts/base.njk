@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" class="wa-theme-awesome wa-palette-default wa-brand-indigo wa-light">
+<html lang="fr" class="wa-theme-shoelace wa-palette-default wa-brand-pink wa-light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -13,7 +13,7 @@
       <header slot="header" class="site-header section-gutter wa-split">
         <a class="brand-mark" href="#accueil" aria-label="{{ site.name }}, retour à l’accueil">
           <span class="brand-mark__icon" aria-hidden="true">
-            <wa-icon name="bolt" variant="solid"></wa-icon>
+            <wa-icon name="star" variant="solid"></wa-icon>
           </span>
           <span>{{ site.name }}</span>
         </a>
@@ -22,7 +22,7 @@
           {% for item in site.navigation %}
             <a href="{{ item.href }}">{{ item.label }}</a>
           {% endfor %}
-          <wa-button href="#demarrer" variant="brand" size="s">Démarrer</wa-button>
+          <wa-button href="#contact" variant="brand" size="s">Prendre rendez-vous</wa-button>
         </nav>
 
         <wa-button data-toggle-nav appearance="plain" class="wa-mobile-only nav-toggle" aria-label="Ouvrir le menu">
@@ -30,23 +30,15 @@
         </wa-button>
       </header>
 
-      <nav slot="navigation" class="drawer-nav wa-stack wa-gap-xs" aria-label="Navigation mobile">
-        <span class="nav-label">Explorer</span>
-        {% for item in site.navigation %}
-          <a href="{{ item.href }}" data-drawer="close">{{ item.label }}</a>
-        {% endfor %}
-        <wa-button href="#demarrer" variant="brand" data-drawer="close">Démarrer</wa-button>
-      </nav>
-
       <main>
         {{ content | safe }}
       </main>
 
       <footer slot="footer" class="site-footer section-gutter wa-split">
-        <span>© {{ site.name }} · Construit avec Bun</span>
+        <span>© {{ site.name }} · Femmes sages et souveraines</span>
         <span class="footer-meta">
           <wa-icon name="code" variant="solid" aria-hidden="true"></wa-icon>
-          <span>Eleventy · Web Awesome · Font Awesome</span>
+          <span>Accompagnements · Talismans · Présence</span>
         </span>
       </footer>
     </wa-page>

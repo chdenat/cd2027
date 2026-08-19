@@ -1,9 +1,11 @@
 module.exports = {
-  name: 'Atelier Bun',
-  description: 'Un starter de site rapide, accessible et agréable à faire évoluer.',
+  name: 'Christine Deloupy',
+  description: 'Un espace pour les femmes qui entrent dans l’âge de leur pleine présence.',
   navigation: [
     { label: 'Accueil', href: '#accueil' },
-    { label: 'Méthode', href: '#methode' },
-    { label: 'Stack', href: '#stack' },
+    { label: 'Accompagnements', href: '#accompagnements' },
+    { label: 'Bijoux', href: '#bijoux' },
+    { label: 'Blog', href: '#blog' },
+    { label: 'Contact', href: '#contact' },
   ],
 }

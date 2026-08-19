@@ -1,93 +1,169 @@
 ---
 layout: layouts/base.njk
-title: Un socle qui avance avec vous
-description: Un starter de site moderne piloté par Bun, Eleventy, Web Awesome et Font Awesome.
+title: Femmes sages et souveraines
+description: Un espace pour les femmes qui entrent dans l’âge de leur pleine présence.
 ---
 
-<section id="accueil" class="hero wa-invert">
-  <div class="section-gutter hero__inner wa-stack wa-gap-xl">
-    <wa-badge variant="neutral" appearance="outlined" pill>
-      <wa-icon slot="start" name="circle-check" variant="solid" aria-hidden="true"></wa-icon>
-      Prêt pour le prochain commit
-    </wa-badge>
-    <div class="hero__copy wa-stack wa-gap-m">
-      <h1>Un socle net pour créer <span class="hero__accent">sans friction.</span></h1>
-      <p class="hero__lede">Bun orchestre tout le projet. Eleventy fabrique des pages rapides. Web Awesome et Font Awesome donnent une interface solide dès le premier écran.</p>
+<section id="accueil" class="hero">
+  <div class="section-gutter hero__inner wa-flank wa-gap-3xl">
+    <div class="hero__content wa-stack wa-gap-xl">
+      <wa-badge variant="neutral" appearance="outlined" pill>
+        <wa-icon slot="start" name="star" variant="solid" aria-hidden="true"></wa-icon>
+        Femmes sages &amp; souveraines
+      </wa-badge>
+      <div class="wa-stack wa-gap-m">
+        <h1>Une femme en passage n’a pas besoin d’être guidée. Elle a besoin d’être reconnue.</h1>
+        <p class="hero__lede">J’accompagne les femmes 50+ qui traversent une nouvelle étape et ressentent l’appel d’un retour à elles-mêmes.</p>
+      </div>
+      <div class="hero__actions wa-cluster wa-gap-s">
+        <wa-button href="#contact" variant="neutral" size="l">
+          Réserver une séance découverte
+          <wa-icon slot="end" name="arrow-right" variant="solid" aria-hidden="true"></wa-icon>
+        </wa-button>
+        <wa-button href="#accompagnements" variant="neutral" appearance="outlined" size="l">Découvrir mon approche</wa-button>
+      </div>
+      <div class="hero__proof wa-cluster wa-gap-l" aria-label="Principes de l’accompagnement">
+        <span><wa-icon name="heart" variant="solid" aria-hidden="true"></wa-icon> Douceur</span>
+        <span><wa-icon name="compass" variant="solid" aria-hidden="true"></wa-icon> Présence</span>
+        <span><wa-icon name="sun" variant="solid" aria-hidden="true"></wa-icon> Souveraineté</span>
+      </div>
     </div>
-    <div class="hero__actions wa-cluster wa-gap-s" id="demarrer">
-      <wa-button href="#methode" variant="neutral" size="l">
-        Voir la méthode
-        <wa-icon slot="end" name="arrow-right" variant="solid" aria-hidden="true"></wa-icon>
-      </wa-button>
-      <wa-button href="#stack" variant="neutral" appearance="outlined" size="l">Découvrir la stack</wa-button>
-    </div>
-    <div class="hero__proof wa-cluster wa-gap-l">
-      <span><wa-icon name="bolt" variant="solid" aria-hidden="true"></wa-icon> Build rapide</span>
-      <span><wa-icon name="universal-access" variant="solid" aria-hidden="true"></wa-icon> Accessible</span>
-      <span><wa-icon name="folder-open" variant="solid" aria-hidden="true"></wa-icon> Simple à maintenir</span>
+    <div class="hero__visual" aria-hidden="true">
+      <div class="hero__halo"></div>
+      <div class="hero__seal">
+        <wa-icon name="star" variant="solid"></wa-icon>
+        <span>Revenir<br />à soi</span>
+      </div>
     </div>
   </div>
 </section>
 
-<section id="methode" class="section section-gutter wa-stack wa-gap-xl">
+<section id="accompagnements" class="section section-gutter wa-stack wa-gap-xl">
   <div class="section-heading wa-split">
     <div class="wa-stack wa-gap-xs">
-      <span class="eyebrow">La méthode</span>
-      <h2>Tout est déjà à sa place.</h2>
+      <span class="eyebrow">Mes accompagnements</span>
+      <h2>Un espace pour ralentir et écouter ce qui cherche à naître.</h2>
     </div>
-    <p class="section-heading__note">Une base petite, lisible et prête à accueillir vos vraies pages.</p>
+    <p class="section-heading__note">Des rendez-vous pour déposer l’armure, retrouver votre axe et habiter cette nouvelle étape avec plus de liberté.</p>
   </div>
 
   <div class="feature-grid wa-grid wa-gap-l">
     <wa-card class="feature-card" appearance="filled" with-header>
       <div slot="header" class="card-heading wa-cluster wa-gap-s">
-        <span class="icon-tile icon-tile--brand" aria-hidden="true"><wa-icon name="wand-magic-sparkles" variant="solid"></wa-icon></span>
-        <h3>Créer vite</h3>
+        <span class="icon-tile icon-tile--brand" aria-hidden="true"><wa-icon name="seedling" variant="solid"></wa-icon></span>
+        <h3>Renaissance souveraine</h3>
       </div>
-      <p>Les commandes Bun sont prêtes : développement, build de production et vérification du résultat.</p>
+      <p>Un accompagnement profond pour clarifier ce qui se transforme et revenir vers une vie plus vraie, plus simple et plus alignée.</p>
+      <wa-button href="#contact" variant="brand" appearance="plain" size="s">En savoir plus</wa-button>
     </wa-card>
     <wa-card class="feature-card" appearance="filled" with-header>
       <div slot="header" class="card-heading wa-cluster wa-gap-s">
-        <span class="icon-tile icon-tile--success" aria-hidden="true"><wa-icon name="layer-group" variant="solid"></wa-icon></span>
-        <h3>Composer proprement</h3>
+        <span class="icon-tile icon-tile--rose" aria-hidden="true"><wa-icon name="moon" variant="solid"></wa-icon></span>
+        <h3>Lecture akashique</h3>
       </div>
-      <p>Un layout Eleventy réutilisable, des sections en Nunjucks et des composants Web Awesome sémantiques.</p>
+      <p>Un temps d’écoute et de mise en lumière pour accueillir les réponses qui peuvent vous aider à remettre du mouvement dans votre histoire.</p>
+      <wa-button href="#contact" variant="brand" appearance="plain" size="s">En savoir plus</wa-button>
     </wa-card>
     <wa-card class="feature-card" appearance="filled" with-header>
       <div slot="header" class="card-heading wa-cluster wa-gap-s">
-        <span class="icon-tile icon-tile--warning" aria-hidden="true"><wa-icon name="rocket" variant="solid"></wa-icon></span>
-        <h3>Livrer sereinement</h3>
+        <span class="icon-tile icon-tile--clay" aria-hidden="true"><wa-icon name="route" variant="solid"></wa-icon></span>
+        <h3>La voie de la sagesse</h3>
       </div>
-      <p>Les SVG Font Awesome sont servis localement : le site reste prévisible, rapide et facile à déployer.</p>
+      <p>Un chemin pour faire de votre expérience une force douce, reprendre votre place et avancer avec une confiance renouvelée.</p>
+      <wa-button href="#contact" variant="brand" appearance="plain" size="s">En savoir plus</wa-button>
     </wa-card>
   </div>
 </section>
 
-<section id="stack" class="stack-band wa-invert">
-  <div class="section-gutter stack-band__inner wa-split">
-    <div class="wa-stack wa-gap-s">
-      <span class="eyebrow">La stack</span>
-      <h2>Un petit nombre de bons outils.</h2>
+<section id="mission" class="mission-band">
+  <div class="section-gutter mission-band__inner wa-flank wa-gap-3xl">
+    <div class="mission-band__portrait" aria-hidden="true">
+      <span class="portrait-ring"></span>
+      <wa-icon name="feather-pointed" variant="solid"></wa-icon>
     </div>
-    <div class="stack-list wa-cluster wa-gap-s" aria-label="Technologies utilisées">
-      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="bolt" variant="solid" aria-hidden="true"></wa-icon>Bun</wa-badge>
-      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="wind" variant="solid" aria-hidden="true"></wa-icon>Eleventy</wa-badge>
-      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="shapes" variant="solid" aria-hidden="true"></wa-icon>Web Awesome</wa-badge>
-      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="font-awesome" family="brands" aria-hidden="true"></wa-icon>Font Awesome</wa-badge>
+    <div class="mission-band__copy wa-stack wa-gap-l">
+      <span class="eyebrow">Faisons connaissance</span>
+      <h2>Il n’est jamais trop tard pour se choisir.</h2>
+      <p>Je crois qu’une femme de 50+ porte déjà en elle sa sagesse, sa mémoire et sa puissance. Elle mérite un espace qui honore cela, sans injonction à performer.</p>
+      <p>Je marche à vos côtés avec douceur, présence et profondeur, pour vous aider à retrouver ce qui est déjà vivant en vous.</p>
+      <div><wa-button href="#contact" variant="neutral">En savoir plus</wa-button></div>
     </div>
   </div>
 </section>
 
-<section class="closing section section-gutter wa-stack wa-gap-l">
+<section id="bijoux" class="jewels section section-gutter wa-stack wa-gap-xl">
+  <div class="section-heading wa-split">
+    <div class="wa-stack wa-gap-xs">
+      <span class="eyebrow">KAELYA Talismans</span>
+      <h2>Des bijoux d’intention pour accompagner votre quotidien.</h2>
+    </div>
+    <p class="section-heading__note">Des créations préparées avec soin, en lien avec la nature, les minéraux et ce que vous souhaitez inviter dans votre vie.</p>
+  </div>
+  <div class="jewels__panel wa-split">
+    <div class="jewels__symbol" aria-hidden="true"><wa-icon name="gem" variant="solid"></wa-icon></div>
+    <div class="wa-stack wa-gap-m">
+      <p>Bracelets chemin de vie et bracelets Magik intention : de petites lumières à porter près de soi.</p>
+      <div class="wa-cluster wa-gap-s">
+        <wa-badge variant="brand" pill><wa-icon slot="start" name="circle-check" variant="solid" aria-hidden="true"></wa-icon> Chemin de vie</wa-badge>
+        <wa-badge variant="brand" pill><wa-icon slot="start" name="circle-check" variant="solid" aria-hidden="true"></wa-icon> Intention</wa-badge>
+      </div>
+    </div>
+    <wa-button href="#contact" variant="neutral">Voir les bijoux</wa-button>
+  </div>
+</section>
+
+<section id="blog" class="journal section section-gutter wa-stack wa-gap-xl">
+  <div class="section-heading wa-split">
+    <div class="wa-stack wa-gap-xs">
+      <span class="eyebrow">Le journal</span>
+      <h2>Des textes pour nourrir votre passage.</h2>
+    </div>
+    <wa-button href="#contact" variant="brand" appearance="plain">Lire le blog</wa-button>
+  </div>
+  <div class="journal-grid wa-grid wa-gap-l">
+    <wa-card appearance="filled" with-header>
+      <div slot="header" class="journal-card__meta">Présence · 5 min</div>
+      <h3>Revenir à soi quand les repères changent</h3>
+      <p>Quelques pistes pour faire de cette période un espace de réinvention plutôt qu’une parenthèse.</p>
+    </wa-card>
+    <wa-card appearance="filled" with-header>
+      <div slot="header" class="journal-card__meta">Rituels · 3 min</div>
+      <h3>Créer un rendez-vous avec sa propre intuition</h3>
+      <p>Un rituel simple pour ralentir, écouter et laisser émerger une réponse qui vous ressemble.</p>
+    </wa-card>
+  </div>
+</section>
+
+<section id="temoignages" class="testimonials wa-invert">
+  <div class="section-gutter testimonials__inner wa-stack wa-gap-xl">
+    <div class="wa-stack wa-gap-xs">
+      <span class="eyebrow">Témoignages</span>
+      <h2>Ce que mes clientes emportent avec elles.</h2>
+    </div>
+    <div class="testimonial-grid wa-grid wa-gap-l">
+      <wa-card appearance="filled">
+        <p class="quote">“J’ai pu assembler les pièces de mon puzzle avec bienveillance et écoute.”</p>
+        <p class="quote-author">— Julianne</p>
+      </wa-card>
+      <wa-card appearance="filled">
+        <p class="quote">“J’ai reçu des réponses, mais aussi des outils pour me remettre en mouvement.”</p>
+        <p class="quote-author">— Séverine</p>
+      </wa-card>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="closing section section-gutter wa-stack wa-gap-l">
   <wa-divider></wa-divider>
   <div class="closing__content wa-split">
     <div class="wa-stack wa-gap-s">
-      <span class="eyebrow">À vous de jouer</span>
-      <h2>Le prochain écran peut commencer ici.</h2>
+      <span class="eyebrow">Un premier pas</span>
+      <h2>Et si vous vous accordiez enfin cet espace ?</h2>
+      <p>Réservez une séance curiosité offerte de 30 minutes pour faire connaissance.</p>
     </div>
-    <wa-button href="#accueil" variant="brand" size="l">
-      Remonter au début
-      <wa-icon slot="end" name="arrow-up" variant="solid" aria-hidden="true"></wa-icon>
+    <wa-button href="mailto:bonjour@christinedeloupy.fr" variant="brand" size="l">
+      Me contacter
+      <wa-icon slot="end" name="arrow-up-right-from-square" variant="solid" aria-hidden="true"></wa-icon>
     </wa-button>
   </div>
 </section>
