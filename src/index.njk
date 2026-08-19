@@ -1,0 +1,93 @@
+---
+layout: layouts/base.njk
+title: Un socle qui avance avec vous
+description: Un starter de site moderne piloté par Bun, Eleventy, Web Awesome et Font Awesome.
+---
+
+<section id="accueil" class="hero wa-invert">
+  <div class="section-gutter hero__inner wa-stack wa-gap-xl">
+    <wa-badge variant="neutral" appearance="outlined" pill>
+      <wa-icon slot="start" name="circle-check" variant="solid" aria-hidden="true"></wa-icon>
+      Prêt pour le prochain commit
+    </wa-badge>
+    <div class="hero__copy wa-stack wa-gap-m">
+      <h1>Un socle net pour créer <span class="hero__accent">sans friction.</span></h1>
+      <p class="hero__lede">Bun orchestre tout le projet. Eleventy fabrique des pages rapides. Web Awesome et Font Awesome donnent une interface solide dès le premier écran.</p>
+    </div>
+    <div class="hero__actions wa-cluster wa-gap-s" id="demarrer">
+      <wa-button href="#methode" variant="neutral" size="l">
+        Voir la méthode
+        <wa-icon slot="end" name="arrow-right" variant="solid" aria-hidden="true"></wa-icon>
+      </wa-button>
+      <wa-button href="#stack" variant="neutral" appearance="outlined" size="l">Découvrir la stack</wa-button>
+    </div>
+    <div class="hero__proof wa-cluster wa-gap-l">
+      <span><wa-icon name="bolt" variant="solid" aria-hidden="true"></wa-icon> Build rapide</span>
+      <span><wa-icon name="universal-access" variant="solid" aria-hidden="true"></wa-icon> Accessible</span>
+      <span><wa-icon name="folder-open" variant="solid" aria-hidden="true"></wa-icon> Simple à maintenir</span>
+    </div>
+  </div>
+</section>
+
+<section id="methode" class="section section-gutter wa-stack wa-gap-xl">
+  <div class="section-heading wa-split">
+    <div class="wa-stack wa-gap-xs">
+      <span class="eyebrow">La méthode</span>
+      <h2>Tout est déjà à sa place.</h2>
+    </div>
+    <p class="section-heading__note">Une base petite, lisible et prête à accueillir vos vraies pages.</p>
+  </div>
+
+  <div class="feature-grid wa-grid wa-gap-l">
+    <wa-card class="feature-card" appearance="filled" with-header>
+      <div slot="header" class="card-heading wa-cluster wa-gap-s">
+        <span class="icon-tile icon-tile--brand" aria-hidden="true"><wa-icon name="wand-magic-sparkles" variant="solid"></wa-icon></span>
+        <h3>Créer vite</h3>
+      </div>
+      <p>Les commandes Bun sont prêtes : développement, build de production et vérification du résultat.</p>
+    </wa-card>
+    <wa-card class="feature-card" appearance="filled" with-header>
+      <div slot="header" class="card-heading wa-cluster wa-gap-s">
+        <span class="icon-tile icon-tile--success" aria-hidden="true"><wa-icon name="layer-group" variant="solid"></wa-icon></span>
+        <h3>Composer proprement</h3>
+      </div>
+      <p>Un layout Eleventy réutilisable, des sections en Nunjucks et des composants Web Awesome sémantiques.</p>
+    </wa-card>
+    <wa-card class="feature-card" appearance="filled" with-header>
+      <div slot="header" class="card-heading wa-cluster wa-gap-s">
+        <span class="icon-tile icon-tile--warning" aria-hidden="true"><wa-icon name="rocket" variant="solid"></wa-icon></span>
+        <h3>Livrer sereinement</h3>
+      </div>
+      <p>Les SVG Font Awesome sont servis localement : le site reste prévisible, rapide et facile à déployer.</p>
+    </wa-card>
+  </div>
+</section>
+
+<section id="stack" class="stack-band wa-invert">
+  <div class="section-gutter stack-band__inner wa-split">
+    <div class="wa-stack wa-gap-s">
+      <span class="eyebrow">La stack</span>
+      <h2>Un petit nombre de bons outils.</h2>
+    </div>
+    <div class="stack-list wa-cluster wa-gap-s" aria-label="Technologies utilisées">
+      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="bolt" variant="solid" aria-hidden="true"></wa-icon>Bun</wa-badge>
+      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="wind" variant="solid" aria-hidden="true"></wa-icon>Eleventy</wa-badge>
+      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="shapes" variant="solid" aria-hidden="true"></wa-icon>Web Awesome</wa-badge>
+      <wa-badge variant="neutral" appearance="filled-outlined" pill><wa-icon slot="start" name="font-awesome" family="brands" aria-hidden="true"></wa-icon>Font Awesome</wa-badge>
+    </div>
+  </div>
+</section>
+
+<section class="closing section section-gutter wa-stack wa-gap-l">
+  <wa-divider></wa-divider>
+  <div class="closing__content wa-split">
+    <div class="wa-stack wa-gap-s">
+      <span class="eyebrow">À vous de jouer</span>
+      <h2>Le prochain écran peut commencer ici.</h2>
+    </div>
+    <wa-button href="#accueil" variant="brand" size="l">
+      Remonter au début
+      <wa-icon slot="end" name="arrow-up" variant="solid" aria-hidden="true"></wa-icon>
+    </wa-button>
+  </div>
+</section>

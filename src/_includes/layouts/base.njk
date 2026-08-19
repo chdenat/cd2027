@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr" class="wa-theme-awesome wa-palette-default wa-brand-indigo wa-light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="{{ description or site.description }}" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/main.css" />
+    <title>{{ title }} · {{ site.name }}</title>
+  </head>
+  <body>
+    <wa-page>
+      <header slot="header" class="site-header section-gutter wa-split">
+        <a class="brand-mark" href="#accueil" aria-label="{{ site.name }}, retour à l’accueil">
+          <span class="brand-mark__icon" aria-hidden="true">
+            <wa-icon name="bolt" variant="solid"></wa-icon>
+          </span>
+          <span>{{ site.name }}</span>
+        </a>
+
+        <nav class="header-nav wa-cluster wa-gap-l" aria-label="Navigation principale">
+          {% for item in site.navigation %}
+            <a href="{{ item.href }}">{{ item.label }}</a>
+          {% endfor %}
+          <wa-button href="#demarrer" variant="brand" size="s">Démarrer</wa-button>
+        </nav>
+
+        <wa-button data-toggle-nav appearance="plain" class="wa-mobile-only nav-toggle" aria-label="Ouvrir le menu">
+          <wa-icon name="bars" variant="solid"></wa-icon>
+        </wa-button>
+      </header>
+
+      <nav slot="navigation" class="drawer-nav wa-stack wa-gap-xs" aria-label="Navigation mobile">
+        <span class="nav-label">Explorer</span>
+        {% for item in site.navigation %}
+          <a href="{{ item.href }}" data-drawer="close">{{ item.label }}</a>
+        {% endfor %}
+        <wa-button href="#demarrer" variant="brand" data-drawer="close">Démarrer</wa-button>
+      </nav>
+
+      <main>
+        {{ content | safe }}
+      </main>
+
+      <footer slot="footer" class="site-footer section-gutter wa-split">
+        <span>© {{ site.name }} · Construit avec Bun</span>
+        <span class="footer-meta">
+          <wa-icon name="code" variant="solid" aria-hidden="true"></wa-icon>
+          <span>Eleventy · Web Awesome · Font Awesome</span>
+        </span>
+      </footer>
+    </wa-page>
+    <script type="module" src="/assets/main.js"></script>
+  </body>
+</html>
