@@ -1,0 +1,300 @@
+---
+permalink: /cd2027-gate.php
+---
+<?php
+declare(strict_types=1);
+define('CD2027_PRIVATE_VIEW', {% if site.privateView %}true{% else %}false{% endif %});
+
+$siteRoot = realpath(__DIR__);
+$configPath = dirname(__DIR__, 2) . '/cd2027-auth-config.php';
+
+function cd2027_fail(int $status, string $message): never
+{
+    http_response_code($status);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    header('X-Content-Type-Options: nosniff');
+    exit($message);
+}
+
+function cd2027_return_path(mixed $value): string
+{
+    if (
+        !is_string($value)
+        || $value === ''
+        || $value[0] !== '/'
+        || str_starts_with($value, '//')
+        || str_contains($value, '\\')
+        || str_contains($value, "\0")
+    ) {
+        return '/';
+    }
+
+    $parts = parse_url($value);
+    return $parts === false || isset($parts['scheme']) || isset($parts['host']) ? '/' : $value;
+}
+
+function cd2027_login_form(string $action, string $returnPath, string $nonce, string $message = '', int $status = 200): never
+{
+    http_response_code($status);
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    header('Referrer-Policy: no-referrer');
+    $escapedAction = esc_url($action);
+    $escapedReturn = esc_attr($returnPath);
+    $escapedNonce = esc_attr($nonce);
+    $escapedMessage = $message === '' ? '' : '<p role="alert">' . esc_html($message) . '</p>';
+
+    echo '<!doctype html><html lang="fr" class="wa-theme-cd2026 wa-palette-cd2026 wa-light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+    echo '<meta name="robots" content="noindex,nofollow,noarchive"><link rel="stylesheet" href="/assets/webawesome/styles/webawesome.css">';
+    echo '<link rel="stylesheet" href="/assets/theme.css"><link rel="stylesheet" href="/cd2027-login.css">';
+    echo '<title>Connexion administrateur · Christine Deloupy</title></head><body>';
+    echo '<wa-button id="cd2027-login-trigger" class="login-trigger" appearance="plain" aria-label="Connexion administrateur"><wa-icon library="pro" name="right-to-bracket" variant="solid" aria-hidden="true"></wa-icon></wa-button>';
+    echo '<main><h1>Site de test privé</h1><p>Ce site de test est privé. Connectez-vous avec votre compte administrateur WordPress.</p></main>';
+    echo '<wa-dialog id="cd2027-login-dialog" label="Connexion administrateur"><div class="login-dialog-content">' . $escapedMessage;
+    echo '<form method="post" action="' . $escapedAction . '">';
+    echo '<input type="hidden" name="_wpnonce" value="' . $escapedNonce . '"><input type="hidden" name="return_to" value="' . $escapedReturn . '">';
+    echo '<wa-input label="Identifiant WordPress" name="user_login" autocomplete="username" required></wa-input>';
+    echo '<wa-input label="Mot de passe WordPress" name="user_password" type="password" autocomplete="current-password" required></wa-input>';
+    echo '<wa-button type="submit" variant="brand">Se connecter</wa-button></form></div></wa-dialog>';
+    echo '<script type="module">import "/assets/fontawesome-library.js"; import "/assets/webawesome/components/dialog/dialog.js"; import "/assets/webawesome/components/button/button.js"; import "/assets/webawesome/components/icon/icon.js"; import "/assets/webawesome/components/input/input.js"; const trigger = document.querySelector("#cd2027-login-trigger"); const dialog = document.querySelector("#cd2027-login-dialog"); trigger.addEventListener("click", () => { dialog.open = true; }); if (' . ($status >= 400 ? 'true' : 'false') . ') dialog.open = true;</script>';
+    echo '</body></html>';
+    exit;
+}
+
+function cd2027_serve_static(string $siteRoot, string $requestPath, string $method): never
+{
+    if ($requestPath === '' || $requestPath === '/') {
+        $requestPath = '/index.html';
+    }
+
+    $relativePath = ltrim($requestPath, '/');
+    if (
+        str_contains($relativePath, "\0")
+        || str_contains($relativePath, '\\')
+        || preg_match('~(^|/)\.{1,2}(/|$)~', $relativePath)
+        || preg_match('~\.php(?:/|$)~i', $relativePath)
+    ) {
+        cd2027_fail(404, 'Not found.');
+    }
+
+    $filePath = realpath($siteRoot . '/' . $relativePath);
+    if ($filePath !== false && is_dir($filePath)) {
+        $filePath = realpath($filePath . '/index.html');
+    }
+
+    $rootPrefix = rtrim($siteRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    if (
+        !$filePath
+        || !str_starts_with($filePath, $rootPrefix)
+        || !is_file($filePath)
+        || basename($filePath) === 'cd2027-gate.php'
+    ) {
+        cd2027_fail(404, 'Not found.');
+    }
+
+    $mimeType = function_exists('mime_content_type') ? mime_content_type($filePath) : false;
+    header('Content-Type: ' . ($mimeType ?: 'application/octet-stream'));
+    header('Content-Length: ' . (string) filesize($filePath));
+    if ($method === 'GET') {
+        readfile($filePath);
+    }
+    exit;
+}
+
+if ($siteRoot === false) {
+    cd2027_fail(503, 'CD2027 access is not configured.');
+}
+
+if (!CD2027_PRIVATE_VIEW) {
+    $publicPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $publicPath = is_string($publicPath) ? rawurldecode($publicPath) : '/';
+    $publicMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    if ($publicMethod !== 'GET' && $publicMethod !== 'HEAD') {
+        header('Allow: GET, HEAD');
+        cd2027_fail(405, 'Method not allowed.');
+    }
+    cd2027_serve_static($siteRoot, $publicPath, $publicMethod);
+}
+
+if (!is_file($configPath)) {
+    cd2027_fail(503, 'CD2027 access is not configured.');
+}
+
+$config = require $configPath;
+$wordpressRoot = is_array($config) ? realpath((string) ($config['wordpress_path'] ?? '')) : false;
+$stagingOrigin = is_array($config) ? rtrim((string) ($config['staging_origin'] ?? ''), '/') : '';
+$wordpressBootstrap = $wordpressRoot ? $wordpressRoot . '/wp-load.php' : '';
+
+if (
+    !$wordpressRoot
+    || !is_file($wordpressBootstrap)
+    || $stagingOrigin !== 'https://cd2027.christinedeloupy.fr'
+) {
+    cd2027_fail(503, 'CD2027 access is not configured.');
+}
+
+define('WP_USE_THEMES', false);
+require $wordpressBootstrap;
+
+header('X-Robots-Tag: noindex, nofollow, noarchive', true);
+header('Cache-Control: no-store, private');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: no-referrer');
+
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$requestPath = is_string($requestPath) ? rawurldecode($requestPath) : '/';
+$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+$loginPath = '/__cd2027/login';
+$logoutPath = '/__cd2027/logout';
+
+if (
+    $requestPath === '/cd2027-login.css'
+    || $requestPath === '/assets/theme.css'
+    || $requestPath === '/assets/fontawesome-library.js'
+    || $requestPath === '/assets/fontawesome-icons.js'
+    || str_starts_with($requestPath, '/assets/webawesome/')
+    || str_starts_with($requestPath, '/assets/fonts/')
+) {
+    if ($method !== 'GET' && $method !== 'HEAD') {
+        header('Allow: GET, HEAD');
+        cd2027_fail(405, 'Method not allowed.');
+    }
+    cd2027_serve_static($siteRoot, $requestPath, $method);
+}
+
+$loginToken = $_COOKIE['cd2027_login_nonce'] ?? '';
+if (!is_string($loginToken) || !preg_match('/^[a-f0-9]{64}$/', $loginToken)) {
+    $loginToken = '';
+    if ($method === 'GET') {
+        $loginToken = bin2hex(random_bytes(32));
+        setcookie('cd2027_login_nonce', $loginToken, [
+            'expires' => time() + DAY_IN_SECONDS,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        $_COOKIE['cd2027_login_nonce'] = $loginToken;
+    }
+}
+
+add_filter('nonce_user_logged_out', static function (int $userId) use ($loginToken): int {
+    if ($loginToken === '') {
+        return $userId;
+    }
+    return (int) hexdec(substr(hash_hmac('sha256', $loginToken, wp_salt('nonce')), 0, 7));
+});
+
+if ($requestPath === $loginPath || $requestPath === $loginPath . '/') {
+    $returnPath = cd2027_return_path($_POST['return_to'] ?? $_GET['return_to'] ?? '/');
+    $nonce = wp_create_nonce('cd2027-staging-login');
+    if ($method !== 'POST') {
+        if ($method !== 'GET') {
+            header('Allow: GET, POST');
+            cd2027_fail(405, 'Method not allowed.');
+        }
+        if (is_user_logged_in() && current_user_can('manage_options')) {
+            wp_safe_redirect($stagingOrigin . $returnPath);
+            exit;
+        }
+        cd2027_login_form($stagingOrigin . $loginPath . '/', $returnPath, $nonce);
+    }
+
+    if (!wp_verify_nonce(is_string($_POST['_wpnonce'] ?? null) ? $_POST['_wpnonce'] : '', 'cd2027-staging-login')) {
+        cd2027_fail(403, 'The login request could not be verified. Reload the page and try again.');
+    }
+
+    $username = is_string($_POST['user_login'] ?? null) ? wp_unslash($_POST['user_login']) : '';
+    $password = is_string($_POST['user_password'] ?? null) ? wp_unslash($_POST['user_password']) : '';
+    if ($username === '' || $password === '') {
+        cd2027_login_form($stagingOrigin . $loginPath . '/', $returnPath, $nonce, 'Identifiant ou mot de passe incorrect.', 401);
+    }
+
+    $user = wp_signon([
+        'user_login' => $username,
+        'user_password' => $password,
+        'remember' => false,
+    ], true);
+
+    if (is_wp_error($user)) {
+        cd2027_login_form($stagingOrigin . $loginPath . '/', $returnPath, $nonce, 'Identifiant ou mot de passe incorrect.', 401);
+    }
+
+    if (!user_can($user, 'manage_options')) {
+        wp_set_current_user($user->ID);
+        wp_logout();
+        cd2027_login_form($stagingOrigin . $loginPath . '/', $returnPath, $nonce, 'Ce site est réservé aux administrateurs WordPress.', 403);
+    }
+
+    setcookie('cd2027_login_nonce', '', [
+        'expires' => time() - HOUR_IN_SECONDS,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    wp_safe_redirect($stagingOrigin . $returnPath);
+    exit;
+}
+
+if ($requestPath === $logoutPath || $requestPath === $logoutPath . '/') {
+    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+        wp_safe_redirect(wp_login_url($stagingOrigin . '/'));
+        exit;
+    }
+
+    if ($method === 'GET') {
+        $nonce = wp_create_nonce('cd2027-staging-logout');
+        header('Content-Type: text/html; charset=utf-8');
+        $escapedNonce = esc_attr($nonce);
+        $logoutAction = esc_url($stagingOrigin . $logoutPath . '/');
+        echo '<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+        echo '<link rel="stylesheet" href="/assets/webawesome/styles/webawesome.css">';
+        echo '<title>Déconnexion du site de test</title><body><main><h1>Déconnexion WordPress</h1>';
+        echo '<p>Cette action déconnecte votre session WordPress sur CD2027.</p>';
+        echo '<form method="post" action="' . $logoutAction . '"><input type="hidden" name="_wpnonce" value="' . $escapedNonce . '">';
+        echo '<wa-button type="submit">Confirmer la déconnexion</wa-button></form></main>';
+        echo '<script type="module" src="/assets/webawesome/components/button/button.js"></script></body></html>';
+        exit;
+    }
+
+    if ($method !== 'POST') {
+        header('Allow: GET, POST');
+        cd2027_fail(405, 'Method not allowed.');
+    }
+
+    $nonce = is_string($_POST['_wpnonce'] ?? null) ? $_POST['_wpnonce'] : '';
+    if (!wp_verify_nonce($nonce, 'cd2027-staging-logout')) {
+        cd2027_fail(403, 'The logout request could not be verified.');
+    }
+
+    wp_logout();
+    wp_safe_redirect($stagingOrigin . '/');
+    exit;
+}
+
+if (!is_user_logged_in()) {
+    $returnPath = cd2027_return_path($_SERVER['REQUEST_URI'] ?? '/');
+    wp_safe_redirect($stagingOrigin . $loginPath . '/?return_to=' . rawurlencode($returnPath));
+    exit;
+}
+
+if (!current_user_can('manage_options')) {
+    http_response_code(403);
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    echo '<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+    echo '<title>Accès réservé</title><body><main><h1>Accès réservé</h1>';
+    echo '<p>Ce site est réservé aux administrateurs WordPress.</p>';
+    echo '<p><a href="' . esc_url($stagingOrigin . $logoutPath . '/') . '">Déconnecter ce compte</a></p>';
+    echo '</main></body></html>';
+    exit;
+}
+
+if ($method !== 'GET' && $method !== 'HEAD') {
+    header('Allow: GET, HEAD');
+    cd2027_fail(405, 'Method not allowed.');
+}
+
+cd2027_serve_static($siteRoot, $requestPath, $method);

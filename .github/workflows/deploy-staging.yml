@@ -1,0 +1,68 @@
+name: Deploy cd2027.christinedeloupy.fr
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [cd2026_staging_deploy]
+  schedule:
+    - cron: '17 6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd2026-staging-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: test
+    env:
+      SITE_URL: https://cd2027.christinedeloupy.fr
+      WORDPRESS_ORIGIN: https://christinedeloupy.fr
+      CD2027_WP_AUTH: '1'
+      PRIVATE_VIEW: ${{ vars.PRIVATE_VIEW || 'true' }}
+    steps:
+      - name: Check out the default branch
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Configure Font Awesome Pro access
+        env:
+          FONTAWESOME_PACKAGE_TOKEN: ${{ secrets.FONTAWESOME_PACKAGE_TOKEN }}
+        run: |
+          if [ -z "$FONTAWESOME_PACKAGE_TOKEN" ]; then
+            echo "The FONTAWESOME_PACKAGE_TOKEN Actions secret is required to install Font Awesome Pro." >&2
+            exit 1
+          fi
+          printf '%s\n' '@fortawesome:registry=https://npm.fontawesome.com/' "//npm.fontawesome.com/:_authToken=${FONTAWESOME_PACKAGE_TOKEN}" > "$HOME/.npmrc"
+          chmod 600 "$HOME/.npmrc"
+
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build and validate all generated routes
+        run: bun run check
+
+      - name: Install password-based SSH client
+        run: sudo apt-get update && sudo apt-get install --yes sshpass
+
+      - name: Upload and atomically promote the staging build
+        env:
+          STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          STAGING_SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+          STAGING_SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+          STAGING_REMOTE_ROOT: ${{ vars.STAGING_REMOTE_ROOT }}
+        run: bash scripts/upload-staging.sh

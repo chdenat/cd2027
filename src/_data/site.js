@@ -1,8 +1,14 @@
+const siteOrigin = (process.env.SITE_URL || 'https://christinedeloupy.fr').replace(/\/$/, '')
+const stagingAuth = process.env.CD2027_WP_AUTH === '1'
+const privateView = stagingAuth && !['0', 'false', 'off', 'no'].includes(String(process.env.PRIVATE_VIEW || 'true').trim().toLowerCase())
+
 module.exports = {
   name: 'Christine Deloupy',
   description:
     'Accompagnement holistique pour femmes matures en transition de vie. Retrouver joie, sens et liberté.',
-  origin: 'https://christinedeloupy.fr',
+  origin: siteOrigin,
+  stagingAuth: privateView,
+  privateView,
   logo: 'https://christinedeloupy.fr/wp-content/uploads/2023/12/Logo-CD2024.png',
   socialLinks: [
     { label: 'Facebook', href: 'https://www.facebook.com/christinedeloupy.fr/', icon: 'facebook' },

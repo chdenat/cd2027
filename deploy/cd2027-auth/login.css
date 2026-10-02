@@ -1,0 +1,57 @@
+body {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: var(--wa-space-xl);
+  background: var(--cd2026--color-surface-lowered);
+  color: var(--cd2026--color-body);
+  font-family: var(--cd2026--font-body);
+}
+
+main {
+  display: grid;
+  gap: var(--wa-space-m);
+  width: min(100%, 28rem);
+  padding: var(--wa-space-2xl);
+  border: 1px solid var(--cd2026--color-border);
+  border-radius: var(--cd2026--radius);
+  background: var(--cd2026--color-surface);
+  box-shadow: var(--cd2026--shadow-page);
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+.login-trigger {
+  position: fixed;
+  inset-block-start: var(--wa-space-m);
+  inset-inline-end: var(--wa-space-l);
+  z-index: 1;
+}
+
+.login-trigger::part(button) {
+  min-inline-size: var(--wa-space-2xl);
+  min-block-size: var(--wa-space-2xl);
+  color: var(--cd2026--color-tertiary);
+}
+
+wa-dialog {
+  --width: min(28rem, calc(100vw - var(--wa-space-xl)));
+}
+
+.login-dialog-content {
+  display: grid;
+  gap: var(--wa-space-m);
+}
+
+form {
+  display: grid;
+  gap: var(--wa-space-m);
+}
+
+[role='alert'] {
+  color: var(--cd2026--color-tertiary);
+}

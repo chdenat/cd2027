@@ -2,12 +2,18 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const root = path.resolve(__dirname, '..', '_site')
+const siteOrigin = new URL(process.env.SITE_URL || 'https://christinedeloupy.fr').origin
 const sitemapPath = path.join(root, 'sitemap.xml')
 if (!fs.existsSync(sitemapPath)) throw new Error('The build did not produce sitemap.xml')
 
 const sitemap = fs.readFileSync(sitemapPath, 'utf8')
 const urls = [...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => match[1])
 if (!urls.length) throw new Error('The generated sitemap contains no routes')
+for (const value of urls) {
+  if (new URL(value).origin !== siteOrigin) {
+    throw new Error(`Sitemap URL does not use SITE_URL (${siteOrigin}): ${value}`)
+  }
+}
 
 const missing = []
 const generatedPages = new Map()
@@ -45,7 +51,7 @@ for (const [pathname, html] of generatedPages) {
     const tag = match[0]
     const attribute = /^<form\b/i.test(tag) ? 'action' : (/^<wa-dropdown-item\b/i.test(tag) ? 'data-href' : 'href')
     const value = tag.match(new RegExp(`\\b${attribute}=(['"])(.*?)\\1`, 'i'))?.[2]
-    if (value && /^https?:\/\/(?:www\.)?christinedeloupy\.fr(?:\/|$)/i.test(value)) {
+    if (value && new URL(value, siteOrigin).origin === siteOrigin && /^https?:\/\//i.test(value)) {
       unproxiedLinks.push(`${pathname}: ${value}`)
     }
   }
