@@ -1,0 +1,8 @@
+---
+permalink: assets/wordpress-content.css
+layout: false
+eleventyExcludeFromCollections: true
+---
+/* Block styles extracted from the public WordPress content at build time. */
+{% for rule in wordpress.contentStyleRules %}{{ rule.selector | safe }} { {{ rule.declarations | safe }} }
+{% endfor %}

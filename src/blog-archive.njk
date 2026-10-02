@@ -1,0 +1,27 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: wordpress.blogArchives
+  size: 1
+  alias: archive
+permalink: "{{ archive.outputPath }}"
+eleventyComputed:
+  title: "{{ 'Le journal' if archive.pageNumber == 1 else 'Le journal · page ' + archive.pageNumber }}"
+  description: "{{ site.description }}"
+  canonicalUrl: "{{ archive.link }}"
+---
+<article class="blog-page cd-content">
+  {% set wp = wordpress.blogPage %}{% include "includes/page-hero.njk" %}
+  {% if archive.pageNumber == 1 %}
+    <div class="entry-content blog-intro">{{ wordpress.blogPage.archiveIntroHtml | safe }}</div>
+  {% else %}
+    <div class="content-width"><h2>Mes derniers articles · page {{ archive.pageNumber }}</h2>{% include "includes/post-category-nav.njk" %}</div>
+  {% endif %}
+  <section class="blog-posts content-width" aria-label="Derniers articles">
+    <div class="content-card-grid wa-grid">
+      {% for post in archive.posts %}{% include "includes/post-card.njk" %}{% endfor %}
+    </div>
+    {% include "includes/archive-pagination.njk" %}
+  </section>
+  {% if archive.pageNumber == 1 %}<div class="entry-content">{{ wordpress.blogPage.archiveOutroHtml | safe }}</div>{% endif %}
+</article>

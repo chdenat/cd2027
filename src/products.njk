@@ -1,0 +1,49 @@
+---
+layout: layouts/wordpress.njk
+pagination:
+  data: wordpress.products
+  size: 1
+  alias: wp
+permalink: "{{ wp.outputPath }}"
+eleventyComputed:
+  title: "{{ wp.titleText }}"
+  description: "{{ wp.descriptionText or wp.excerptText or site.description }}"
+  canonicalUrl: "{{ wp.link }}"
+  image: "{{ wp.image or site.logo }}"
+  ogType: product
+---
+<article class="product-detail">
+  <wa-breadcrumb class="breadcrumbs content-width" aria-label="Fil d’Ariane">
+    <wa-breadcrumb-item href="/">Accueil</wa-breadcrumb-item>
+    <wa-breadcrumb-item href="/boutique/">Boutique</wa-breadcrumb-item>
+    <wa-breadcrumb-item>{{ wp.titleText }}</wa-breadcrumb-item>
+  </wa-breadcrumb>
+  <div class="product-detail__grid content-width">
+    <div class="product-gallery">
+      {% for image in wp.images %}
+        <figure><img src="{{ image.src }}" alt="{{ image.alt or wp.titleText }}" {% if not loop.first %}loading="lazy"{% endif %} /></figure>
+      {% endfor %}
+    </div>
+    <wa-card class="product-summary" appearance="outlined">
+      <div class="product-summary__body wa-stack wa-gap-m">
+        <p class="eyebrow">{{ wp.categories[0].name if wp.categories.length else 'Boutique' }}</p>
+        <h1>{{ wp.titleText }}</h1>
+        {% if wp.price %}<p class="product-price">{{ wp.price | price }}</p>{% endif %}
+        {% if wp.shortDescriptionHtml %}<div class="product-short-description cd-content">{{ wp.shortDescriptionHtml | safe }}</div>{% endif %}
+        {% if wp.is_purchasable and wp.inStock %}
+          <wa-button variant="brand" appearance="outlined" data-add-to-cart="{{ wp.id }}">
+            Ajouter au panier <wa-icon slot="end" name="basket-shopping" variant="solid" aria-hidden="true"></wa-icon>
+          </wa-button>
+          <p class="form-message" data-commerce-status role="status" aria-live="polite"></p>
+        {% else %}
+          <p class="stock-status">{{ 'Indisponible pour le moment' if not wp.inStock else 'Contactez-moi pour en savoir plus.' }}</p>
+        {% endif %}
+        <wa-button class="text-link" href="/panier/" appearance="plain" size="s">Voir le panier</wa-button>
+      </div>
+    </wa-card>
+  </div>
+  <section class="product-description cd-content">
+    <h2>Description</h2>
+    {{ wp.contentHtml | safe }}
+  </section>
+</article>

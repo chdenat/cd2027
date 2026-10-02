@@ -1,0 +1,342 @@
+@font-face {
+  font-family: 'Made Mirage';
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url('/assets/fonts/MadeMirageThin.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Made Mirage';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/assets/fonts/MadeMirageRegular.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Made Mirage';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/assets/fonts/MadeMirageMedium.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Made Mirage';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/assets/fonts/MadeMirageBold.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Made Mirage';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/assets/fonts/MadeMirageBlack.otf') format('opentype');
+}
+
+@font-face {
+  font-family: Montserrat;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/assets/fonts/Montserrat-VariableFont_wght.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Ibarra Real Nova';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/assets/fonts/IbarraRealNova-VariableFont_wght.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Great Vibes';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/assets/fonts/GreatVibes.woff2') format('woff2');
+}
+
+:root {
+  /* WordPress-derived values, kept in source-controlled code. */
+  --cd2026--color-primary: #ecc8c8;
+  --cd2026--color-secondary: #ddb5b7;
+  --cd2026--color-tertiary: #8f6b6b;
+  --cd2026--color-quaternary: #f9bfc1;
+  --cd2026--color-text: #737373;
+  --cd2026--color-base: #ffffff;
+  --cd2026--color-contrast: #000000;
+  --cd2026--color-lightgray: #b97a6a;
+  --cd2026--color-background: var(--cd2026--color-base);
+  --cd2026--color-foreground: var(--cd2026--color-contrast);
+  --cd2026--color-blanc: var(--cd2026--color-base);
+  --cd2026--color-white: var(--cd2026--color-base);
+  --cd2026--color-noir: var(--cd2026--color-contrast);
+  --cd2026--color-black: var(--cd2026--color-contrast);
+  --cd2026--color-couleur-texte: var(--cd2026--color-text);
+  --cd2026--color-body: #504e4e;
+  --cd2026--color-base-foreground: #ffffff;
+  --cd2026--color-on-accent: #ffffff;
+  --cd2026--color-contrast-foreground: #000000;
+  --cd2026--color-surface: #ffffff;
+  --cd2026--color-surface-lowered: #fbf6f6;
+  --cd2026--color-surface-raised: #ffffff;
+  --cd2026--color-border: #ecc8c8;
+  --cd2026--color-control-border: #ecc8c8;
+  --cd2026--color-social: #d698a6;
+  --cd2026--color-shadow: rgb(0 0 0 / 10%);
+  --cd2026--shadow: 3px 3px 9px rgb(0 0 0 / 10%);
+  --cd2026--shadow-page: 0 0.4rem 1.8rem rgb(80 50 50 / 6%);
+  --cd2026--shadow-banner: 0 0.4rem 0.8rem -0.4rem color-mix(in srgb, var(--cd2026--color-tertiary) 30%, transparent);
+
+  --cd2026--palette-neutral-95: #fbf9f9;
+  --cd2026--palette-neutral-90: #f1eeee;
+  --cd2026--palette-neutral-80: #ddd9d9;
+  --cd2026--palette-neutral-70: #c5c0c0;
+  --cd2026--palette-neutral-60: #a7a1a1;
+  --cd2026--palette-neutral-50: #8d8787;
+  --cd2026--palette-neutral-40: #737373;
+  --cd2026--palette-neutral-30: #5f5c5c;
+  --cd2026--palette-neutral-20: #504e4e;
+  --cd2026--palette-neutral-10: #373434;
+  --cd2026--palette-neutral-05: #211c1e;
+  --cd2026--palette-brand-95: #fbf6f6;
+  --cd2026--palette-brand-90: #f6eaea;
+  --cd2026--palette-brand-80: #ecc8c8;
+  --cd2026--palette-brand-70: #ddb5b7;
+  --cd2026--palette-brand-60: #c9979a;
+  --cd2026--palette-brand-50: #ae8083;
+  --cd2026--palette-brand-40: #8f6b6b;
+  --cd2026--palette-brand-30: #745657;
+  --cd2026--palette-brand-20: #5d4444;
+  --cd2026--palette-brand-10: #403030;
+  --cd2026--palette-brand-05: #2d2424;
+
+  --cd2026--font-body: 'Ibarra Real Nova', Georgia, serif;
+  --cd2026--font-heading: 'Made Mirage', Georgia, serif;
+  --cd2026--font-menu: Montserrat, Arial, sans-serif;
+  --cd2026--font-button: Montserrat, Arial, sans-serif;
+  --cd2026--font-script: 'Great Vibes', cursive;
+  --cd2026--font-size-small: clamp(0.8rem, 0.8rem + ((1vw - 0.2rem) * 0.25), 1rem);
+  --cd2026--font-size-medium: clamp(1.2rem, 1.2rem + ((1vw - 0.2rem) * 0.375), 1.5rem);
+  --cd2026--font-size-normal: clamp(0.9rem, 0.9rem + ((1vw - 0.2rem) * 0.375), 1.2rem);
+  --cd2026--font-size-large: clamp(1.6rem, 1.6rem + ((1vw - 0.2rem) * 0.5), 2rem);
+  --cd2026--font-size-xl: clamp(1.7rem, 1.7rem + ((1vw - 0.2rem) * 1), 2.5rem);
+  --cd2026--font-size-x-large: clamp(25.014px, 1.563rem + ((1vw - 3.2px) * 1.327), 42px);
+  --cd2026--font-size-xxl: clamp(2.6rem, 2.6rem + ((1vw - 0.2rem) * 1.125), 3.5rem);
+  --cd2026--space-20: 0.44rem;
+  --cd2026--space-30: 0.67rem;
+  --cd2026--space-40: 1rem;
+  --cd2026--space-50: 1.5rem;
+  --cd2026--space-60: 2.25rem;
+  --cd2026--space-70: 3.38rem;
+  --cd2026--space-80: 5.06rem;
+  --cd2026--content-width: 68.75rem;
+  --cd2026--wide-width: 100rem;
+  --cd2026--radius: 1rem;
+  --cd2026--radius-pill: 2rem;
+}
+
+:where(.wa-palette-cd2026) {
+  --wa-color-neutral-95: var(--cd2026--palette-neutral-95);
+  --wa-color-neutral-90: var(--cd2026--palette-neutral-90);
+  --wa-color-neutral-80: var(--cd2026--palette-neutral-80);
+  --wa-color-neutral-70: var(--cd2026--palette-neutral-70);
+  --wa-color-neutral-60: var(--cd2026--palette-neutral-60);
+  --wa-color-neutral-50: var(--cd2026--palette-neutral-50);
+  --wa-color-neutral-40: var(--cd2026--palette-neutral-40);
+  --wa-color-neutral-30: var(--cd2026--palette-neutral-30);
+  --wa-color-neutral-20: var(--cd2026--palette-neutral-20);
+  --wa-color-neutral-10: var(--cd2026--palette-neutral-10);
+  --wa-color-neutral-05: var(--cd2026--palette-neutral-05);
+  --wa-color-neutral: var(--wa-color-neutral-40);
+  --wa-color-neutral-key: 40;
+  --wa-color-brand-95: var(--cd2026--palette-brand-95);
+  --wa-color-brand-90: var(--cd2026--palette-brand-90);
+  --wa-color-brand-80: var(--cd2026--palette-brand-80);
+  --wa-color-brand-70: var(--cd2026--palette-brand-70);
+  --wa-color-brand-60: var(--cd2026--palette-brand-60);
+  --wa-color-brand-50: var(--cd2026--palette-brand-50);
+  --wa-color-brand-40: var(--cd2026--palette-brand-40);
+  --wa-color-brand-30: var(--cd2026--palette-brand-30);
+  --wa-color-brand-20: var(--cd2026--palette-brand-20);
+  --wa-color-brand-10: var(--cd2026--palette-brand-10);
+  --wa-color-brand-05: var(--cd2026--palette-brand-05);
+  --wa-color-brand: var(--wa-color-brand-40);
+  --wa-color-brand-key: 40;
+}
+
+:where(.wa-theme-cd2026),
+:where(.wa-theme-cd2026.wa-light),
+:where(.wa-theme-cd2026 .wa-light),
+:where(.wa-light .wa-theme-cd2026) {
+  color-scheme: light;
+  color: var(--wa-color-text-normal);
+  font-family: var(--wa-font-family-body);
+
+  --wa-font-family-body: var(--cd2026--font-body);
+  --wa-font-family-heading: var(--cd2026--font-heading);
+  --wa-font-family-action: var(--cd2026--font-menu);
+  --wa-font-family-longform: var(--cd2026--font-body);
+  --wa-font-family-code: ui-monospace, monospace;
+  --wa-font-weight-body: 500;
+  --wa-font-weight-heading: 600;
+  --wa-font-weight-action: 600;
+  --wa-line-height-normal: 1.4;
+  --wa-space-scale: 1;
+  --wa-border-radius-scale: 1.2;
+  --wa-border-radius-pill: var(--cd2026--radius-pill);
+  --wa-panel-border-radius: var(--cd2026--radius);
+  --wa-panel-border-width: 1px;
+  --wa-panel-border-style: solid;
+
+  --wa-color-surface-raised: var(--cd2026--color-surface-raised);
+  --wa-color-surface-default: var(--cd2026--color-surface);
+  --wa-color-surface-lowered: var(--cd2026--color-surface-lowered);
+  --wa-color-surface-border: var(--cd2026--color-border);
+  --wa-color-text-normal: var(--cd2026--color-body);
+  --wa-color-text-quiet: var(--cd2026--color-text);
+  --wa-color-text-link: var(--cd2026--color-tertiary);
+  --wa-color-focus: var(--cd2026--color-tertiary);
+  --wa-color-shadow: var(--cd2026--color-shadow);
+  --wa-color-overlay-modal: rgb(55 52 52 / 50%);
+  --wa-color-overlay-inline: rgb(80 78 78 / 14%);
+
+  --wa-color-brand-fill-loud: var(--cd2026--color-tertiary);
+  --wa-color-brand-fill-normal: var(--cd2026--color-secondary);
+  --wa-color-brand-fill-quiet: var(--cd2026--color-primary);
+  --wa-color-brand-on-loud: var(--cd2026--color-base);
+  --wa-color-brand-on-normal: var(--cd2026--color-body);
+  --wa-color-brand-on-quiet: var(--cd2026--color-text);
+  --wa-color-brand-border-loud: var(--cd2026--color-tertiary);
+  --wa-color-brand-border-normal: var(--cd2026--color-secondary);
+  --wa-color-brand-border-quiet: var(--cd2026--color-primary);
+
+  --wa-color-neutral-fill-quiet: var(--cd2026--color-surface-lowered);
+  --wa-color-neutral-fill-normal: var(--cd2026--color-primary);
+  --wa-color-neutral-fill-loud: var(--cd2026--color-tertiary);
+  --wa-color-neutral-border-quiet: var(--cd2026--color-border);
+  --wa-color-neutral-border-normal: var(--cd2026--color-secondary);
+  --wa-color-neutral-border-loud: var(--cd2026--color-tertiary);
+  --wa-color-neutral-on-quiet: var(--cd2026--color-text);
+  --wa-color-neutral-on-normal: var(--cd2026--color-text);
+  --wa-color-neutral-on-loud: var(--cd2026--color-base);
+
+  --wa-form-control-background-color: var(--cd2026--color-surface);
+  --wa-form-control-border-color: var(--cd2026--color-control-border);
+  --wa-form-control-border-width: 2px;
+  --wa-form-control-border-radius: 0.5rem;
+  --wa-form-control-font-family: var(--cd2026--font-menu);
+  --wa-form-control-height: 2.8rem;
+  --wa-form-control-activated-color: var(--cd2026--color-tertiary);
+  --wa-button-transform-hover: none;
+  --wa-button-transform-active: none;
+}
+
+html.wa-theme-cd2026.wa-dark,
+:where(.wa-theme-cd2026 .wa-dark),
+:where(.wa-dark .wa-theme-cd2026) {
+  color-scheme: dark;
+  color: var(--wa-color-text-normal);
+
+  --cd2026--color-primary: #563f44;
+  --cd2026--color-secondary: #63454c;
+  --cd2026--color-tertiary: #f1c8d0;
+  --cd2026--color-quaternary: #745258;
+  --cd2026--color-text: #f2e9ea;
+  --cd2026--color-base: #211c1e;
+  --cd2026--color-contrast: #fffafa;
+  --cd2026--color-lightgray: #dba397;
+  --cd2026--color-body: #f2e9ea;
+  --cd2026--color-base-foreground: #fffafa;
+  --cd2026--color-on-accent: #211c1e;
+  --cd2026--color-contrast-foreground: #211c1e;
+  --cd2026--color-surface: #292224;
+  --cd2026--color-surface-lowered: #211c1e;
+  --cd2026--color-surface-raised: #382e31;
+  --cd2026--color-border: #5b444a;
+  --cd2026--color-control-border: #76565e;
+  --cd2026--color-social: #e3a7b5;
+  --cd2026--color-shadow: rgb(0 0 0 / 32%);
+  --cd2026--shadow: 0 0.5rem 2rem rgb(0 0 0 / 32%);
+  --cd2026--shadow-page: 0 0.5rem 2rem rgb(0 0 0 / 32%);
+
+  --wa-color-surface-raised: var(--cd2026--color-surface-raised);
+  --wa-color-surface-default: var(--cd2026--color-surface);
+  --wa-color-surface-lowered: var(--cd2026--color-surface-lowered);
+  --wa-color-surface-border: var(--cd2026--color-border);
+  --wa-color-text-normal: var(--cd2026--color-body);
+  --wa-color-text-quiet: var(--cd2026--color-text);
+  --wa-color-text-link: var(--cd2026--color-tertiary);
+  --wa-color-focus: var(--cd2026--color-tertiary);
+  --wa-color-shadow: var(--cd2026--color-shadow);
+  --wa-color-overlay-modal: rgb(0 0 0 / 64%);
+  --wa-color-overlay-inline: rgb(255 250 250 / 10%);
+
+  --wa-color-brand-fill-loud: var(--cd2026--color-tertiary);
+  --wa-color-brand-fill-normal: var(--cd2026--color-secondary);
+  --wa-color-brand-fill-quiet: var(--cd2026--color-primary);
+  --wa-color-brand-on-loud: var(--cd2026--color-base);
+  --wa-color-brand-on-normal: var(--cd2026--color-body);
+  --wa-color-brand-on-quiet: var(--cd2026--color-text);
+  --wa-color-brand-border-loud: var(--cd2026--color-tertiary);
+  --wa-color-brand-border-normal: var(--cd2026--color-secondary);
+  --wa-color-brand-border-quiet: var(--cd2026--color-primary);
+
+  --wa-color-neutral-fill-quiet: var(--cd2026--color-surface-lowered);
+  --wa-color-neutral-fill-normal: var(--cd2026--color-primary);
+  --wa-color-neutral-fill-loud: var(--cd2026--color-tertiary);
+  --wa-color-neutral-border-quiet: var(--cd2026--color-border);
+  --wa-color-neutral-border-normal: var(--cd2026--color-secondary);
+  --wa-color-neutral-border-loud: var(--cd2026--color-tertiary);
+  --wa-color-neutral-on-quiet: var(--cd2026--color-text);
+  --wa-color-neutral-on-normal: var(--cd2026--color-text);
+  --wa-color-neutral-on-loud: var(--cd2026--color-base);
+
+  --wa-form-control-background-color: var(--cd2026--color-surface);
+  --wa-form-control-border-color: var(--cd2026--color-control-border);
+  --wa-form-control-activated-color: var(--cd2026--color-tertiary);
+}
+
+:root { --cd2026--page-padding-inline: clamp(1rem, 4vw, 2rem); }
+
+/* Preserve explicitly authored accents through code-owned theme tokens. */
+:root {
+  --cd2026--editorial-color-333333: #333333;
+  --cd2026--editorial-color-808080: #808080;
+  --cd2026--editorial-color-039: #039;
+  --cd2026--editorial-color-800080: #800080;
+  --cd2026--editorial-color-9e005d: #9e005d;
+  --cd2026--editorial-color-a61b67: #a61b67;
+  --cd2026--editorial-color-d45252: #d45252;
+  --cd2026--editorial-color-d65252: #d65252;
+  --cd2026--editorial-color-eea2a2: #eea2a2;
+  --cd2026--editorial-color-eea2ac: #eea2ac;
+  --cd2026--editorial-color-f05c8d: #f05c8d;
+  --cd2026--editorial-color-fc758e: #fc758e;
+  --cd2026--editorial-color-ff99cc: #ff99cc;
+}
+:root.wa-dark {
+  --cd2026--editorial-color-333333: var(--cd2026--color-text);
+  --cd2026--editorial-color-808080: var(--cd2026--color-text);
+  --cd2026--editorial-color-039: color-mix(in srgb, #039 50%, white);
+  --cd2026--editorial-color-800080: color-mix(in srgb, #800080 50%, white);
+  --cd2026--editorial-color-9e005d: color-mix(in srgb, #9e005d 50%, white);
+  --cd2026--editorial-color-a61b67: color-mix(in srgb, #a61b67 50%, white);
+  --cd2026--editorial-color-d45252: color-mix(in srgb, #d45252 50%, white);
+  --cd2026--editorial-color-d65252: color-mix(in srgb, #d65252 50%, white);
+  --cd2026--editorial-color-eea2a2: color-mix(in srgb, #eea2a2 50%, white);
+  --cd2026--editorial-color-eea2ac: color-mix(in srgb, #eea2ac 50%, white);
+  --cd2026--editorial-color-f05c8d: color-mix(in srgb, #f05c8d 50%, white);
+  --cd2026--editorial-color-fc758e: color-mix(in srgb, #fc758e 50%, white);
+  --cd2026--editorial-color-ff99cc: color-mix(in srgb, #ff99cc 50%, white);
+}
+
+:root { --cd2026--hero-font-size: var(--cd2026--font-size-xxl); }
+
+:root { --cd2026--footer-padding-block: 6.25rem; }

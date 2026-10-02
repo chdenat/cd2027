@@ -1,19 +1,15 @@
 {
   "name": "cd2026",
   "version": "1.0.0",
-  "description": "Starter Eleventy piloté par Bun avec Web Awesome et Font Awesome",
+  "description": "Front-end Eleventy pour Christine Deloupy, alimenté par WordPress et WooCommerce",
   "main": "index.js",
   "scripts": {
-    "dev": "bun run build:site && bunx @11ty/eleventy --serve",
-    "build": "bun run build:site && bun run build:assets",
-    "build:site": "bunx @11ty/eleventy",
-    "build:assets": "bun build src/assets/main.js --outdir _site/assets --minify",
-    "start": "bun run dev",
-    "check": "bun run build",
+    "dev": "node scripts/dev-server.js",
+    "build": "eleventy",
+    "check": "npm run build && node scripts/check-routes.js",
     "webhook": "bun run webhook/server.js"
   },
   "private": true,
-  "packageManager": "bun@1.3.14",
   "dependencies": {
     "@11ty/eleventy": "^3.1.6",
     "@awesome.me/webawesome": "^3.11.0",

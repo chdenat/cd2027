@@ -1,0 +1,22 @@
+<footer slot="footer" class="site-footer">
+  <div class="site-footer__surface">
+    <div class="site-footer__columns content-width wa-grid">
+      <div class="site-footer__identity wa-stack">
+        <wa-button class="footer-brand" href="/" appearance="plain" aria-label="{{ site.name }}, accueil"><img src="{{ wordpress.footer.logo }}" alt="" width="140" height="140" /></wa-button>
+        <nav class="footer-social wa-cluster" aria-label="Réseaux sociaux">
+          {% for item in wordpress.footer.socialLinks %}<wa-button href="{{ item.href }}" target="_blank" rel="noopener noreferrer" appearance="plain" size="s" aria-label="{{ item.label }}"><wa-icon name="{{ item.icon }}" family="brands" aria-hidden="true"></wa-icon></wa-button>{% endfor %}
+        </nav>
+        <wa-button class="footer-profile" href="{{ wordpress.footer.profileLink.href }}" appearance="plain">{{ wordpress.footer.profileLink.label }}</wa-button>
+      </div>
+      <nav class="site-footer__navigation wa-stack" aria-label="Découvrir Christine Deloupy">
+        {% for item in wordpress.footer.links %}<h3><wa-button href="{{ item.href }}" appearance="plain">{{ item.label }}</wa-button></h3>{% endfor %}
+      </nav>
+    </div>
+    <div class="site-footer__legal content-width">
+      <wa-divider></wa-divider>
+      <nav class="footer-links wa-cluster" aria-label="Informations légales">
+        {% for item in wordpress.footerNavigation %}<wa-button href="{{ item.href }}" appearance="plain" size="s">{{ item.label }}</wa-button>{% endfor %}
+      </nav>
+    </div>
+  </div>
+</footer>

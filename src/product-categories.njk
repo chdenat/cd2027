@@ -1,0 +1,26 @@
+---
+layout: layouts/wordpress.njk
+pagination:
+  data: wordpress.productCategories
+  size: 1
+  alias: wp
+permalink: "{{ wp.outputPath }}"
+eleventyComputed:
+  title: "{{ wp.titleText }}"
+  description: "{{ wp.descriptionText or ('Les produits : ' + wp.titleText) }}"
+  canonicalUrl: "{{ wp.link }}"
+---
+<section class="archive-page content-width">
+  <header class="archive-header">
+    <p class="eyebrow">La boutique</p>
+    <h1>{{ wp.titleText }}</h1>
+    {% if wp.descriptionHtml %}<div class="archive-description cd-content">{{ wp.descriptionHtml | safe }}</div>{% endif %}
+  </header>
+  <div class="product-grid">
+    {% for product in wordpress.products %}
+      {% if wp.id in product.categoryIds %}
+        {% include "includes/product-card.njk" %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>

@@ -1,0 +1,13 @@
+<wa-card class="content-card" appearance="outlined"{% if post.image %} with-media{% endif %}{% if archive.kind != 'blog-archive' %} with-footer{% endif %}>
+  {% if post.image %}<img class="content-card__image" slot="media" src="{{ post.image }}" alt="{{ post.imageAlt }}" loading="lazy" />{% endif %}
+  <div class="content-card__body">
+    {% if archive.kind != 'blog-archive' %}<p class="eyebrow">par Christine · {{ post.date | frenchDate }}</p>{% endif %}
+    <h2><wa-button id="article-title-{{ post.id }}" href="{{ post.path }}" appearance="plain" class="card-title">{{ post.titleText }}</wa-button></h2>
+    <wa-tooltip for="article-title-{{ post.id }}" trigger="hover focus">{{ post.titleText }}</wa-tooltip>
+    {% if archive.kind == 'blog-archive' %}
+      <div class="blog-post-meta"><span>par Christine</span><time datetime="{{ post.date }}">{{ post.date | frenchDate }}</time></div>
+      <p>{{ post.archiveExcerptText or (post.excerptText | summary(25)) }} <wa-button class="blog-read-more" href="{{ post.path }}" appearance="plain">Lire la suite<span class="wa-visually-hidden"> : {{ post.titleText }}</span></wa-button></p>
+    {% elif post.excerptText %}<p>{{ post.excerptText | summary }}</p>{% endif %}
+  </div>
+  {% if archive.kind != 'blog-archive' %}<div slot="footer" class="wa-cluster wa-justify-content-end"><wa-button class="article-read-more" href="{{ post.path }}" appearance="outlined" variant="brand" size="s">Lire l’article <wa-icon slot="end" name="book-open" variant="solid" aria-hidden="true"></wa-icon></wa-button></div>{% endif %}
+</wa-card>

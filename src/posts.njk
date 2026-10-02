@@ -1,0 +1,24 @@
+---
+layout: layouts/wordpress.njk
+pagination:
+  data: wordpress.posts
+  size: 1
+  alias: wp
+permalink: "{{ wp.outputPath }}"
+eleventyComputed:
+  title: "{{ wp.yoast_head_json.title if wp.yoast_head_json else wp.titleText }}"
+  description: "{{ wp.descriptionText or wp.excerptText or site.description }}"
+  canonicalUrl: "{{ wp.link }}"
+  image: "{{ wp.image or site.logo }}"
+  ogType: article
+---
+<article class="article-page cd-content">
+  {% include "includes/page-hero.njk" %}
+  <div class="article-meta content-width wa-cluster">
+    <time datetime="{{ wp.date }}">{{ wp.date | frenchDate }}</time>
+    {% for category in wp.categoryTerms %}<wa-button href="{{ category.path }}" appearance="plain" size="s">{{ category.titleText }}</wa-button>{% endfor %}
+  </div>
+  <div class="entry-content">
+    {{ wp.contentHtml | safe }}
+  </div>
+</article>

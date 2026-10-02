@@ -1,0 +1,24 @@
+---
+layout: layouts/base.njk
+pagination:
+  data: wordpress.postCategoryArchives
+  size: 1
+  alias: archive
+permalink: "{{ archive.outputPath }}"
+eleventyComputed:
+  title: "{{ archive.category.titleText }}{% if archive.pageNumber > 1 %} · page {{ archive.pageNumber }}{% endif %} · Le journal"
+  description: "{{ archive.category.descriptionText or ('Articles de la catégorie ' + archive.category.titleText) }}"
+  canonicalUrl: "{{ archive.link }}"
+---
+{% set currentCategory = archive.category.id %}
+<section class="archive-page content-width">
+  <header class="archive-header">
+    <h1>{{ archive.category.titleText }}</h1>
+    {% if archive.category.descriptionHtml %}<div class="archive-description cd-content">{{ archive.category.descriptionHtml | safe }}</div>{% endif %}
+  </header>
+  {% include "includes/post-category-nav.njk" %}
+  <div class="content-card-grid">
+    {% for post in archive.posts %}{% include "includes/post-card.njk" %}{% endfor %}
+  </div>
+  {% include "includes/archive-pagination.njk" %}
+</section>

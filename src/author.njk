@@ -1,0 +1,16 @@
+---
+layout: layouts/wordpress.njk
+permalink: author/christine/index.html
+title: Christine · Le journal
+description: Les articles de Christine Deloupy.
+canonicalUrl: https://christinedeloupy.fr/author/christine/
+---
+<section class="archive-page content-width">
+  <header class="archive-header">
+    <p class="eyebrow">Autrice</p>
+    <h1>Christine</h1>
+  </header>
+  <div class="content-card-grid">
+    {% for post in wordpress.posts %}{% include "includes/post-card.njk" %}{% endfor %}
+  </div>
+</section>

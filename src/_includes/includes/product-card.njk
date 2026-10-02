@@ -1,0 +1,8 @@
+<wa-card class="product-card" appearance="outlined"{% if product.image %} with-media{% endif %} with-footer>
+  {% if product.image %}<img class="product-card__image" slot="media" src="{{ product.image }}" alt="{{ product.imageAlt }}" loading="lazy" />{% endif %}
+  <div class="product-card__body">
+    <h2><wa-button href="{{ product.path }}" appearance="plain" class="card-title">{{ product.titleText }}</wa-button></h2>
+    {% if product.price %}<p class="product-price">{{ product.price | price }}</p>{% endif %}
+  </div>
+  <wa-button slot="footer" href="{{ product.path }}" appearance="plain" size="s">Découvrir <wa-icon slot="end" name="arrow-right" aria-hidden="true"></wa-icon></wa-button>
+</wa-card>

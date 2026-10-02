@@ -1,0 +1,14 @@
+---
+layout: layouts/base.njk
+---
+{% if wp %}
+  {% if wp.kind == 'page' %}
+    {% include "includes/wordpress-page.njk" %}
+  {% elif wp.kind == 'post' %}
+    {{ content | safe }}
+  {% elif wp.kind == 'product' %}
+    {{ content | safe }}
+  {% endif %}
+{% else %}
+  {{ content | safe }}
+{% endif %}

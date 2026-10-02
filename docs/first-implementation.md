@@ -1,0 +1,29 @@
+# First implementation — status and boundaries
+
+Date: 1 October 2026.
+
+## Implemented
+
+- Eleventy generates the homepage and the current WordPress public route families from published records: 58 other pages, 142 articles, 7 purchasable products, 5 article categories, 6 product categories, and the Christine author archive. The generated sitemap contains 220 routes.
+- The header and legal footer navigation are read from the public WordPress navigation records. Internal links are mapped back to the Eleventy routes. Lazy-loaded images in WordPress-rendered content are activated for static output.
+- The homepage and editorial routes use current WordPress content instead of the previous fictional starter copy. Product detail, shop/category archives, the article archive, cart, and checkout each have an Eleventy template.
+- WordPress theme values are copied into code-owned `--cd2026--*` tokens and mapped to Web Awesome tokens. Web Awesome is self-hosted from the installed package, and Font Awesome SVGs are copied locally. The current site’s public images and fonts are still served from `christinedeloupy.fr`.
+- On `localhost:4555`, WooCommerce’s Store API is proxied same-origin so the browser can keep its Cart-Token without WordPress CORS headers. Cart reads, add/remove/update, shipping-rate selection, checkout fields, and order submission use WooCommerce’s public customer-facing API.
+- Forminator form IDs 10671 and 10569 and MailPoet IDs 1, 5, 7, 9, 11, 12, 13, and 15 load their current fields from WordPress at runtime. Eleventy owns the page shell and theme; the local adapter preserves the provider’s hidden form tokens and forwards submissions to the existing plugin handlers.
+- The local development server polls published pages, posts, product/category data, and navigation every 60 seconds. On a change it triggers a new Eleventy build. Draft and private records are not requested.
+
+## Not yet certified
+
+This is a route-complete first pass, not a pixel-perfect approval of all 220 routes. The current theme tokens match the public WordPress palette and typography roles, but Gutenberg, Getwid, CoBlocks, custom fields, and plugin-rendered sections still need comparison and dedicated renderers where their original styles are not reproduced. External image and font hosting also remains coupled to the current WordPress domain.
+
+The checkout adapter follows WooCommerce Store API cart and checkout endpoints. The live store currently advertises PayPal and bank transfer. No live order was placed during implementation, so payment gateway redirects, gateway-specific `payment_data`, order confirmation callbacks, taxes, coupons, account creation, and each product’s optional fields still need a staging end-to-end test. An incompatible gateway may require a narrowly scoped server adapter or a documented provider-hosted payment step; it must not silently fall back to the WordPress checkout page.
+
+The account, memberships, subscriptions, course access, invoices, booking, and payment-result routes are generated as Eleventy pages, but their authenticated runtime operations have not been connected. Contact Form 7 markup found on a payment-result page is also not included in the current Forminator/MailPoet adapter. File uploads, CAPTCHA, and other special form fields need individual provider tests before those forms are called complete.
+
+## Automatic publishing path
+
+Local polling is appropriate for `localhost:4555`; a public WordPress server cannot call a developer’s localhost webhook. The local server detects changes to public records and rebuilds, but it does not deploy anything.
+
+For production, place an authenticated webhook endpoint or scheduled worker on an internet-reachable host. Treat its event as a signal, fetch the canonical published WordPress state on the server, build the Eleventy artifact, run route/link and commerce smoke checks, and promote the artifact atomically only after they pass. Add retries and scheduled reconciliation so one missed event cannot leave the frontend stale. Keep the previous release available for rollback. Never expose WordPress credentials in the Eleventy output or browser code.
+
+The browser currently calls same-origin paths such as `/wp-json/wc/store/v1/cart`. A production host must provide an equivalent HTTPS reverse proxy or server adapter and the form routes used here. Direct browser-to-WordPress calls are blocked by the current site’s CORS response for `localhost:4555`.

@@ -1,0 +1,13 @@
+---
+layout: layouts/wordpress.njk
+pagination:
+  data: wordpress.pages
+  size: 1
+  alias: wp
+permalink: "{{ wp.outputPath }}"
+eleventyComputed:
+  title: "{{ wp.yoast_head_json.title if wp.yoast_head_json else wp.titleText }}"
+  description: "{{ wp.descriptionText or wp.excerptText or site.description }}"
+  canonicalUrl: "{{ wp.link }}"
+  image: "{{ wp.image or site.logo }}"
+---

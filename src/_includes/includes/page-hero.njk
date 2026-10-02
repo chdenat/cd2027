@@ -1,0 +1,4 @@
+<header class="page-hero{% if not wp.image %} page-hero--plain{% endif %}">
+  {% if wp.image %}<img class="page-hero__image" src="{{ wp.image }}" alt="" decoding="async" fetchpriority="high" />{% endif %}
+  <div class="page-hero__content content-width wa-stack"><div class="page-hero__spacer" aria-hidden="true"></div><h1>{{ wp.titleText }}</h1></div>
+</header>

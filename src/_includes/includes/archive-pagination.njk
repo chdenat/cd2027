@@ -1,0 +1,6 @@
+{% if archive.totalPages > 1 %}
+  <nav class="archive-pagination wa-cluster wa-gap-xs" aria-label="Pagination du journal">
+    {% if archive.previousPage %}<wa-button href="{{ archive.previousPage.path }}" appearance="plain" size="s" rel="prev"><wa-icon slot="start" name="arrow-left" aria-hidden="true"></wa-icon>Page précédente</wa-button>{% endif %}
+    {% if archive.nextPage %}<wa-button href="{{ archive.nextPage.path }}" appearance="plain" size="s" rel="next">Page suivante<wa-icon slot="end" name="arrow-right" aria-hidden="true"></wa-icon></wa-button>{% endif %}
+  </nav>
+{% endif %}

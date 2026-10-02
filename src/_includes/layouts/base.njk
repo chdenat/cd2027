@@ -1,46 +1,110 @@
 <!doctype html>
-<html lang="fr" class="wa-theme-shoelace wa-palette-default wa-brand-pink wa-light">
+<html lang="fr" class="wa-theme-cd2026 wa-palette-cd2026 wa-light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script>
+      (() => {
+        try {
+          const saved = localStorage.getItem('cd2026-color-scheme')
+          const dark = saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.classList.toggle('wa-dark', dark)
+          document.documentElement.classList.toggle('wa-light', !dark)
+        } catch {}
+      })()
+    </script>
     <meta name="description" content="{{ description or site.description }}" />
+    <meta property="og:type" content="{{ ogType or 'website' }}" />
+    <meta property="og:site_name" content="{{ site.name }}" />
+    <meta property="og:title" content="{{ title or site.name }}" />
+    <meta property="og:description" content="{{ description or site.description }}" />
+    {% if image %}<meta property="og:image" content="{{ image }}" />{% endif %}
+    {% if canonicalUrl %}<link rel="canonical" href="{{ canonicalUrl }}" />{% endif %}
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/assets/main.css" />
-    <title>{{ title }} · {{ site.name }}</title>
+    <link rel="stylesheet" href="/assets/webawesome/styles/webawesome.css" />
+    <link rel="stylesheet" href="/assets/theme.css" />
+    <link rel="stylesheet" href="/assets/styles.css" />
+    <link rel="stylesheet" href="/assets/wordpress-content.css" />
+    <title>{{ title or site.name }} · {{ site.name }}</title>
   </head>
   <body>
     <wa-page>
-      <header slot="header" class="site-header section-gutter wa-split">
-        <a class="brand-mark" href="#accueil" aria-label="{{ site.name }}, retour à l’accueil">
-          <span class="brand-mark__icon" aria-hidden="true">
-            <wa-icon name="star" variant="solid"></wa-icon>
-          </span>
-          <span>{{ site.name }}</span>
-        </a>
+      <header slot="header" class="site-header section-gutter">
+        <div class="site-identity">
+          <wa-button class="brand-mark" href="/" appearance="plain" aria-label="{{ site.name }}, accueil">
+            <img src="{{ site.logo }}" alt="" width="90" height="90" />
+          </wa-button>
+          <nav class="site-social wa-desktop-only" aria-label="Réseaux sociaux">
+            {% for item in site.socialLinks %}<wa-button href="{{ item.href }}" target="_blank" rel="noopener noreferrer" appearance="plain" size="s" aria-label="{{ item.label }}"><wa-icon name="{{ item.icon }}" family="brands" aria-hidden="true"></wa-icon></wa-button>{% endfor %}
+          </nav>
+        </div>
 
-        <nav class="header-nav wa-cluster wa-gap-l" aria-label="Navigation principale">
-          {% for item in site.navigation %}
-            <a href="{{ item.href }}">{{ item.label }}</a>
+        <nav class="header-nav" aria-label="Navigation principale">
+          {% for item in wordpress.navigation %}
+            {% if item.items %}
+              <wa-dropdown class="nav-dropdown" placement="bottom-start">
+                <wa-button slot="trigger" appearance="plain" size="s" with-caret>{{ item.label }}</wa-button>
+                {% for child in item.items %}<wa-dropdown-item value="{{ child.href }}" data-href="{{ child.href }}">{{ child.label }}</wa-dropdown-item>{% endfor %}
+              </wa-dropdown>
+            {% else %}
+              <wa-button href="{{ item.href }}" appearance="plain" size="s">{{ item.label }}</wa-button>
+            {% endif %}
           {% endfor %}
-          <wa-button href="#contact" variant="brand" size="s">Prendre rendez-vous</wa-button>
+          <wa-button class="cart-link" href="/panier/" appearance="plain" size="s" aria-label="Voir le panier">
+            <wa-icon slot="start" name="basket-shopping" variant="solid" aria-hidden="true"></wa-icon>
+            Panier <wa-badge variant="brand" pill><span data-cart-count aria-live="polite">0</span></wa-badge>
+          </wa-button>
         </nav>
 
-        <wa-button data-toggle-nav appearance="plain" class="wa-mobile-only nav-toggle" aria-label="Ouvrir le menu">
-          <wa-icon name="bars" variant="solid"></wa-icon>
-        </wa-button>
+        <div class="header-tools">
+          <wa-button id="cd2026-theme-selector-trigger" data-theme-selector-trigger appearance="plain" size="s" aria-label="Choisir le thème" aria-haspopup="true">
+            <wa-icon data-theme-selector-icon name="circle-half-stroke" variant="solid" aria-hidden="true"></wa-icon>
+          </wa-button>
+          <wa-popover class="theme-selector" for="cd2026-theme-selector-trigger" placement="bottom-end" distance="8">
+            <div class="theme-selector__choices" role="group" aria-label="Choisir le thème">
+              <wa-button data-theme-choice="system" data-popover="close" appearance="plain" size="s" aria-label="Automatique, selon l’appareil" aria-pressed="false">
+                <wa-icon name="desktop" variant="solid" aria-hidden="true"></wa-icon>
+              </wa-button>
+              <wa-button data-theme-choice="light" data-popover="close" appearance="plain" size="s" aria-label="Thème clair" aria-pressed="false">
+                <wa-icon name="sun" variant="solid" aria-hidden="true"></wa-icon>
+              </wa-button>
+              <wa-button data-theme-choice="dark" data-popover="close" appearance="plain" size="s" aria-label="Thème sombre" aria-pressed="false">
+                <wa-icon name="moon" variant="solid" aria-hidden="true"></wa-icon>
+              </wa-button>
+            </div>
+          </wa-popover>
+          <wa-button data-toggle-nav appearance="plain" class="wa-mobile-only nav-toggle" aria-label="Ouvrir le menu">
+            <wa-icon name="bars" variant="solid" aria-hidden="true"></wa-icon>
+          </wa-button>
+        </div>
       </header>
 
-      <main>
+      <nav slot="navigation" class="mobile-navigation" aria-label="Navigation mobile">
+        <div class="wa-stack wa-gap-xs">
+          <wa-button href="/" appearance="plain" data-drawer="close">Accueil</wa-button>
+          {% for item in wordpress.navigation %}
+            {% if item.items %}
+              <wa-dropdown class="mobile-nav-dropdown" placement="bottom-start">
+                <wa-button slot="trigger" appearance="plain" with-caret>{{ item.label }}</wa-button>
+                {% for child in item.items %}<wa-dropdown-item value="{{ child.href }}" data-href="{{ child.href }}">{{ child.label }}</wa-dropdown-item>{% endfor %}
+              </wa-dropdown>
+            {% else %}
+              <wa-button href="{{ item.href }}" appearance="plain" data-drawer="close">{{ item.label }}</wa-button>
+            {% endif %}
+          {% endfor %}
+          <wa-button href="/panier/" appearance="plain" data-drawer="close">Panier <wa-badge variant="brand" pill><span data-cart-count>0</span></wa-badge></wa-button>
+        </div>
+        <wa-divider></wa-divider>
+        <nav class="site-social site-social--mobile" aria-label="Réseaux sociaux">
+          {% for item in site.socialLinks %}<wa-button href="{{ item.href }}" target="_blank" rel="noopener noreferrer" appearance="plain" size="s"><wa-icon slot="start" name="{{ item.icon }}" family="brands" aria-hidden="true"></wa-icon>{{ item.label }}</wa-button>{% endfor %}
+        </nav>
+      </nav>
+
+      <main id="contenu">
         {{ content | safe }}
       </main>
 
-      <footer slot="footer" class="site-footer section-gutter wa-split">
-        <span>© {{ site.name }} · Femmes sages et souveraines</span>
-        <span class="footer-meta">
-          <wa-icon name="code" variant="solid" aria-hidden="true"></wa-icon>
-          <span>Accompagnements · Talismans · Présence</span>
-        </span>
-      </footer>
+      {% include "includes/site-footer.njk" %}
     </wa-page>
     <script type="module" src="/assets/main.js"></script>
   </body>
