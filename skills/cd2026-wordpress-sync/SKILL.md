@@ -27,24 +27,22 @@ Use this skill for WordPress publish hooks, webhook verification, API fetching, 
 - Do not publish draft, preview, autosave, private, or password-protected content to the public output.
 - WordPress status hooks can run on an update where status is unchanged. Filter the desired public states and make processing idempotent.
 
-## Receiver and job processing
+## Queue and job processing
 
-1. Accept only the intended HTTP method and route over HTTPS.
-2. Verify the HMAC against the exact raw request body using a constant-time comparison. Include an event timestamp or nonce to reject replayed requests.
-3. Validate the event schema and size before accepting the job.
-4. Persist the job durably before returning success. Never acknowledge an event that only exists in process memory.
-5. Deduplicate by event ID and coalesce rapid changes by record type and ID without losing the latest revision.
-6. Fetch canonical WordPress state using server-only, least-privilege credentials.
-7. Build and validate an isolated Eleventy artifact. Promote it only after all required route and asset checks pass.
-8. Record source revision, attempt count, error, build ID, and deployment ID; retry transient failures and surface exhausted jobs.
+1. Persist public-content events in a durable WordPress database outbox; never keep the queue only in process memory.
+2. Send a least-privilege authenticated `repository_dispatch` request to GitHub from the PHP MU-plugin. Keep the token in server-side WordPress configuration, outside public output.
+3. Batch pending events and remove them from the outbox only after GitHub accepts the request. Retry failures through WP-Cron.
+4. Fetch canonical WordPress state in the GitHub build rather than trusting event payloads as content.
+5. Build and validate an isolated Eleventy artifact. Promote it only after all required route checks pass.
+6. Keep build and deployment identifiers in GitHub Actions logs; scheduled reconciliation recovers from missed events.
 
 ## Recovery
 
 - Run a scheduled full reconciliation against WordPress so a lost or malformed webhook cannot leave production stale indefinitely.
 - Keep the previous successful artifact available for rollback.
 - Use staging previews for editorial review when required; keep preview credentials and unpublished content private.
-- Track freshness from WordPress modification through successful deployment. A `202 Accepted` from the webhook receiver means a job was stored, not that the frontend is live.
+- Track freshness from WordPress modification through successful deployment. Acceptance of a GitHub dispatch means a workflow was queued, not that the frontend is live.
 
 ## Current implementation note
 
-Current implementation: the Bun receiver validates an HMAC signature, five-minute timestamp window, body size, and generic WordPress record-event schema, then durably stores deduplicated jobs under `.data/webhooks/pending/`. The WordPress MU plugin queues public post types (including pages, articles and products), product metadata, public taxonomy, media, and menu changes, then retries delivery through WP-Cron. `webhook:dispatch` batches pending events to GitHub Actions. The staging workflow performs a full canonical WordPress fetch, Eleventy build, route check, and atomic staging deployment, with a daily reconciliation build. Local development does not consume the publishing queue. Production still needs its own deployment environment and target.
+Current implementation: the WordPress MU-plugin queues public post types (including pages, articles and products), product metadata, public taxonomy, media, and menu changes in the WordPress options table. WP-Cron retries a batched authenticated `repository_dispatch` request to GitHub. The staging workflow performs a full canonical WordPress fetch, Eleventy build, route check, and atomic staging deployment, with a daily reconciliation build. Local development does not consume the publishing queue. Production still needs its own deployment environment and target.

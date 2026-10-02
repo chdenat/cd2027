@@ -63,6 +63,5 @@ jobs:
           STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
           STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
           STAGING_SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
-          STAGING_SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
           STAGING_REMOTE_ROOT: ${{ vars.STAGING_REMOTE_ROOT }}
         run: bash scripts/upload-staging.sh

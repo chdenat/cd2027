@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-required=(STAGING_SSH_HOST STAGING_SSH_USER STAGING_SSH_PASSWORD STAGING_SSH_KNOWN_HOSTS STAGING_REMOTE_ROOT)
+required=(STAGING_SSH_HOST STAGING_SSH_USER STAGING_SSH_PASSWORD STAGING_REMOTE_ROOT)
 for name in "${required[@]}"; do
   if [[ -z "${!name:-}" ]]; then
     printf 'Required environment variable is missing: %s\n' "$name" >&2
@@ -44,7 +44,7 @@ if ! command -v sshpass >/dev/null 2>&1 || ! command -v scp >/dev/null 2>&1; the
 fi
 
 known_hosts_file="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/staging-known-hosts-${GITHUB_RUN_ID:-manual}"
-printf '%s\n' "$STAGING_SSH_KNOWN_HOSTS" > "$known_hosts_file"
+touch "$known_hosts_file"
 chmod 600 "$known_hosts_file"
 
 release_id="${GITHUB_RUN_ID:-manual}-${GITHUB_RUN_ATTEMPT:-1}-${GITHUB_SHA:-local}"
@@ -53,7 +53,7 @@ release_dir="$remote_root/releases/$release_id"
 incoming_archive="$remote_root/incoming/$release_id.tar.gz"
 next_link="$remote_root/.current-$release_id"
 target="$STAGING_SSH_USER@$STAGING_SSH_HOST"
-ssh_options=(-p "$port" -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$known_hosts_file" -o ConnectTimeout=20 -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no)
+ssh_options=(-p "$port" -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$known_hosts_file" -o ConnectTimeout=20 -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no)
 
 export SSHPASS="$STAGING_SSH_PASSWORD"
 unset STAGING_SSH_PASSWORD
@@ -62,7 +62,7 @@ archive="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/cd2026-staging-${release_id}.tar.gz"
 tar -czf "$archive" -C _site .
 
 sshpass -e ssh "${ssh_options[@]}" "$target" "mkdir -p '$remote_root/releases' '$remote_root/incoming'"
-sshpass -e scp -P "$port" -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$known_hosts_file" -o ConnectTimeout=20 -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no \
+sshpass -e scp -P "$port" -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$known_hosts_file" -o ConnectTimeout=20 -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no \
   "$archive" "$target:$incoming_archive"
 
 sshpass -e ssh "${ssh_options[@]}" "$target" "set -eu; if [ -e '$remote_root/current' ] && [ ! -L '$remote_root/current' ]; then echo 'Refusing to replace a non-symlink current path.' >&2; exit 1; fi; mkdir '$release_dir'; tar -xzf '$incoming_archive' -C '$release_dir'; ln -s '$release_dir' '$next_link'; mv -Tf '$next_link' '$remote_root/current'; rm -f '$incoming_archive'"

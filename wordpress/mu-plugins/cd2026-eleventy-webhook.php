@@ -8,6 +8,7 @@ defined('ABSPATH') || exit;
 
 const CD2026_ELEVENTY_OUTBOX_OPTION = 'cd2026_eleventy_webhook_outbox';
 const CD2026_ELEVENTY_SEND_HOOK = 'cd2026_send_eleventy_webhook';
+const CD2026_GITHUB_DISPATCH_EVENT_TYPE = 'cd2026_staging_deploy';
 
 add_action('wp_after_insert_post', 'cd2026_queue_eleventy_post_change', 20, 4);
 add_action('woocommerce_new_product', 'cd2026_queue_eleventy_product_change', 100, 1);
@@ -176,8 +177,14 @@ function cd2026_schedule_eleventy_webhook($delay) {
 }
 
 function cd2026_send_eleventy_webhook() {
-    if (!defined('CD2026_ELEVENTY_WEBHOOK_URL') || !defined('CD2026_ELEVENTY_WEBHOOK_SECRET')) {
-        error_log('CD2026 webhook is queued but its URL or secret is not configured.');
+    if (!defined('CD2026_GITHUB_DISPATCH_TOKEN') || !defined('CD2026_GITHUB_REPOSITORY')) {
+        error_log('CD2026 publish queue is waiting for its GitHub dispatch configuration.');
+        return;
+    }
+
+    $repository = (string) CD2026_GITHUB_REPOSITORY;
+    if (!preg_match('/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/', $repository) || !CD2026_GITHUB_DISPATCH_TOKEN) {
+        error_log('CD2026 publish queue has an invalid GitHub dispatch configuration.');
         return;
     }
 
@@ -186,30 +193,37 @@ function cd2026_send_eleventy_webhook() {
         return;
     }
 
-    $event_id = array_key_first($outbox);
-    $body = wp_json_encode($outbox[$event_id]['event']);
+    $event_ids = array_slice(array_keys($outbox), 0, 100);
+    $body = wp_json_encode(array(
+        'event_type' => CD2026_GITHUB_DISPATCH_EVENT_TYPE,
+        'client_payload' => array(
+            'batch_id' => $outbox[$event_ids[0]]['event']['event_id'],
+            'event_count' => count($event_ids),
+        ),
+    ));
     if (!is_string($body)) {
-        cd2026_retry_eleventy_webhook($event_id);
+        cd2026_retry_eleventy_webhook($event_ids[0]);
         return;
     }
 
-    $timestamp = (string) time();
-    $response = wp_remote_post(CD2026_ELEVENTY_WEBHOOK_URL, array(
-        'timeout' => 8,
+    $response = wp_remote_post('https://api.github.com/repos/' . rawurlencode(strstr($repository, '/', true)) . '/' . rawurlencode(substr(strstr($repository, '/'), 1)) . '/dispatches', array(
+        'timeout' => 15,
         'redirection' => 0,
         'blocking' => true,
         'headers' => array(
+            'Accept' => 'application/vnd.github+json',
             'Content-Type' => 'application/json',
-            'X-Webhook-Timestamp' => $timestamp,
-            'X-Webhook-Signature' => 'sha256=' . hash_hmac('sha256', $body, CD2026_ELEVENTY_WEBHOOK_SECRET),
-            'X-Webhook-Event' => 'wordpress.content.changed',
+            'Authorization' => 'Bearer ' . CD2026_GITHUB_DISPATCH_TOKEN,
+            'X-GitHub-Api-Version' => '2022-11-28',
         ),
         'body' => $body,
     ));
 
-    if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) >= 200 && wp_remote_retrieve_response_code($response) < 300) {
+    if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 204) {
         $outbox = get_option(CD2026_ELEVENTY_OUTBOX_OPTION, array());
-        unset($outbox[$event_id]);
+        foreach ($event_ids as $event_id) {
+            unset($outbox[$event_id]);
+        }
         update_option(CD2026_ELEVENTY_OUTBOX_OPTION, $outbox, false);
         if ($outbox) {
             cd2026_schedule_eleventy_webhook(1);
@@ -217,7 +231,7 @@ function cd2026_send_eleventy_webhook() {
         return;
     }
 
-    cd2026_retry_eleventy_webhook($event_id);
+    cd2026_retry_eleventy_webhook($event_ids[0]);
 }
 
 function cd2026_retry_eleventy_webhook($event_id) {

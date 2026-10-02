@@ -7,9 +7,7 @@
     "dev": "bun run build:icons && bun scripts/dev-server.js",
     "build": "bun run build:icons && eleventy",
     "check": "bun run build && bun scripts/check-routes.js",
-    "build:icons": "bun scripts/build-fontawesome-icons.js",
-    "webhook": "bun run webhook/server.js",
-    "webhook:dispatch": "bun run webhook/dispatch-worker.js"
+    "build:icons": "bun scripts/build-fontawesome-icons.js"
   },
   "private": true,
   "dependencies": {
