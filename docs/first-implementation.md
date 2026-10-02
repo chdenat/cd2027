@@ -1,6 +1,6 @@
 # First implementation — status and boundaries
 
-Date: 1 October 2026.
+Date: 2 October 2026.
 
 ## Implemented
 
@@ -10,7 +10,7 @@ Date: 1 October 2026.
 - WordPress theme values are copied into code-owned `--cd2026--*` tokens and mapped to Web Awesome tokens. Web Awesome is self-hosted from the installed package, and Font Awesome SVGs are copied locally. The current site’s public images and fonts are still served from `christinedeloupy.fr`.
 - On `localhost:4555`, WooCommerce’s Store API is proxied same-origin so the browser can keep its Cart-Token without WordPress CORS headers. Cart reads, add/remove/update, shipping-rate selection, checkout fields, and order submission use WooCommerce’s public customer-facing API.
 - Forminator form IDs 10671 and 10569 and MailPoet IDs 1, 5, 7, 9, 11, 12, 13, and 15 load their current fields from WordPress at runtime. Eleventy owns the page shell and theme; the local adapter preserves the provider’s hidden form tokens and forwards submissions to the existing plugin handlers.
-- The local development server polls published pages, posts, product/category data, and navigation every 60 seconds. On a change it triggers a new Eleventy build. Draft and private records are not requested.
+- The Bun webhook receiver stores signed WordPress content events in a durable queue. The dispatcher batches queued changes into a GitHub Actions request; the staging workflow fetches current public data and rebuilds all Eleventy routes. The WordPress sender covers public post types, WooCommerce products and product metadata, public taxonomies, media, and navigation. The local frontend does not poll WordPress or process this queue.
 
 ## Not yet certified
 
@@ -22,8 +22,8 @@ The account, memberships, subscriptions, course access, invoices, booking, and p
 
 ## Automatic publishing path
 
-Local polling is appropriate for `localhost:4555`; a public WordPress server cannot call a developer’s localhost webhook. The local server detects changes to public records and rebuilds, but it does not deploy anything.
+The local frontend remains at `localhost:4555` and is separate from publishing. The signed webhook receiver and GitHub dispatcher run on an internet-reachable host. GitHub Actions builds and atomically deploys the staging site at `cd2027.christinedeloupy.fr`.
 
-For production, place an authenticated webhook endpoint or scheduled worker on an internet-reachable host. Treat its event as a signal, fetch the canonical published WordPress state on the server, build the Eleventy artifact, run route/link and commerce smoke checks, and promote the artifact atomically only after they pass. Add retries and scheduled reconciliation so one missed event cannot leave the frontend stale. Keep the previous release available for rollback. Never expose WordPress credentials in the Eleventy output or browser code.
+The production domain is not connected to this workflow. Before enabling it, configure a separate production environment and deployment target, test route/link and commerce checks, and retain atomic artifact promotion and rollback. The daily staging build is a recovery path for a missed event. Never expose WordPress credentials in the Eleventy output or browser code.
 
 The browser currently calls same-origin paths such as `/wp-json/wc/store/v1/cart`. A production host must provide an equivalent HTTPS reverse proxy or server adapter and the form routes used here. Direct browser-to-WordPress calls are blocked by the current site’s CORS response for `localhost:4555`.

@@ -1,6 +1,7 @@
 # Étude initiale — migration WordPress vers Eleventy
 
 Date de l’étude : 1 octobre 2026.
+Mise à jour de l’état d’implémentation : 2 octobre 2026.
 
 ## Périmètre et hypothèse
 
@@ -67,37 +68,37 @@ L’API Store de WooCommerce fournit des opérations publiques de produits, pani
 
 La même règle vaut pour les formulaires visibles : Eleventy fournit le HTML, le style, les validations de présentation et les états de succès/erreur ; WordPress ou le service déjà relié reçoit et traite la soumission. Le shortcode ou le bloc WordPress ne sera pas copié tel quel dans une page statique. Il faut inventorier chaque formulaire (contact, inscription atelier, capture ebook, newsletter, etc.), identifier son destinataire et son automatisation, puis utiliser une API supportée ou créer un endpoint WordPress protégé contre le spam. Les formulaires de checkout restent rattachés à l’API WooCommerce.
 
-À `http://localhost:4555`, le frontend peut tester l’API WooCommerce si le proxy/CORS et la session sont configurés. Le webhook du WordPress distant ne peut cependant pas joindre directement le serveur local : le contenu éditorial s’y synchronise par build local, tandis que l’automatisation de production nécessitera plus tard un runner ou un hôte accessible par WordPress.
+À `http://localhost:4555`, le frontend de développement teste l’API WooCommerce au moyen du proxy local. La publication est séparée : WordPress envoie des événements signés au récepteur Bun sur un hôte accessible, puis un dispatcher appelle le workflow GitHub Actions du staging. Celui-ci relit l’état public WordPress et reconstruit l’ensemble du site.
 
-## Éléments à ajouter ou configurer
+## Éléments à valider ou compléter
 
 - Un inventaire de routes actualisable qui réconcilie REST, sitemaps, menus, types de contenu, archives, formulaires et parcours authentifiés.
-- Un plugin WordPress dédié ou un petit mu-plugin qui envoie des événements signés après publication, mise à jour publique, dépublication, suppression, changement de taxonomie, média, menu ou métadonnée SEO.
+- Le MU-plugin et le relais GitHub sont implémentés pour les types de contenu publics, les métadonnées, les taxonomies, les médias et les menus. Il reste à configurer et valider leurs secrets et tâches cron sur l’hôte webhook.
 - Un accès API en lecture seule pour le processus de build. Les secrets restent dans le gestionnaire de secrets de l’hébergeur ou du runner.
 - Un adaptateur de données Eleventy qui pagine les réponses REST, conserve les identifiants, transforme les blocs pris en charge, signale les blocs inconnus et produit des routes stables.
 - Une route API même-origine ou un proxy contrôlé pour les appels WooCommerce Store API, avec gestion vérifiée des sessions/cookies ou des Cart-Token et des nonces. Éviter de placer des secrets privilégiés dans le JavaScript public.
 - Une matrice de formulaires indiquant pour chaque formulaire son URL, ses champs, son plugin/provider actuel, son destinataire, les consentements, l’anti-spam, les notifications, l’API de soumission et les états de succès/erreur. Le mapping Forminator/MailPoet mentionné dans l’étude reste à confirmer formulaire par formulaire.
-- Un stockage de jobs durable avec identifiant d’événement, identifiant de contenu, révision, statut, tentatives, erreur et référence de déploiement.
-- Un build en environnement isolé, un contrôle de la couverture des routes et une publication atomique avec retour au dernier artefact valide.
+- La file sur disque et les reprises d’envoi existent ; vérifier que le stockage de l’hôte webhook est persistant et privé. Le statut du build/déploiement doit être suivi séparément du `202` du récepteur.
+- Le workflow GitHub de staging réalise le build, le contrôle des routes et la promotion atomique. La cible de production reste à configurer.
 - Des captures de référence du site actuel par type de page et par viewport, ainsi qu’un inventaire des polices, logos, photos, alt text, formulaires, extensions, paiements et cours.
 - Pour plus tard, une cible de production et une configuration DNS/proxy. Si le même domaine sert Eleventy et WordPress, il faudra décider comment conserver `/wp-admin`, l’API, les pages transactionnelles et les routes publiques. La cible immédiate de développement est `http://localhost:4555`.
 
-Dans le dépôt, le serveur de développement Eleventy est configuré sur le port `4555` dans `.eleventy.js`. Le récepteur Bun actuel vérifie une signature HMAC puis stocke le corps JSON dans `.data/webhooks/` ; il écoute par défaut sur `127.0.0.1:8787`. Ce récepteur n’est pas joignable depuis WordPress distant et ne met pas les événements en file, ne récupère pas le contenu WordPress, ne lance pas Eleventy et ne déploie pas. C’est un point de départ de réception, pas encore une chaîne de mise à jour.
+Dans le dépôt, Eleventy et le serveur frontend local utilisent le port `4555`. Le récepteur Bun écoute par défaut sur `127.0.0.1:8787`, vérifie signature, horodatage et schéma puis stocke les événements dans une file. Sur l’hôte webhook, le dispatcher les regroupe et demande le workflow GitHub Actions. Le workflow reconstruit le site complet depuis WordPress et déploie atomiquement le staging. Le frontend local ne scrute pas WordPress et ne consomme pas cette file.
 
-Le `package.json` de la copie de travail n’a actuellement ni script de build ni dépendances, alors que `bun.lock`, `.eleventy.js` et `src/assets/main.js` décrivent Eleventy, Web Awesome et Font Awesome. Il faudra remettre le manifeste et le lockfile en cohérence avant de pouvoir compter sur un build reproductible. Je n’ai pas modifié ces fichiers déjà en cours d’édition.
+Le `package.json` contient les commandes `dev`, `build`, `check`, `webhook` et `webhook:dispatch`, ainsi que les dépendances Eleventy, Web Awesome et Font Awesome. Chaque build GitHub télécharge les données WordPress publiques et reconstitue le site complet.
 
 ## Stratégie fiable de mise à jour
 
-La garantie réaliste est une livraison au moins une fois, rendue idempotente, et contrôlée par rapprochement périodique. Un webhook seul ne peut pas garantir que chaque changement sera livré une seule fois et immédiatement.
+La garantie repose sur une livraison au moins une fois, rendue idempotente, et contrôlée par rapprochement périodique. Le récepteur stocke les événements avant de répondre, le dispatcher réessaie les appels GitHub, et le workflow planifié reconstruit le staging chaque jour. Un webhook seul ne garantit pas que chaque changement sera livré une seule fois et immédiatement.
 
 1. WordPress envoie, après une modification validée et publique, un événement minimal signé contenant l’identifiant stable de l’événement, le type et l’identifiant du contenu, son statut et sa révision. Les brouillons et autosaves ne déclenchent pas de mise en production.
 2. Le récepteur vérifie la signature sur le corps brut, un horodatage anti-rejeu, la taille du corps et la route autorisée. Il enregistre le job durablement avant de répondre avec succès.
-3. Un worker déduplique et regroupe les changements rapprochés, puis relit l’état canonique actuel depuis l’API WordPress. Le webhook est un signal, pas une copie de contenu considérée comme vérité.
+3. Le dispatcher déduplique par identifiant et regroupe les événements en attente. GitHub relit l’état canonique actuel via l’adaptateur Eleventy ; le webhook est un signal, pas une copie de contenu considérée comme vérité.
 4. Le worker récupère aussi les changements qui retirent du contenu : suppression, dépublication, slug, taxonomie, image, menu ou métadonnée SEO. Les anciennes URL sont conservées ou redirigées selon la carte des routes.
-5. Eleventy génère l’ensemble cohérent du site, puis vérifie qu’aucune route obligatoire ni ressource liée n’a disparu. Pour ce volume, commencer par un build complet est plus simple et plus sûr que de réinventer un générateur incrémental ; mesurer ensuite son délai.
-6. Si récupération, rendu ou validation échoue, le job est relancé avec attente progressive, puis signalé pour intervention. L’ancienne version publique reste active.
+5. GitHub Actions reconstruit l’ensemble du site pour les événements reçus. Cela garde cohérents le contenu, les routes, les archives et les données de WooCommerce ; aucun traitement spécial par titre ou par type de page n’est requis.
+6. Si la livraison du webhook échoue, WordPress réessaie via WP-Cron ; si l’appel GitHub échoue, le dispatcher réessaie avec attente progressive. Si le build ou le déploiement échoue après acceptation par GitHub, l’ancienne version de staging reste active et le build planifié quotidien ou une relance manuelle sert de reprise.
 7. Si tout passe, l’hébergeur promeut l’artefact de manière atomique. Le journal de suivi relie l’événement WordPress, la révision, le build et le déploiement.
-8. Une synchronisation complète planifiée compare régulièrement les révisions ou empreintes de contenu WordPress avec la dernière génération publiée. Elle détecte les webhooks perdus et peut rejouer la génération.
+8. Le workflow reconstruit entièrement le staging chaque jour. Cette réconciliation recrée les routes depuis l’état public WordPress même si un événement n’a jamais atteint GitHub.
 
 Un hébergeur avec déploiement à partir de Git ou un build hook peut exécuter Eleventy ; Eleventy documente les deux familles d’hébergement. Le choix entre hook de l’hébergeur, GitHub Actions et récepteur Bun dépend de l’hébergement final et de la nécessité d’accéder à des données WordPress privées.
 

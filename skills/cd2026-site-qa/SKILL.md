@@ -18,6 +18,8 @@ Use this skill when checking the public site, the WordPress migration, or a publ
 
 - Compare each page family with the current WordPress reference at desktop and mobile viewports.
 - Check typography, colors, layout, image crop, spacing, overlays, and responsive navigation against the approved design references.
+- On `/contact/`, confirm the details and form align at the top on desktop; icons sit at the top of their text rows; the icon column stays narrow; the email wraps without overlapping the form; and mobile keeps the detail rows horizontal while stacking the main columns.
+- Inspect every contact field's hover and keyboard-focus states. Hover must affect the complete Web Awesome field wrapper; for the Forminator consent checkbox, hovering its paragraph wrapper must also activate the checkbox treatment. Check that the two-column name row stacks cleanly on narrow screens.
 - Verify forms, consent, newsletter signups, product options, cart, checkout, payment results, accounts, subscriptions, and course access with a safe test flow.
 - Check page titles, descriptions, canonical URLs, Open Graph metadata, sitemap entries, redirects, and robots rules.
 - Check heading hierarchy, keyboard use, visible focus, labels, image alt text, and readable contrast.

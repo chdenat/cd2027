@@ -48,9 +48,9 @@ These rules adapt the relevant LGS1920 site conventions to the Christine Deloupy
 ## 5. WordPress publishing and update pipeline
 
 - Trigger public builds from validated public changes. Drafts, previews, autosaves, and private records must not reach the production frontend.
-- A remote WordPress site cannot send a webhook directly to a developer's `localhost`; use local pull-based synchronization for development, or a temporary secured tunnel only when live webhook testing is needed.
+- A remote WordPress site cannot send a webhook directly to a developer's `localhost`. Route published content changes through the authenticated webhook host and GitHub Actions; local frontend development does not consume webhook events.
 - Treat webhooks as change notifications, not as the content database. After authenticating an event, fetch the canonical current WordPress records using server-side credentials.
-- Use signed requests, a durable queue or job store, idempotent event handling, retries, and a scheduled reconciliation build. Account for publish, update, scheduled publication, unpublish, delete, taxonomy, media, navigation, and SEO changes.
+- Use signed requests, a durable queue or job store, idempotent event handling, retries, and a scheduled reconciliation build. Account for public post types (including pages and articles), WooCommerce products, scheduled publication, unpublish, delete, taxonomy, media, navigation, and SEO changes. The current sender covers these WordPress content families and the GitHub workflow rebuilds from the canonical public data.
 - Acknowledge an event only after its job is safely recorded. Do not report a content change as deployed until the build and deployment complete.
 - Build and validate into an isolated artifact, then promote it atomically. Keep the last successful release live when data fetching, rendering, validation, or deployment fails.
 - Keep webhook storage and deployment metadata outside the public output. Limit event retention, avoid logging secrets or unnecessary personal data, and expose only health and authenticated webhook routes.

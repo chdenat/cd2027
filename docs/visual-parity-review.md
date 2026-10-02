@@ -17,7 +17,7 @@ Reviewed on 2026-10-02 against the public WordPress site, including its rendered
 
 ## Validation
 
-- `CD2026_ALLOW_PUBLIC_CACHE=1 npm run check`: passed, 261 public and paginated archive routes with the current nine-post archive configuration. The final run fetched a fresh public WordPress snapshot. An intermediate run exercised the cache fallback after a WordPress request timed out.
+- `CD2026_ALLOW_PUBLIC_CACHE=1 bun run check`: passed, 261 public and paginated archive routes with the current nine-post archive configuration. The final run fetched a fresh public WordPress snapshot. An intermediate run exercised the cache fallback after a WordPress request timed out.
 - Generated sitemap pages: no `<style>` blocks or `style` attributes. The extracted stylesheet has no undefined custom-property references.
 - Browser checks: 12 routes at 1440px and 390px in light and dark schemes (48 combinations). No horizontal overflow or failed loaded images observed. Lazy images outside the viewport are not certified by this check.
 - Routes sampled: homepage, blog and page 2, ritual category, contact, newsletter, gift, latest article, two legacy articles with literal colors, shop, and cart.

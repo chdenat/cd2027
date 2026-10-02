@@ -1,43 +1,60 @@
-# WordPress publishing, GitHub builds, and PHP runtime routes
+# WordPress publishing, GitHub builds, and runtime routes
 
-Status: proposed production architecture. The production webhook-to-deployment chain and PHP runtime proxy are not connected yet. Reviewed 1 October 2026.
+Status: GitHub Actions staging deployment is implemented; production deployment and the PHP runtime proxy are not connected. Reviewed 2 October 2026.
 
-This document records the discussed deployment shape: WordPress remains the content and transaction backend, Eleventy generates the public pages, GitHub Actions builds and deploys static output, and PHP on the web host handles webhook ingestion and runtime API routes. These are implementation boundaries, not evidence that production automation is already active. See [PROJECT_RULES.md](../PROJECT_RULES.md) and the [whole-site route inventory](current-site-inventory.md).
+WordPress remains the content and transaction backend; Eleventy generates the public pages; GitHub Actions builds and deploys static output to staging. The Bun receiver and dispatcher relay content events to GitHub. Production deployment and runtime API routes are still separate work. See [PROJECT_RULES.md](../PROJECT_RULES.md) and the [whole-site route inventory](current-site-inventory.md).
 
 ## What works today
 
-- `npm run dev` starts the local development server at `http://localhost:4555`. It polls public WordPress pages, posts, taxonomies, navigation, products, product categories, and rendered homepage header data every 60 seconds. A detected change triggers a local Eleventy rebuild. This loop does not deploy production.
-- `npm run webhook` starts the Bun receiver. It checks an HMAC-SHA256 signature over the raw request body, enforces a request-size limit, parses JSON, stores the event under `.data/webhooks/`, and returns `202`. By default it listens on `127.0.0.1:8787`, so a remote WordPress site cannot reach it directly.
-- The Bun receiver is only an event collector. It does not validate a timestamp or replay window, validate a content-event schema beyond JSON syntax, fetch canonical WordPress records, dispatch a GitHub workflow, retry jobs, build Eleventy, or deploy.
-- `npm run check` runs the Eleventy build and `scripts/check-routes.js`. The route check inspects generated sitemap routes and selected internal-link and archive conditions. It does not exercise checkout payments or every form integration.
+- `bun run dev` starts the local frontend at `http://localhost:4555`; it neither polls WordPress nor consumes webhook events.
+- `bun run webhook` starts the Bun receiver on `127.0.0.1:8787` by default. It verifies an HMAC-SHA256 signature over the exact request body, requires a fresh `X-Webhook-Timestamp` (five-minute window by default), validates the generic WordPress content event, and durably stores deduplicated events in `.data/webhooks/pending/` before returning `202`.
+- The MU-plugin sender reports public post types (including posts/articles, pages, products, and public custom post types), public post metadata, WooCommerce product changes, public taxonomy changes, media changes, and menu changes. Draft edits are ignored; publication and removal from public status are reported. A new custom post type still needs an Eleventy data adapter and template before it can appear in generated output.
+- `bun run webhook:dispatch` batches pending events to GitHub's `repository_dispatch` API. The GitHub workflow builds the entire Eleventy site from current public WordPress/WooCommerce data, checks generated routes, then atomically promotes the result to `https://cd2027.christinedeloupy.fr`. The daily full staging rebuild recovers from missed events and failed earlier workflow runs.
+- The receiver binds to loopback by default. On the webhook host, put it behind an HTTPS reverse proxy and run the dispatcher on a schedule. `localhost:4555` remains the development frontend address, not the webhook address.
+- This is a staging workflow. The production hostname is not deployed by it. Configure the GitHub `test` environment as described in [the staging deployment guide](staging-deployment.md).
+- `bun run check` runs the Eleventy build and `scripts/check-routes.js`. The route check inspects generated sitemap routes and selected internal-link and archive conditions. It does not exercise checkout payments or every form integration.
+
+### Connect WordPress to the GitHub staging build
+
+1. Copy `wordpress/mu-plugins/cd2026-eleventy-webhook.php` to the WordPress installation’s `wp-content/mu-plugins/` directory. Create that directory if it does not exist.
+2. Run the Bun receiver and dispatcher on an internet-reachable webhook host, with the private queue on persistent storage. Configure `WEBHOOK_SECRET`, `GITHUB_REPOSITORY`, `GITHUB_DISPATCH_TOKEN`, and `GITHUB_DISPATCH_EVENT_TYPE` there; keep secrets out of the repository and public web root.
+3. Add the public HTTPS receiver URL and the same HMAC secret to WordPress `wp-config.php` before WordPress loads:
+
+```php
+define('CD2026_ELEVENTY_WEBHOOK_URL', 'https://webhook-host.example/webhooks/christine');
+define('CD2026_ELEVENTY_WEBHOOK_SECRET', 'the-same-long-random-secret-as-WEBHOOK_SECRET');
+```
+
+4. Save a published page, article, product, or another supported WordPress record. The receiver's `202` confirms queue persistence; the dispatcher batches pending events to GitHub. The GitHub workflow then performs a complete data fetch, build, route check, and staging promotion.
+
+WordPress's default WP-Cron is triggered by site visits, so sender retries may be delayed on a quiet site. Configure a real server cron to invoke WordPress cron and schedule `bun run webhook:dispatch` on the webhook host.
 
 The [first implementation note](first-implementation.md) records the current page, commerce, and form coverage. In particular, account, subscription, course, payment-result, and some specialized form operations still need integration work.
 
-## Proposed content update flow
+## Content update flow and production boundary
 
 The webhook should notify the system that content changed. WordPress remains the canonical source; the event body is not the content database.
 
-1. A WordPress hook sends a small signed event after a public content change. It should identify the event, record type and ID, status, and revision or modified time. It should cover publish, update, scheduled publication, unpublish, trash/delete, slug, taxonomy, media, navigation, and SEO changes. Drafts, previews, autosaves, private records, and password-protected records must not enter a production build.
-2. A PHP receiver on an HTTPS address validates the allowed method and route, body size, event schema, HMAC on the exact raw body, and an event timestamp or nonce. It deduplicates by stable event ID and stores the job durably before acknowledging it. A `202` response means the job was recorded; it does not mean the site is live.
-3. After persisting the job, PHP asks GitHub Actions to run through the GitHub API `repository_dispatch` event. The receiver keeps its GitHub credential server-side and retries a pending dispatch if GitHub is temporarily unavailable. The workflow file must exist on the repository's default branch. See [GitHub workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
-4. The workflow fetches the current public WordPress state using server-side requests, coalesces rapid changes where useful, then builds the complete Eleventy site. It should use the event as a reason to synchronize, not blindly publish the supplied event content. Run the existing `npm run check` command before deployment; add broader route, link, asset, and dynamic-flow checks as those integrations are completed.
-5. On success, the workflow uploads `_site/` to the hosting target using the selected supported method (for example, SSH/SFTP or a hosting deployment API). The upload must preserve the PHP webhook and proxy routes and their private configuration. Where the host supports it, stage the release and switch it atomically. Retain the last successful release so a failed build or upload cannot replace it.
-6. Add a scheduled reconciliation build that compares WordPress's current public data with the latest deployed revision. This catches a webhook that was lost. GitHub scheduled workflows can be delayed under load, so this is a recovery path rather than an exact publication-time guarantee.
-7. Track the event ID, WordPress revision, workflow/build ID, deployment result, attempts, and error. Report content as deployed only after the upload or release promotion succeeds.
+1. The MU-plugin observes saved public content and sends a signed event with event ID, record type and ID, status, changed fields, and modification time. The payload is only a signal; WordPress remains canonical.
+2. The Bun receiver validates timestamp, HMAC, body size, and the generic record event schema. It deduplicates and stores the event before returning `202`; that response means “stored”, not “deployed”.
+3. The dispatcher batches pending events and submits one GitHub `repository_dispatch`. The event identifies the batch; it does not carry a content snapshot.
+4. GitHub Actions fetches the latest public WordPress pages, posts, products, taxonomies, menus, and related data, then rebuilds all Eleventy routes and checks them. This handles affected article, archive, page, product, and category outputs without maintaining a hand-built dependency map.
+5. After validation, the workflow uploads a versioned static release and atomically switches the staging `current` symlink. The last successful release remains available if a new build or upload fails.
+6. If the incoming delivery or GitHub dispatch fails, the relevant sender/dispatcher retries. A build or upload failure leaves the previous staging release active; the daily rebuild and manual workflow trigger provide recovery. Production still needs its own environment and target.
 
-The intended path is:
+The staging path is:
 
 ```text
 WordPress publish hook
-  -> HTTPS PHP webhook receiver
+  -> HTTPS Bun webhook receiver
   -> durable event record
-  -> GitHub repository_dispatch
-  -> fetch current public WordPress data
-  -> Eleventy build and route checks
-  -> upload/promote _site on the web host
+  -> scheduled GitHub dispatcher
+  -> repository_dispatch
+  -> full WordPress fetch, Eleventy build, and route checks
+  -> atomic staging promotion
 ```
 
-The PHP receiver may use a database table or another durable store available on the hosting account. It should acknowledge only after persistence. Do not run a long full-site build inside the incoming HTTP request: hosting request timeouts and WordPress retries make that fragile.
+The receiver stores queue files on disk; on the webhook host, that queue must be persistent and private. Do not run a full-site build inside the incoming HTTP request: hosting request timeouts and WordPress retries make that fragile. The batch event triggers one build for all current WordPress content, avoiding per-record page dependency logic.
 
 ## PHP runtime proxy for WooCommerce and forms
 
@@ -66,30 +83,32 @@ The public frontend address, WordPress source address, and visible brand name ar
 | `SITE_NAME` | `Christine Deloupy` | Visible brand name, document title, and Open Graph site name. |
 | `SITE_URL` | `https://christinedeloupy.fr` | Public Eleventy origin for canonical URLs and sitemap entries. Use the final public domain. |
 | `WORDPRESS_ORIGIN` | `https://christinedeloupy.fr` | WordPress API, media, and form-handler origin fetched by the build and PHP proxy. This may become a WordPress-only subdomain. |
-| `WEBHOOK_SECRET` | random secret, never an example value in production | Shared HMAC key used by WordPress and the PHP receiver. |
-| `GITHUB_DISPATCH_TOKEN` | stored secret | Credential used by PHP to request the GitHub workflow. Keep it on the server, not in the browser or public repository. |
+| `WEBHOOK_SECRET` | random secret, never an example value in production | Shared HMAC key used by the WordPress MU plugin and local Bun receiver. |
+| `GITHUB_DISPATCH_TOKEN` | stored secret | Credential used by `webhook:dispatch` to request a GitHub workflow. Keep it on the webhook host, not in the browser or public repository. |
+| `GITHUB_REPOSITORY` | `owner/repository` | Repository receiving `repository_dispatch` events. |
+| `GITHUB_DISPATCH_EVENT_TYPE` | `cd2026_staging_deploy` | Event type the receiving workflow must subscribe to. |
 | Deployment credentials | host-specific | SSH/SFTP/hosting credentials used by GitHub Actions to publish `_site/`. Store them as GitHub Actions secrets. |
 
 Set non-secret build values such as `SITE_NAME`, `SITE_URL`, and `WORDPRESS_ORIGIN` under GitHub repository **Settings → Secrets and variables → Actions → Variables**. Put tokens and deployment credentials under **Secrets**. GitHub documents [workflow variables](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables) and [workflow secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
 
-Set the PHP receiver's `WORDPRESS_ORIGIN`, `WEBHOOK_SECRET`, and `GITHUB_DISPATCH_TOKEN` using the hosting provider's server-side environment configuration. If the provider has no environment-variable panel, use a configuration file outside the public document root with restricted permissions. Never put secrets in `src/`, the generated `_site/`, public JavaScript, or Git.
+Set `WEBHOOK_SECRET`, `GITHUB_REPOSITORY`, and `GITHUB_DISPATCH_TOKEN` for the Bun receiver/dispatcher using the webhook host's server-side environment configuration. Set staging upload credentials in the GitHub `test` environment. Never put secrets in `src/`, the generated `_site/`, public JavaScript, or Git.
 
 These variables are a configuration target, not currently wired application settings. At present:
 
 - `src/_data/site.js` hard-codes `site.name` and `site.origin`.
 - `src/_data/wordpress.js` hard-codes `SITE_ORIGIN`, uses it to fetch WordPress and generate normalized canonical links, and supplies the URLs used by the sitemap.
-- `scripts/dev-server.js` hard-codes `WORDPRESS_ORIGIN` for local polling, forms, and the Store API proxy.
+- `scripts/dev-server.js` hard-codes `WORDPRESS_ORIGIN` for forms and the Store API proxy.
 - `scripts/check-routes.js` contains the current public hostname in an internal-link check.
-- `.env.example` currently lists webhook settings only. Creating `SITE_NAME`, `SITE_URL`, or `WORDPRESS_ORIGIN` variables will not change the build until the source code reads them.
+- `.env.example` lists webhook and GitHub dispatcher settings. The webhook host must configure its own environment rather than relying on the development `.env` file.
 
 When wiring the variables, keep source and output origins separate: use `WORDPRESS_ORIGIN` to accept WordPress record URLs and fetch data, then build public canonical links and sitemap entries from `SITE_URL` while preserving the existing paths and redirects in the [route inventory](current-site-inventory.md). If both systems remain on `christinedeloupy.fr`, the two origin values can be the same. If WordPress moves to a backend subdomain, they should differ.
 
 ## Decisions before enabling production automation
 
-- Confirm the hosting provider, PHP version/extensions, outbound HTTPS access, available database or private storage, and cron support.
+- Confirm the webhook host's outbound HTTPS access, persistent private queue storage, and cron support.
 - Choose how the site files are uploaded and how a known-good release is retained or restored. Confirm whether the host supports a staging directory and atomic promotion.
 - Decide whether WordPress remains on the public domain or moves to a backend origin, and how `/wp-admin`, REST routes, public Eleventy routes, forms, and commerce routes are routed.
-- Configure the WordPress event sender, HTTPS endpoint, HMAC secret, and GitHub dispatch credential. Keep a manual workflow trigger for controlled recovery.
+- Install the MU plugin and configure its HTTPS endpoint and HMAC secret. Configure a separate production GitHub environment/workflow and deployment target before production publishing.
 - Complete staging checks for all current route families, WooCommerce payment gateways, form providers, account/subscription/course integrations, and any required redirects before claiming production parity.
 
 ## Project references
