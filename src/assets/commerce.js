@@ -40,7 +40,18 @@ function money(value, currency = 'EUR', minorUnit = 2) {
 
 function updateCartCount(cart) {
   const count = Number(cart?.items_count || 0)
-  document.querySelectorAll('[data-cart-count]').forEach((node) => { node.textContent = String(count) })
+  document.querySelectorAll('[data-cart-count]').forEach((node) => {
+    node.textContent = String(count)
+    node.closest('[data-cart-badge]')?.toggleAttribute('hidden', count < 1)
+  })
+}
+
+async function loadHeaderCartCount() {
+  try {
+    updateCartCount(await storeApi('/cart'))
+  } catch {
+    updateCartCount({ items_count: 0 })
+  }
 }
 
 function statusNode() {
@@ -255,9 +266,10 @@ async function placeOrder(form) {
 }
 
 document.addEventListener('click', async (event) => {
-  const addButton = event.target.closest('[data-add-to-cart]')
+  const addButton = event.target.closest('[data-add-to-cart], .ajax_add_to_cart[data-product_id]')
   if (!addButton) return
-  const productId = Number(addButton.getAttribute('data-add-to-cart'))
+  event.preventDefault()
+  const productId = Number(addButton.getAttribute('data-add-to-cart') || addButton.getAttribute('data-product_id'))
   const quantity = Number(addButton.closest('[data-product]')?.querySelector('[name="quantity"]')?.value || 1)
   addButton.setAttribute('disabled', '')
   showStatus('Ajout au panier…')
@@ -334,4 +346,5 @@ document.addEventListener('submit', async (event) => {
 })
 
 if (document.querySelector('[data-commerce-page="cart"]')) loadCartPage()
-if (document.querySelector('[data-commerce-page="checkout"]')) loadCheckoutPage()
+else if (document.querySelector('[data-commerce-page="checkout"]')) loadCheckoutPage()
+else loadHeaderCartCount()

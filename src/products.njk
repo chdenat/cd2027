@@ -30,9 +30,9 @@ eleventyComputed:
         <h1>{{ wp.titleText }}</h1>
         {% if wp.price %}<p class="product-price">{{ wp.price | price }}</p>{% endif %}
         {% if wp.shortDescriptionHtml %}<div class="product-short-description cd-content">{{ wp.shortDescriptionHtml | safe }}</div>{% endif %}
-        {% if wp.is_purchasable and wp.inStock %}
+        {% if wp.purchasable and wp.inStock %}
           <wa-button variant="brand" appearance="outlined" data-add-to-cart="{{ wp.id }}">
-            Ajouter au panier <wa-icon slot="end" name="basket-shopping" variant="solid" aria-hidden="true"></wa-icon>
+            Ajouter au panier <wa-icon library="pro" slot="end" name="basket-shopping" variant="solid" aria-hidden="true"></wa-icon>
           </wa-button>
           <p class="form-message" data-commerce-status role="status" aria-live="polite"></p>
         {% else %}

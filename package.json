@@ -4,15 +4,19 @@
   "description": "Front-end Eleventy pour Christine Deloupy, alimenté par WordPress et WooCommerce",
   "main": "index.js",
   "scripts": {
-    "dev": "node scripts/dev-server.js",
-    "build": "eleventy",
-    "check": "npm run build && node scripts/check-routes.js",
-    "webhook": "bun run webhook/server.js"
+    "dev": "bun run build:icons && bun scripts/dev-server.js",
+    "build": "bun run build:icons && eleventy",
+    "check": "bun run build && bun scripts/check-routes.js",
+    "build:icons": "bun scripts/build-fontawesome-icons.js",
+    "webhook": "bun run webhook/server.js",
+    "webhook:dispatch": "bun run webhook/dispatch-worker.js"
   },
   "private": true,
   "dependencies": {
     "@11ty/eleventy": "^3.1.6",
     "@awesome.me/webawesome": "^3.11.0",
-    "@fortawesome/fontawesome-free": "^7.3.1"
+    "@fortawesome/free-brands-svg-icons": "7.3.1",
+    "@fortawesome/pro-solid-svg-icons": "7.3.1",
+    "@lgs1920/timeline": "1.4.0"
   }
 }

@@ -3,7 +3,8 @@ layout: layouts/wordpress.njk
 permalink: author/christine/index.html
 title: Christine · Le journal
 description: Les articles de Christine Deloupy.
-canonicalUrl: https://christinedeloupy.fr/author/christine/
+eleventyComputed:
+  canonicalUrl: "{{ site.origin }}/author/christine/"
 ---
 <section class="archive-page content-width">
   <header class="archive-header">

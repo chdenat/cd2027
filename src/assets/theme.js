@@ -19,7 +19,7 @@ function applyColorScheme(choice) {
   const trigger = document.querySelector('[data-theme-selector-trigger]')
   const triggerIcon = trigger?.querySelector('[data-theme-selector-icon]')
   if (triggerIcon) {
-    const icon = { system: 'circle-half-stroke', light: 'sun', dark: 'moon' }[selectedChoice]
+    const icon = { system: 'circle-half-stroke', light: 'sun-bright', dark: 'moon' }[selectedChoice]
     triggerIcon.setAttribute('name', icon)
   }
 

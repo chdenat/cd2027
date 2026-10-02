@@ -1,5 +1,6 @@
-const SITE_ORIGIN = 'https://christinedeloupy.fr'
-const API_ORIGIN = `${SITE_ORIGIN}/wp-json`
+const WORDPRESS_ORIGIN = (process.env.WORDPRESS_ORIGIN || 'https://christinedeloupy.fr').replace(/\/$/, '')
+const SITE_ORIGIN = (process.env.SITE_URL || 'https://christinedeloupy.fr').replace(/\/$/, '')
+const API_ORIGIN = `${WORDPRESS_ORIGIN}/wp-json`
 const PER_PAGE = 100
 const fs = require('node:fs')
 const path = require('node:path')
@@ -7,16 +8,21 @@ const { createHash } = require('node:crypto')
 const contentStyleRules = new Map()
 const { decodeHTML } = require('entities')
 const CACHE_FILE = path.resolve(__dirname, '../..', '.data', 'wordpress-public-cache.json')
+const SHOP_NAVIGATION_FALLBACK = [
+  { label: 'Boutique', href: '/boutique/' },
+  { label: 'Panier', href: '/panier/' },
+  { label: 'Retour', href: '/' },
+]
 // A few old pages still point to removed attachments. Prefer retained
 // WordPress copies or closely related images already in the site's media library.
 const MEDIA_URL_FALLBACKS = new Map([
   [
-    `${SITE_ORIGIN}/wp-content/uploads/2022/09/Mon-cadeau-pour-toi.jpg`,
-    `${SITE_ORIGIN}/wp-content/uploads/2022/09/Mon-cadeau-pour-toi-1.jpg`,
+    `${WORDPRESS_ORIGIN}/wp-content/uploads/2022/09/Mon-cadeau-pour-toi.jpg`,
+    `${WORDPRESS_ORIGIN}/wp-content/uploads/2022/09/Mon-cadeau-pour-toi-1.jpg`,
   ],
   [
-    `${SITE_ORIGIN}/wp-content/uploads/2020/04/bel2-1500x2000.jpg`,
-    `${SITE_ORIGIN}/wp-content/uploads/2020/04/20200406_174408-rotated.jpg`,
+    `${WORDPRESS_ORIGIN}/wp-content/uploads/2020/04/bel2-1500x2000.jpg`,
+    `${WORDPRESS_ORIGIN}/wp-content/uploads/2020/04/20200406_174408-rotated.jpg`,
   ],
 ])
 
@@ -71,8 +77,8 @@ function escapeAttributeValue(value) {
 }
 
 function localPath(url) {
-  const parsed = new URL(url, SITE_ORIGIN)
-  if (parsed.hostname.replace(/^www\./i, '').toLowerCase() !== new URL(SITE_ORIGIN).hostname.replace(/^www\./i, '').toLowerCase()) return null
+  const parsed = new URL(url, WORDPRESS_ORIGIN)
+  if (parsed.hostname.replace(/^www\./i, '').toLowerCase() !== new URL(WORDPRESS_ORIGIN).hostname.replace(/^www\./i, '').toLowerCase()) return null
   const pathname = decodeURI(parsed.pathname)
   return pathname.endsWith('/') ? pathname : `${pathname}/`
 }
@@ -134,9 +140,9 @@ function replaceElementById(html, id, placeholder) {
 
 function localPathOrExternal(value) {
   try {
-    const parsed = new URL(value, SITE_ORIGIN)
+    const parsed = new URL(value, WORDPRESS_ORIGIN)
     const hostname = parsed.hostname.replace(/^www\./i, '').toLowerCase()
-    const siteHostname = new URL(SITE_ORIGIN).hostname.replace(/^www\./i, '').toLowerCase()
+    const siteHostname = new URL(WORDPRESS_ORIGIN).hostname.replace(/^www\./i, '').toLowerCase()
     if (hostname !== siteHostname) return parsed.href
     const path = decodeURI(parsed.pathname)
     return `${path}${parsed.search}${parsed.hash}`
@@ -218,7 +224,7 @@ function convertNativeButtons(html = '') {
     const icon = previous ? 'arrow-left' : next ? 'arrow-right' : null
     const inner = content.trim() && !/^<svg\b[^>]*>\s*<\/svg>$/i.test(content.trim())
       ? content
-      : (icon ? `<wa-icon name="${icon}" aria-hidden="true"></wa-icon>` : '')
+      : (icon ? `<wa-icon library="pro" name="${icon}" aria-hidden="true"></wa-icon>` : '')
     return `<wa-button appearance="plain"${cleanedAttributes}${hasLabel ? '' : ` aria-label="${label}"`}>${inner}</wa-button>`
   })
 }
@@ -238,7 +244,7 @@ function convertFontAwesomeIcons(html = '') {
       .replace(/\s*aria-hidden=(['"])[^'"]*\1/i, '')
       .replace(/\s*aria-label=(['"])[^'"]*\1/i, '')
     const accessibleAttribute = label ? ` ${label}` : ariaHidden ? ` ${ariaHidden}` : ' aria-hidden="true"'
-    return `<wa-icon${passthrough} name="${iconName}" variant="${variant}"${family ? ` family="${family}"` : ''}${accessibleAttribute}></wa-icon>`
+    return `<wa-icon${passthrough} library="pro" name="${iconName}" variant="${variant}"${family ? ` family="${family}"` : ''}${accessibleAttribute}></wa-icon>`
   })
 }
 
@@ -596,7 +602,7 @@ function findElementRange(html, tagName, searchFrom = 0) {
 }
 
 async function fetchRenderedFrontPage() {
-  const response = await fetchWithRetry(`${SITE_ORIGIN}/`, 'homepage', { headers: { Accept: 'text/html' } })
+  const response = await fetchWithRetry(`${WORDPRESS_ORIGIN}/`, 'homepage', { headers: { Accept: 'text/html' } })
   const html = await response.text()
   const bodyStart = html.indexOf('<body')
   const blocksIndex = html.indexOf('<div class="wp-site-blocks"', bodyStart)
@@ -777,8 +783,11 @@ async function loadWordPressData() {
     post.categoryTerms = postCategories.filter((category) => post.categoryIds.includes(category.id))
   }
   const mainNavigationRecord = rawNavigation.find((record) => record.slug === 'main-menu')
+  const shopNavigationRecord = rawNavigation.find((record) => record.slug === 'boutique')
   const footerNavigationRecord = rawNavigation.find((record) => record.title?.rendered === 'Menu Bas de Page')
   const navigation = parseNavigationItems(mainNavigationRecord?.content?.rendered || '')
+  const parsedShopNavigation = parseNavigationItems(shopNavigationRecord?.content?.rendered || '')
+  const shopNavigation = parsedShopNavigation.length ? parsedShopNavigation : SHOP_NAVIGATION_FALLBACK
   const footerNavigation = parseNavigationItems(footerNavigationRecord?.content?.rendered || '')
   const home = pages.find((record) => record.path === '/') || pages.find((record) => record.id === 10343)
   const blogPage = pages.find((record) => record.slug === 'mon-blog')
@@ -851,6 +860,7 @@ async function loadWordPressData() {
     postCategoryArchives,
     productCategories,
     navigation,
+    shopNavigation,
     footerNavigation,
     authorArchive,
     formIds: [...formIds],
@@ -867,7 +877,11 @@ module.exports = async function () {
   } catch (error) {
     if (process.env.CD2026_ALLOW_PUBLIC_CACHE === '1' && fs.existsSync(CACHE_FILE)) {
       console.warn(`[wordpress] Using the last successful public content snapshot after a fetch failure: ${error.message}`)
-      return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
+      const cached = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
+      if (!Array.isArray(cached.shopNavigation) || !cached.shopNavigation.length) {
+        cached.shopNavigation = SHOP_NAVIGATION_FALLBACK
+      }
+      return cached
     }
     throw error
   }

@@ -4,7 +4,7 @@
       <div class="site-footer__identity wa-stack">
         <wa-button class="footer-brand" href="/" appearance="plain" aria-label="{{ site.name }}, accueil"><img src="{{ wordpress.footer.logo }}" alt="" width="140" height="140" /></wa-button>
         <nav class="footer-social wa-cluster" aria-label="Réseaux sociaux">
-          {% for item in wordpress.footer.socialLinks %}<wa-button href="{{ item.href }}" target="_blank" rel="noopener noreferrer" appearance="plain" size="s" aria-label="{{ item.label }}"><wa-icon name="{{ item.icon }}" family="brands" aria-hidden="true"></wa-icon></wa-button>{% endfor %}
+          {% for item in wordpress.footer.socialLinks %}<wa-button href="{{ item.href }}" target="_blank" rel="noopener noreferrer" appearance="plain" size="s" aria-label="{{ item.label }}"><wa-icon library="pro" name="{{ item.icon }}" family="brands" aria-hidden="true"></wa-icon></wa-button>{% endfor %}
         </nav>
         <wa-button class="footer-profile" href="{{ wordpress.footer.profileLink.href }}" appearance="plain">{{ wordpress.footer.profileLink.label }}</wa-button>
       </div>

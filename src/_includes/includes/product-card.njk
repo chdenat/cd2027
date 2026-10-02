@@ -4,5 +4,9 @@
     <h2><wa-button href="{{ product.path }}" appearance="plain" class="card-title">{{ product.titleText }}</wa-button></h2>
     {% if product.price %}<p class="product-price">{{ product.price | price }}</p>{% endif %}
   </div>
-  <wa-button slot="footer" href="{{ product.path }}" appearance="plain" size="s">Découvrir <wa-icon slot="end" name="arrow-right" aria-hidden="true"></wa-icon></wa-button>
+  {% if product.purchasable and product.inStock %}
+    <wa-button slot="footer" class="product-card__action" variant="brand" appearance="outlined" data-add-to-cart="{{ product.id }}">Ajouter au panier</wa-button>
+  {% else %}
+    <wa-button slot="footer" class="product-card__action" href="{{ product.path }}" variant="brand" appearance="outlined">Découvrir</wa-button>
+  {% endif %}
 </wa-card>

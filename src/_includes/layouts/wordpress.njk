@@ -8,6 +8,8 @@ layout: layouts/base.njk
     {{ content | safe }}
   {% elif wp.kind == 'product' %}
     {{ content | safe }}
+  {% elif wp.kind == 'product-category' %}
+    {{ content | safe }}
   {% endif %}
 {% else %}
   {{ content | safe }}

@@ -1,0 +1,53 @@
+import {
+  faArrowLeft,
+  faArrowRight,
+  faBars,
+  faBasketShopping,
+  faBookOpen,
+  faCircleHalfStroke,
+  faDesktop,
+  faMessages,
+  faMoon,
+  faPaperPlane,
+  faPenClip,
+  faPlay,
+  faRightFromBracket,
+  faRightToBracket,
+  faSquarePhoneFlip,
+  faSunBright,
+} from '@fortawesome/pro-solid-svg-icons'
+import {
+  faFacebook,
+  faInstagram,
+  faLinkedin,
+  faPinterest,
+  faYoutube,
+} from '@fortawesome/free-brands-svg-icons'
+
+export const fontAwesomeIconDefinitions = {
+  solid: {
+    'arrow-left': faArrowLeft,
+    'arrow-right': faArrowRight,
+    bars: faBars,
+    'basket-shopping': faBasketShopping,
+    'book-open': faBookOpen,
+    'circle-half-stroke': faCircleHalfStroke,
+    desktop: faDesktop,
+    messages: faMessages,
+    moon: faMoon,
+    'paper-plane': faPaperPlane,
+    'pen-clip': faPenClip,
+    play: faPlay,
+    'right-from-bracket': faRightFromBracket,
+    'right-to-bracket': faRightToBracket,
+    'square-phone-flip': faSquarePhoneFlip,
+    'sun-bright': faSunBright,
+  },
+  brands: {
+    facebook: faFacebook,
+    instagram: faInstagram,
+    linkedin: faLinkedin,
+    pinterest: faPinterest,
+    youtube: faYoutube,
+  },
+}

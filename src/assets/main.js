@@ -1,6 +1,4 @@
-import { setIconPath } from '/assets/webawesome/webawesome.js'
-
-setIconPath('/assets/fontawesome/svgs')
+import './fontawesome-library.js'
 
 await Promise.all([
   import('/assets/webawesome/components/page/page.js'),

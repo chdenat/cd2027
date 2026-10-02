@@ -21,7 +21,7 @@ eleventyComputed:
     <div class="content-card-grid wa-grid">
       {% for post in archive.posts %}{% include "includes/post-card.njk" %}{% endfor %}
     </div>
-    {% include "includes/archive-pagination.njk" %}
+    {% if archive.pageNumber > 1 %}{% include "includes/archive-pagination.njk" %}{% endif %}
   </section>
   {% if archive.pageNumber == 1 %}<div class="entry-content">{{ wordpress.blogPage.archiveOutroHtml | safe }}</div>{% endif %}
 </article>

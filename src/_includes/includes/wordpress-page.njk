@@ -17,11 +17,8 @@
   <article class="wordpress-page cd-content">
     <div class="entry-content">{{ wp.contentHtml | safe }}</div>
   </article>
-  <section class="archive-page content-width">
-    <div class="product-grid">{% for product in wordpress.products %}{% include "includes/product-card.njk" %}{% endfor %}</div>
-  </section>
 {% else %}
-  <article class="wordpress-page cd-content">
+  <article class="wordpress-page cd-content{% if wp.slug == 'contact' %} contact-page{% endif %}">
     <div class="entry-content">{{ wp.contentHtml | safe }}</div>
   </article>
 {% endif %}
