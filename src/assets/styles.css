@@ -875,7 +875,7 @@ wa-card.product-summary::part(base) { background: var(--cd2026--gradient-surface
 .page-hero::before { content: ''; position: absolute; z-index: -1; inset: 0; background: var(--cd2026--color-base-foreground); opacity: .3; }
 .page-hero__content { padding-block: 0; gap: 0; }
 .page-hero__spacer { block-size: 25vh; }
-.page-hero h1 { margin-block: 1rem; color: var(--cd2026--color-tertiary); font-size: var(--cd2026--hero-font-size); font-weight: 700; }
+.page-hero h1 { margin-block: 1rem; color: #fff; font-size: var(--cd2026--hero-font-size); font-weight: 700; text-shadow: 0 1px 2px rgb(0 0 0 / 72%), 0 0 1px rgb(0 0 0 / 38%); }
 .page-hero--plain { min-block-size: 18rem; }
 .article-meta { margin-block: -4rem 3rem; color: var(--cd2026--color-text); }
 .blog-posts { padding-block: 1.5rem 3rem; }
