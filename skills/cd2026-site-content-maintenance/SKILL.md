@@ -29,3 +29,9 @@ Use this skill for content or route work spanning WordPress records, Eleventy ou
 - Before importing or synchronizing editorial HTML, check for known Word provenance or identifiable paste artifacts such as `MsoNormal`, `mso-*`, or Office namespace markup. Apply the cleanup rule in [PROJECT_RULES.md](../../PROJECT_RULES.md#6-code-content-and-validation).
 - When the artifacts are in WordPress-managed content, normalize them in the data adapter for public rendering; changing the live CMS still requires authorization under the project rules.
 - Compare the cleaned content with the original to verify that text, heading levels, list structure, emphasis, links, and intentional formatting remain intact. Check the affected routes after rendering.
+
+## Highlight markup
+
+- Preserve HTML `<mark>` elements and their text during public content normalization.
+- Extract each mark's inline and WordPress palette styles to generated CSS rules scoped by a deterministic page-specific class; remove the corresponding inline style and generic palette attributes from the rendered mark.
+- Check that generated mark rules do not affect marks on other routes or leak into global theme styles.

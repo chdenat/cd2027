@@ -260,7 +260,6 @@ html.wa-theme-cd2026.wa-dark,
   --cd2026--color-lightgray: #dba397;
   --cd2026--color-body: #f2e9ea;
   --cd2026--color-strong: #ffffff;
-  --cd2026--color-mark-background: color-mix(in srgb, var(--cd2026--color-tertiary) 24%, var(--cd2026--color-surface-lowered));
   --cd2026--color-base-foreground: #fffafa;
   --cd2026--color-on-accent: #211c1e;
   --cd2026--color-contrast-foreground: #211c1e;

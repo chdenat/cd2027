@@ -523,12 +523,23 @@ function normalizeWordPressMarkup(html = '') {
     .replace(/--wp--preset--font-size--/g, '--cd2026--font-size-')
 }
 
+function markPageClass(record = {}) {
+  const pageIdentity = [record.kind || 'page', record.id || record.slug || record.path || 'home'].join(':')
+  return `cd-mark-page-${createHash('sha256').update(pageIdentity).digest('hex').slice(0, 10)}`
+}
+
 // Preserve block-specific geometry and imagery in a deterministic external stylesheet.
-function externalizeContentStyles(html) {
+function externalizeContentStyles(html, record = {}) {
+  const pageClass = markPageClass(record)
   return html.replace(/<[a-z][\w:-]*(?:"[^"]*"|'[^']*'|[^'">])*>/gi, (tag) => {
+    const isMark = /^<mark\b/i.test(tag)
     const attribute = /\sstyle\s*=\s*(['"])(.*?)\1/i.exec(tag)
-    if (!attribute) return tag
-    const declarations = decodeHTML(attribute[2]).trim()
+    const textColorAttribute = isMark ? /\sdata-cd-text-color=(['"])(.*?)\1/i.exec(tag) : null
+    const backgroundColorAttribute = isMark ? /\sdata-cd-background-color=(['"])(.*?)\1/i.exec(tag) : null
+    const colorToken = (token) => ({ primary: 'primary', secondary: 'secondary', tertiary: 'tertiary', quaternary: 'quaternary', text: 'text', lightgray: 'lightgray', contrast: 'contrast-foreground', base: 'base-foreground', 'couleur-1': 'primary', 'couleur-2': 'secondary', 'couleur-3': 'tertiary', 'couleur-4': 'quaternary', 'couleur-5': 'text', 'couleur-texte': 'text', white: 'base-foreground', blanc: 'base-foreground', black: 'contrast-foreground', noir: 'contrast-foreground', foreground: 'contrast-foreground', background: 'base' })[token]
+    let declarations = attribute ? decodeHTML(attribute[2]).trim() : ''
+    if (attribute) {
+      declarations = declarations
       .replace(/--wp--style--root--padding-(?:left|right)|--wp--custom--gap--horizontal/g, '--cd2026--page-padding-inline')
       .replace(/--wp--style--block-gap/g, '--cd2026--space-40')
       .replace(/--couleur-texte\b/g, '--cd2026--color-text')
@@ -539,16 +550,24 @@ function externalizeContentStyles(html) {
         const palette = { ecc8c8: 'primary', ddb5b7: 'secondary', '8f6b6b': 'tertiary', f9bfc1: 'quaternary', '737373': 'text', b97a6a: 'lightgray', '000000': 'contrast', '000': 'contrast' }
         return palette[hex.toLowerCase()] ? `var(--cd2026--color-${palette[hex.toLowerCase()]})` : `var(--cd2026--editorial-color-${hex.toLowerCase()})`
       })
-    const className = `cd-content-style-${createHash('sha256').update(declarations).digest('hex').slice(0, 12)}`
+    }
+    if (textColorAttribute && colorToken(textColorAttribute[2])) declarations += `${declarations ? ';' : ''}color:var(--cd2026--color-${colorToken(textColorAttribute[2])}) !important`
+    if (backgroundColorAttribute && colorToken(backgroundColorAttribute[2])) declarations += `${declarations ? ';' : ''}background-color:var(--cd2026--color-${colorToken(backgroundColorAttribute[2])}) !important`
+    const pageScopedDeclarations = isMark ? `${pageClass}|${declarations}` : declarations
+    const className = `cd-content-style-${createHash('sha256').update(pageScopedDeclarations).digest('hex').slice(0, 12)}`
+    const markSelector = isMark ? `mark.${pageClass}.${className}[class]` : null
     const selector = /^<wa-button\b/i.test(tag)
       ? `:root .${className}[class], :root wa-button.${className}[class]::part(button)`
-      : `:root .${className}[class]`
-    contentStyleRules.set(className, { selector, declarations })
-    let cleaned = tag.replace(attribute[0], '')
+      : markSelector || `:root .${className}[class]`
+    if (declarations) contentStyleRules.set(className, { selector, declarations })
+    let cleaned = attribute ? tag.replace(attribute[0], '') : tag
+    if (isMark) cleaned = cleaned.replace(/\sdata-cd-(?:text-color|background-color|inline-color)=(['"])[^'"]*\1/gi, '')
     if (/\sclass=(['"])(.*?)\1/i.test(cleaned)) {
-      cleaned = cleaned.replace(/\sclass=(['"])(.*?)\1/i, (_match, _quote, classes) => ` class="${classes} ${className}"`)
+      cleaned = cleaned.replace(/\sclass=(['"])(.*?)\1/i, (_match, _quote, classes) => ` class="${classes}${isMark ? ` ${pageClass}` : ''}${declarations ? ` ${className}` : ''}"`)
     } else {
-      cleaned = cleaned.replace(/\s*\/?\s*>$/, (closing) => ` class="${className}"${closing}`)
+      const classes = [isMark ? pageClass : '', declarations ? className : ''].filter(Boolean).join(' ')
+      if (!classes) return cleaned
+      cleaned = cleaned.replace(/\s*\/?\s*>$/, (closing) => ` class="${classes}"${closing}`)
     }
     return cleaned
   })
@@ -576,7 +595,7 @@ function normalizeRenderedHtml(html = '', record = {}) {
     )
   }
   normalized = convertFontAwesomeIcons(normalized)
-  return externalizeContentStyles(normalizeWordPressMarkup(normalized))
+  return externalizeContentStyles(normalizeWordPressMarkup(normalized), record)
 }
 
 function findElementRange(html, tagName, searchFrom = 0) {
@@ -631,7 +650,7 @@ async function fetchRenderedFrontPage() {
     href: decodeHTML(match[3].match(/<a\b[^>]*href=(['"])(.*?)\1/i)?.[2] || ''),
   })).filter((item) => item.href)
   if (!logo || headingLinks.length < 2) throw new Error('The public WordPress footer is missing its logo or navigation.')
-  return { content: normalizeRenderedHtml(content), footer: { logo: decodeHTML(logo), profileLink: headingLinks[0], links: headingLinks.slice(1), socialLinks } }
+  return { content: normalizeRenderedHtml(content, { kind: 'page', slug: 'home' }), footer: { logo: decodeHTML(logo), profileLink: headingLinks[0], links: headingLinks.slice(1), socialLinks } }
 }
 
 function normalizeWpRecord(record, kind) {
@@ -648,9 +667,9 @@ function normalizeWpRecord(record, kind) {
     kind,
     titleText: textFromHtml(rawTitle),
     descriptionText: textFromHtml(description),
-    descriptionHtml: normalizeRenderedHtml(description, record),
-    shortDescriptionHtml: normalizeRenderedHtml(record.short_description || '', record),
-    contentHtml: normalizeRenderedHtml(content, record),
+    descriptionHtml: normalizeRenderedHtml(description, { ...record, kind }),
+    shortDescriptionHtml: normalizeRenderedHtml(record.short_description || '', { ...record, kind }),
+    contentHtml: normalizeRenderedHtml(content, { ...record, kind }),
     link: new URL(path, SITE_ORIGIN).href,
     path,
     outputPath: outputPath(path),
@@ -673,7 +692,7 @@ function normalizeTerm(term, kind) {
     { ...term, title: { rendered: term.name }, content: { rendered: term.description || '' } },
     kind,
   )
-  return { ...normalized, descriptionHtml: normalizeRenderedHtml(term.description || ''), count: term.count ?? term.products ?? 0 }
+  return { ...normalized, descriptionHtml: normalizeRenderedHtml(term.description || '', { ...term, kind }), count: term.count ?? term.products ?? 0 }
 }
 
 function parseNavigationItems(html = '') {

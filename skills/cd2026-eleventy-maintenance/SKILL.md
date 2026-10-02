@@ -36,6 +36,10 @@ Use this skill for page generation, WordPress data adapters, template and layout
 - Forminator checkbox markup can retain a paragraph around `wa-checkbox`. Reset that paragraph's default margin and let hovering the paragraph activate the checkbox hover treatment as well as the paragraph surface.
 - For these CSS changes, inspect Contact at desktop and mobile widths and check the full field surface, checkbox paragraph, hover state, and keyboard focus state. Do not edit `_site/` to adjust the result.
 
+## Imported content normalization
+
+- Preserve `<mark>` elements in `normalizeRenderedHtml()` and extract their inline and WordPress palette styles into generated rules scoped by a deterministic page-specific class. Keep the text and nested semantic HTML intact, and avoid global `<mark>` styling.
+
 ## Safety
 
 - Preserve unrelated work and make scoped source changes.

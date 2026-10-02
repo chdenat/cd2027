@@ -431,13 +431,6 @@ html.wa-dark .cd-content b {
   font-weight: 700;
 }
 
-html.wa-dark .cd-content mark {
-  border-radius: 0.12em;
-  background-color: var(--cd2026--color-mark-background) !important;
-  color: var(--cd2026--color-strong) !important;
-  padding-inline: 0.08em;
-}
-
 html.wa-dark .cd-content strong:is(.product-price, [data-cd-role='product-price']),
 html.wa-dark .cd-content b:is(.product-price, [data-cd-role='product-price']),
 html.wa-dark .cd-content .product-price strong,
