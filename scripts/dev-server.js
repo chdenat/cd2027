@@ -1,7 +1,6 @@
 const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
-const crypto = require('node:crypto')
 const { spawn } = require('node:child_process')
 
 const ROOT = path.resolve(__dirname, '..')
@@ -293,131 +292,6 @@ function serveStatic(request, response, url) {
 }
 
 let eleventy
-let lastRevision = null
-let polling = false
-
-async function fetchWpRecords(endpoint, label) {
-  const firstUrl = new URL(`${WORDPRESS_ORIGIN}/wp-json/${endpoint}`)
-  firstUrl.searchParams.set('per_page', '100')
-  firstUrl.searchParams.set('page', '1')
-  const getPage = async (url) => {
-    let result
-    let lastError
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      try {
-        result = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15000) })
-        if (result.ok) break
-        lastError = new Error(`${label} returned ${result.status}`)
-        if (result.status < 500 && result.status !== 429) throw lastError
-      } catch (error) {
-        lastError = error
-        if (attempt === 3) break
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt))
-    }
-    if (!result?.ok) throw lastError || new Error(`${label} request failed`)
-    return { records: await result.json(), pages: Number(result.headers.get('x-wp-totalpages') || 1) }
-  }
-  const first = await getPage(firstUrl)
-  const otherPages = await Promise.all(Array.from({ length: Math.max(0, first.pages - 1) }, async (_, index) => {
-    const url = new URL(firstUrl)
-    url.searchParams.set('page', String(index + 2))
-    return (await getPage(url)).records
-  }))
-  return first.records.concat(...otherPages)
-}
-
-function findHtmlElementRange(html, tagName, searchFrom = 0) {
-  const openingPattern = new RegExp(`<${tagName}\\b[^>]*>`, 'gi')
-  openingPattern.lastIndex = searchFrom
-  const opening = openingPattern.exec(html)
-  if (!opening) return null
-
-  const tagPattern = new RegExp(`<\\/?${tagName}\\b[^>]*>`, 'gi')
-  tagPattern.lastIndex = openingPattern.lastIndex
-  let depth = 1
-  let match
-  while ((match = tagPattern.exec(html))) {
-    if (/^<\//.test(match[0])) depth -= 1
-    else if (!/\/\s*>$/.test(match[0])) depth += 1
-    if (depth === 0) return { start: opening.index, end: tagPattern.lastIndex, markup: html.slice(opening.index, tagPattern.lastIndex) }
-  }
-  return null
-}
-
-async function fetchRenderedHomepageRevision() {
-  let response
-  let lastError
-  const homepageUrl = `${WORDPRESS_ORIGIN}/`
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    try {
-      response = await fetch(homepageUrl, {
-        headers: { Accept: 'text/html', 'Cache-Control': 'no-cache' },
-        signal: AbortSignal.timeout(15000),
-      })
-      if (response.ok) break
-      lastError = new Error(`WordPress homepage returned ${response.status}`)
-      if (response.status < 500 && response.status !== 429) throw lastError
-    } catch (error) {
-      lastError = error
-      if (attempt === 3) break
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt))
-  }
-  if (!response?.ok) throw lastError || new Error('WordPress homepage request failed')
-
-  const html = await response.text()
-  const siteBlocksStart = html.indexOf('wp-site-blocks')
-  const header = findHtmlElementRange(html, 'header', siteBlocksStart)
-  if (!header) throw new Error('Could not locate the rendered WordPress homepage header.')
-
-  const mediaIds = [...header.markup.matchAll(/\bwp-image-(\d+)\b/g)]
-    .map((match) => match[1])
-    .filter((id, index, ids) => ids.indexOf(id) === index)
-  const media = mediaIds.length
-    ? await fetchWpRecords(
-        `wp/v2/media?${new URLSearchParams({ include: mediaIds.join(','), _fields: 'id,modified,source_url' })}`,
-        'homepage header media',
-      )
-    : []
-
-  return {
-    markup: header.markup,
-    media: media.map(({ id, modified, source_url: sourceUrl }) => [id, modified, sourceUrl]),
-  }
-}
-
-async function getPublicRevision() {
-  const endpoints = [
-    ['wp/v2/pages?status=publish&_fields=id,slug,status,modified,featured_media', 'pages'],
-    ['wp/v2/posts?status=publish&_fields=id,slug,status,modified,featured_media,categories', 'posts'],
-    ['wp/v2/categories?hide_empty=true&_fields=id,slug,name,count,description', 'post categories'],
-    ['wp/v2/navigation?status=publish&_fields=id,slug,status,modified,content', 'navigation'],
-    ['wc/store/v1/products', 'products'],
-    ['wc/store/v1/products/categories?hide_empty=true', 'product categories'],
-  ]
-  const [collections, homepageRevision] = await Promise.all([
-    Promise.all(endpoints.map(([endpoint, label]) => fetchWpRecords(endpoint, label))),
-    fetchRenderedHomepageRevision(),
-  ])
-  const relevant = collections.map((records, index) => {
-    const label = endpoints[index][1]
-    return [label, ...records.map((record) => {
-      if (label === 'products') return [record.id, record.slug, record.name, record.permalink, record.description, record.prices?.price, record.images?.map((image) => image.src), record.categories?.map((category) => category.id)]
-      if (label === 'product categories') return [record.id, record.slug, record.name, record.permalink, record.description, record.count]
-      if (label === 'post categories') return [record.id, record.slug, record.name, record.count, record.description]
-      return [record.id, record.slug, record.status, record.modified, record.featured_media, record.categories, record.content?.rendered]
-    }).sort((a, b) => String(a[0]).localeCompare(String(b[0])))]
-  })
-  relevant.push(['rendered-homepage-header', homepageRevision.markup, homepageRevision.media])
-  return crypto.createHash('sha256').update(JSON.stringify(relevant)).digest('hex')
-}
-
-function triggerRebuild(revision) {
-  const directory = path.join(ROOT, '.data')
-  fs.mkdirSync(directory, { recursive: true })
-  fs.writeFileSync(path.join(directory, 'wordpress-revision.json'), JSON.stringify({ revision, updatedAt: new Date().toISOString() }))
-}
 
 function startEleventy() {
   eleventy = spawn(process.execPath, [path.join(ROOT, 'node_modules/@11ty/eleventy/cmd.cjs'), '--watch'], {
@@ -430,30 +304,12 @@ function startEleventy() {
     else if (code) console.error(`Eleventy watch exited with status ${code}.`)
   })
 
-  setInterval(async () => {
-    if (polling) return
-    polling = true
-    try {
-      const revision = await getPublicRevision()
-      if (lastRevision && revision !== lastRevision) {
-        lastRevision = revision
-        triggerRebuild(revision)
-        console.log('Published WordPress content changed; Eleventy is rebuilding the site.')
-      } else {
-        lastRevision = revision
-      }
-    } catch (error) {
-      console.error(`[wordpress-poll] ${error.message}`)
-    } finally {
-      polling = false
-    }
-  }, 60_000).unref()
 }
 
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${HOST}:${PORT}`)
   try {
-    if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok', output: SITE_DIR, revision: lastRevision })
+    if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok', output: SITE_DIR })
     if (url.pathname === '/api/forms/load' && request.method === 'POST') return await loadForm(request, response)
     if (url.pathname === '/api/forms/submit' && request.method === 'POST') return await submitForm(request, response)
     if (url.pathname.startsWith('/wp-json/wc/store/v1/')) return await proxyStoreApi(request, response, url)
@@ -469,16 +325,7 @@ const server = http.createServer(async (request, response) => {
 server.listen(PORT, HOST, () => {
   console.log(`Eleventy + WordPress local frontend: http://${HOST}:${PORT}`)
   console.log('WooCommerce Store API and supported form requests use same-origin local proxies.')
-  getPublicRevision()
-    .then((revision) => {
-      lastRevision = revision
-      startEleventy()
-      console.log('Local WordPress change polling is active (published content only, every 60 seconds).')
-    })
-    .catch((error) => {
-      console.error(`[wordpress-poll] Could not establish initial revision: ${error.message}`)
-      startEleventy()
-    })
+  startEleventy()
 })
 
 function stop() {

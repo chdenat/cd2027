@@ -1,11 +1,14 @@
-import { mkdir } from 'node:fs/promises'
+import { access, mkdir, rename } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { join } from 'node:path'
 
 const secret = Bun.env.WEBHOOK_SECRET
 const port = Number(Bun.env.WEBHOOK_PORT || 8787)
 const hostname = Bun.env.WEBHOOK_HOST || '127.0.0.1'
 const maxBodyBytes = Number(Bun.env.WEBHOOK_MAX_BODY_BYTES || 1024 * 1024)
-const storeDir = Bun.env.WEBHOOK_STORE_DIR || '.data/webhooks'
+const storeDir = Bun.env.WEBHOOK_STORE_DIR || '.data/webhooks/pending'
+const processedDir = Bun.env.WEBHOOK_PROCESSED_DIR || '.data/webhooks/processed'
+const maxTimestampAgeSeconds = Number(Bun.env.WEBHOOK_MAX_TIMESTAMP_AGE_SECONDS || 300)
 const encoder = new TextEncoder()
 
 if (!secret || secret.length < 16) {
@@ -50,6 +53,27 @@ async function createSignature(body) {
     .join('')
 }
 
+function eventFilename(eventId) {
+  return `${createHash('sha256').update(eventId).digest('hex')}.json`
+}
+
+function validateEvent(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return 'Invalid event payload'
+  const eventId = payload.event_id
+  const recordType = payload.record_type
+  const recordId = Number(payload.record_id)
+  const changedFields = payload.changed_fields
+  const status = payload.status
+  const modified = payload.modified_gmt
+  if (typeof eventId !== 'string' || eventId.length < 8 || eventId.length > 200) return 'Invalid event_id'
+  if (typeof recordType !== 'string' || !/^[a-z][a-z0-9_-]{0,39}$/.test(recordType)) return 'Invalid record_type'
+  if (!Number.isSafeInteger(recordId) || recordId < 1) return 'Invalid record_id'
+  if (!Array.isArray(changedFields) || changedFields.some((field) => typeof field !== 'string' || field.length > 40)) return 'Invalid changed_fields'
+  if (typeof status !== 'string' || !/^[a-z][a-z0-9_-]{0,39}$/.test(status)) return 'Invalid status'
+  if (typeof modified !== 'string' || !Number.isFinite(Date.parse(modified))) return 'Invalid modified_gmt'
+  return null
+}
+
 async function readBody(request) {
   const declaredLength = Number(request.headers.get('content-length') || 0)
   if (declaredLength > maxBodyBytes) {
@@ -87,25 +111,45 @@ async function readBody(request) {
 
 async function storeEvent({ body, payload, request }) {
   await mkdir(storeDir, { recursive: true })
+  await mkdir(processedDir, { recursive: true })
 
-  const id = crypto.randomUUID()
+  const id = payload.event_id
   const receivedAt = new Date().toISOString()
-  const filename = `${receivedAt.replaceAll(':', '-')}-${id}.json`
+  const filename = eventFilename(id)
+  const pendingPath = join(storeDir, filename)
+  const processedPath = join(processedDir, filename)
+  try {
+    await access(pendingPath)
+    return { id, receivedAt, duplicate: true }
+  } catch {}
+  try {
+    await access(processedPath)
+    return { id, receivedAt, duplicate: true }
+  } catch {}
   const event = {
     id,
     receivedAt,
+    status: 'pending',
+    attempts: 0,
+    nextAttemptAt: receivedAt,
     event: request.headers.get('x-webhook-event') || payload.event || 'unknown',
     source: request.headers.get('origin') || 'christinedeloupy.fr',
     payload,
     rawBody: body,
   }
 
-  await Bun.write(join(storeDir, filename), JSON.stringify(event, null, 2))
-  return { id, receivedAt }
+  const temporaryPath = `${pendingPath}.${crypto.randomUUID()}.tmp`
+  await Bun.write(temporaryPath, JSON.stringify(event, null, 2))
+  await rename(temporaryPath, pendingPath)
+  return { id, receivedAt, duplicate: false }
 }
 
 async function handleWebhook(request) {
   const body = await readBody(request)
+  const timestamp = Number(request.headers.get('x-webhook-timestamp'))
+  if (!Number.isSafeInteger(timestamp) || Math.abs(Date.now() / 1000 - timestamp) > maxTimestampAgeSeconds) {
+    return json({ ok: false, error: 'Invalid or expired webhook timestamp' }, 401)
+  }
   const providedSignature = normalizeSignature(
     request.headers.get('x-webhook-signature') || request.headers.get('x-hub-signature-256'),
   )
@@ -122,8 +166,11 @@ async function handleWebhook(request) {
     return json({ ok: false, error: 'Payload must be valid JSON' }, 400)
   }
 
+  const validationError = validateEvent(payload)
+  if (validationError) return json({ ok: false, error: validationError }, 400)
+
   const stored = await storeEvent({ body, payload, request })
-  console.log(`Webhook reçu: ${stored.id}`)
+  if (!stored.duplicate) console.log(`Webhook reçu: ${stored.id}`)
   return json({ ok: true, ...stored }, 202)
 }
 
