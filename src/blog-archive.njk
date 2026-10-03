@@ -6,7 +6,7 @@ pagination:
   alias: archive
 permalink: "{{ archive.outputPath }}"
 eleventyComputed:
-  title: "{{ 'Le journal' if archive.pageNumber == 1 else 'Le journal · page ' + archive.pageNumber }}"
+  title: "{{ 'Mon Blog' if archive.pageNumber == 1 else 'Mon Blog · page ' + archive.pageNumber }}"
   description: "{{ site.description }}"
   canonicalUrl: "{{ archive.link }}"
 ---

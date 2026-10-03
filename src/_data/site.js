@@ -39,7 +39,7 @@ module.exports = {
     },
     { label: 'La boutique', href: '/boutique/' },
     {
-      label: 'Le journal',
+      label: 'Mon Blog',
       href: '/mon-blog/',
       items: [
         { label: 'Derniers articles', href: '/mon-blog/' },
