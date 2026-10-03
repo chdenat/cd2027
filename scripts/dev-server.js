@@ -75,7 +75,7 @@ function pathFromRequest(value) {
 
 async function fetchWordPressPage(pageUrl) {
   const response = await fetch(pageUrl, {
-    headers: { Accept: 'text/html', 'User-Agent': 'CD2026 Eleventy local form adapter' },
+    headers: { Accept: 'text/html', 'User-Agent': 'CD2027 Eleventy local form adapter' },
     signal: AbortSignal.timeout(20000),
   })
   if (!response.ok) throw new Error(`WordPress page returned ${response.status}.`)
@@ -295,7 +295,7 @@ function serveStatic(request, response, url) {
   const contentType = MIME_TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream'
   response.setHeader('Content-Type', contentType)
   response.setHeader('X-Content-Type-Options', 'nosniff')
-  response.setHeader('Cache-Control', path.extname(file) === '.html' ? 'no-cache' : 'public, max-age=300')
+  response.setHeader('Cache-Control', 'no-store')
   if (request.method === 'HEAD') return response.end()
   fs.createReadStream(file).pipe(response)
 }
@@ -306,7 +306,7 @@ function startEleventy() {
   eleventy = spawn(process.execPath, [path.join(ROOT, 'node_modules/@11ty/eleventy/cmd.cjs'), '--watch'], {
     cwd: ROOT,
     stdio: 'inherit',
-    env: { ...process.env, CD2026_ALLOW_PUBLIC_CACHE: '1' },
+    env: { ...process.env, CD2027_ALLOW_PUBLIC_CACHE: '1' },
   })
   eleventy.on('exit', (code, signal) => {
     if (signal) console.error(`Eleventy stopped with signal ${signal}.`)
@@ -324,6 +324,14 @@ const server = http.createServer(async (request, response) => {
       response.setHeader('Cache-Control', 'no-store')
       if (request.method === 'HEAD') return response.end()
       return fs.createReadStream(path.join(__dirname, 'dev-fallback.css')).pipe(response)
+    }
+    if (url.pathname === '/__dev/shutdown' && request.method === 'POST') {
+      if (request.headers.origin || request.headers['x-cd2027-dev-command'] !== 'restart') {
+        return sendJson(response, 404, { message: 'Route not found.' })
+      }
+      sendJson(response, 202, { status: 'stopping' })
+      setImmediate(stop)
+      return
     }
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok', output: SITE_DIR })
     if (url.pathname === '/api/forms/load' && request.method === 'POST') return await loadForm(request, response)
@@ -345,7 +353,11 @@ server.listen(PORT, HOST, () => {
   startEleventy()
 })
 
+let stopping = false
+
 function stop() {
+  if (stopping) return
+  stopping = true
   server.close()
   eleventy?.kill('SIGTERM')
 }

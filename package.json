@@ -4,7 +4,7 @@
   "description": "Front-end Eleventy pour Christine Deloupy, alimenté par WordPress et WooCommerce",
   "main": "index.js",
   "scripts": {
-    "dev": "bun run build:icons && bun scripts/dev-server.js",
+    "dev": "bun scripts/stop-dev-server.js && bun run build:icons && bun scripts/dev-server.js",
     "build": "bun run build:icons && bun scripts/clean-output.js && eleventy",
     "check": "bun run build && bun scripts/check-routes.js",
     "build:icons": "bun scripts/build-fontawesome-icons.js"
