@@ -2,7 +2,7 @@
   <div class="site-footer__surface">
     <div class="site-footer__columns content-width wa-grid">
       <div class="site-footer__identity wa-stack">
-        <wa-button class="footer-brand" href="/" appearance="plain" aria-label="{{ site.name }}, accueil"><img src="{{ wordpress.footer.logo }}" alt="" width="140" height="140" /></wa-button>
+        <wa-button class="footer-brand" href="/" appearance="plain" aria-label="{{ site.name }}, accueil"><img class="theme-logo" src="{{ wordpress.footer.logo }}" alt="" width="140" height="140" /></wa-button>
         <nav class="footer-social wa-cluster" aria-label="Réseaux sociaux">
           {% for item in wordpress.footer.socialLinks %}<wa-button href="{{ item.href }}" target="_blank" rel="noopener noreferrer" appearance="plain" size="s" aria-label="{{ item.label }}"><wa-icon library="pro" name="{{ item.icon }}" family="brands" aria-hidden="true"></wa-icon></wa-button>{% endfor %}
         </nav>

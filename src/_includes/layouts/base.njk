@@ -8,6 +8,15 @@
         try {
           const saved = localStorage.getItem('cd2026-color-scheme')
           const dark = saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+          const palettes = {
+            rose: 'wa-palette-cd2026',
+            green: 'wa-palette-cd2026-green',
+            blue: 'wa-palette-cd2026-blue',
+            orange: 'wa-palette-cd2026-orange'
+          }
+          const selectedPalette = localStorage.getItem('cd2026-color-palette')
+          document.documentElement.classList.remove(...Object.values(palettes))
+          document.documentElement.classList.add(palettes[Object.hasOwn(palettes, selectedPalette) ? selectedPalette : 'rose'])
           document.documentElement.classList.toggle('wa-dark', dark)
           document.documentElement.classList.toggle('wa-light', !dark)
         } catch {}
@@ -34,7 +43,7 @@
       <header slot="header" class="site-header section-gutter">
         <div class="site-identity">
           <wa-button class="brand-mark" href="/" appearance="plain" aria-label="{{ site.name }}, accueil">
-            <img src="{{ site.logo }}" alt="" width="90" height="90" />
+            <img class="theme-logo" src="{{ site.logo }}" alt="" width="90" height="90" />
           </wa-button>
           <nav class="site-social wa-desktop-only" aria-label="Réseaux sociaux">
             {% for item in site.socialLinks %}<wa-button href="{{ item.href }}" target="_blank" rel="noopener noreferrer" appearance="plain" size="s" aria-label="{{ item.label }}"><wa-icon library="pro" name="{{ item.icon }}" family="brands" aria-hidden="true"></wa-icon></wa-button>{% endfor %}
@@ -72,11 +81,22 @@
               <wa-badge slot="end" data-cart-badge hidden variant="brand" pill><span data-cart-count aria-live="polite">0</span></wa-badge>
             </wa-button>
           {% endif %}
-          <wa-button id="cd2026-theme-selector-trigger" data-theme-selector-trigger appearance="plain" size="s" aria-label="Choisir le thème" aria-haspopup="true">
+          <wa-button id="cd2026-color-selector-trigger" data-palette-selector-trigger appearance="plain" size="s" aria-label="Choisir la couleur du thème" aria-haspopup="true">
+            <wa-icon library="pro" name="palette" variant="solid" aria-hidden="true"></wa-icon>
+          </wa-button>
+          <wa-popover class="theme-selector theme-selector--palette" for="cd2026-color-selector-trigger" placement="bottom-end" distance="8">
+            <div class="theme-selector__palette-choices" role="group" aria-label="Choisir une couleur de thème">
+              <wa-button data-theme-palette="rose" data-popover="close" appearance="plain" size="s" aria-label="Rose" aria-pressed="true"></wa-button>
+              <wa-button data-theme-palette="green" data-popover="close" appearance="plain" size="s" aria-label="Vert" aria-pressed="false"></wa-button>
+              <wa-button data-theme-palette="blue" data-popover="close" appearance="plain" size="s" aria-label="Bleu" aria-pressed="false"></wa-button>
+              <wa-button data-theme-palette="orange" data-popover="close" appearance="plain" size="s" aria-label="Orange" aria-pressed="false"></wa-button>
+            </div>
+          </wa-popover>
+          <wa-button id="cd2026-theme-selector-trigger" data-theme-selector-trigger appearance="plain" size="s" aria-label="Choisir le mode d’affichage" aria-haspopup="true">
             <wa-icon library="pro" data-theme-selector-icon name="circle-half-stroke" variant="solid" aria-hidden="true"></wa-icon>
           </wa-button>
-          <wa-popover class="theme-selector" for="cd2026-theme-selector-trigger" placement="bottom-end" distance="8">
-            <div class="theme-selector__choices" role="group" aria-label="Choisir le thème">
+          <wa-popover class="theme-selector theme-selector--mode" for="cd2026-theme-selector-trigger" placement="bottom-end" distance="8">
+            <div class="theme-selector__choices" role="group" aria-label="Choisir le mode d’affichage">
               <wa-button data-theme-choice="system" data-popover="close" appearance="plain" size="s" aria-label="Automatique, selon l’appareil" aria-pressed="false">
                 <wa-icon library="pro" name="desktop" variant="solid" aria-hidden="true"></wa-icon>
               </wa-button>
