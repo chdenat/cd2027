@@ -1,24 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="AutoImportSettings">
-    <option name="autoReloadType" value="SELECTIVE" />
-  </component>
   <component name="ChangeListManager">
-    <list default="true" id="a0adda2b-8ef8-4e61-8ad7-bbbe379478a6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/cd2026.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/TODO.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.eleventy.js" beforeDir="false" afterPath="$PROJECT_DIR$/.eleventy.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/index.js" afterDir="false" />
+    <list default="true" id="0bacfa68-34f2-4ea5-9997-b329d3f14f57" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/cd2026.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/_data/site.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/_data/site.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/_includes/layouts/base.njk" beforeDir="false" afterPath="$PROJECT_DIR$/src/_includes/layouts/base.njk" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/assets/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/main.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/assets/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/index.njk" beforeDir="false" afterPath="$PROJECT_DIR$/src/index.njk" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,23 +23,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.283535169869086" />
-      <entry key="MS500" value="3.019705518456154" />
-      <entry key="S2" value="9.838414527764703" />
-      <entry key="S5" value="21.992527998063196" />
-      <entry key="S10" value="33.248817781797364" />
-      <entry key="S30" value="46.5663872105835" />
-      <entry key="S60" value="54.7925780881091" />
-      <entry key="M2" value="80.20177152819232" />
-      <entry key="M5" value="150.34325368652063" />
-      <entry key="M10" value="227.05276587629228" />
-      <entry key="M15" value="285.254889846002" />
-      <entry key="M30" value="412.41723646773625" />
-      <entry key="H1" value="564.4853143830956" />
-      <entry key="H2" value="750.7577912739637" />
-      <entry key="H4" value="1022.1523472427577" />
-      <entry key="D1" value="1651.767865869632" />
-      <entry key="W1" value="1843.4128711982128" />
+      <entry key="MS100" value="1.1804109543979329" />
+      <entry key="MS500" value="2.5786707880769346" />
+      <entry key="S2" value="3.543563297110092" />
+      <entry key="S5" value="3.80731022907985" />
+      <entry key="S10" value="3.9213939879560265" />
+      <entry key="S30" value="9.483302541404951" />
+      <entry key="S60" value="27.94145111763598" />
+      <entry key="M2" value="54.44115845669315" />
+      <entry key="M5" value="83.13633835436953" />
+      <entry key="M10" value="96.00634044859369" />
+      <entry key="M15" value="100.75184411477709" />
+      <entry key="M30" value="105.74535268910851" />
+      <entry key="H1" value="108.33918606126693" />
+      <entry key="H2" value="109.66111202844216" />
+      <entry key="H4" value="110.3284220542947" />
+      <entry key="D1" value="110.88777278815412" />
+      <entry key="W1" value="110.98396023880478" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -72,53 +61,45 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.2380047081841572" />
-      <entry key="MS500" value="2.9975748251385763" />
-      <entry key="S2" value="9.82088853393579" />
-      <entry key="S5" value="21.976080960535466" />
-      <entry key="S10" value="33.23595107632058" />
-      <entry key="S30" value="46.560233378698165" />
-      <entry key="S60" value="54.78895190901936" />
-      <entry key="M2" value="80.19916091571629" />
-      <entry key="M5" value="150.34133910601705" />
-      <entry key="M10" value="227.0513297646606" />
-      <entry key="M15" value="285.2536846378189" />
-      <entry key="M30" value="412.4163421274626" />
-      <entry key="H1" value="564.4846735879446" />
-      <entry key="H2" value="750.7573356217288" />
-      <entry key="H4" value="1022.1520100036895" />
-      <entry key="D1" value="1651.767765384668" />
-      <entry key="W1" value="1843.4128548916583" />
+      <entry key="MS100" value="1.1261296623305415" />
+      <entry key="MS500" value="2.5526173121436466" />
+      <entry key="S2" value="3.5339892891248383" />
+      <entry key="S5" value="3.803131927322472" />
+      <entry key="S10" value="3.9192286855043914" />
+      <entry key="S30" value="9.481064507183605" />
+      <entry key="S60" value="27.937599766101705" />
+      <entry key="M2" value="54.437186682952216" />
+      <entry key="M5" value="83.1338417493508" />
+      <entry key="M10" value="96.00488610024459" />
+      <entry key="M15" value="100.75082369133169" />
+      <entry key="M30" value="105.74481566371755" />
+      <entry key="H1" value="108.33891057368584" />
+      <entry key="H2" value="109.6609725059222" />
+      <entry key="H4" value="110.3283518439076" />
+      <entry key="D1" value="110.88776102366363" />
+      <entry key="W1" value="110.98395855662139" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 6,
+  "associatedIndex": 7,
   "fromUser": false
 }]]></component>
-  <component name="ProjectId" id="3K5Ki0DCQ0a0oeHtXQD9vamSrxv" />
-  <component name="ProjectLevelVcsManager">
-    <ConfirmationsSetting value="2" id="Add" />
-  </component>
+  <component name="ProjectId" id="3KBtPpsNArfhx1nBzdRmAdL3c9w" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "KEY_CHAT_IN_TOOLWINDOW": "false",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "main",
     "javascript.preferred.runtime.type.id": "bun",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "bun",
     "settings.editor.selected.configurable": "preferences.keymap"
   }
@@ -132,16 +113,26 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="a0adda2b-8ef8-4e61-8ad7-bbbe379478a6" name="Changes" comment="" />
+      <changelist id="0bacfa68-34f2-4ea5-9997-b329d3f14f57" name="Changes" comment="" />
       <created>1789111588355</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1789111588355</updated>
-      <workItem from="1790842115391" duration="14504000" />
+      <workItem from="1791042769636" duration="269000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+    <option name="exactExcludedFiles">
+      <list>
+        <option value="$PROJECT_DIR$/_site/assets/webawesome/styles/component/variants.styles.d.ts" />
+        <option value="$PROJECT_DIR$/_site/assets/webawesome/styles/component/size.styles.d.ts" />
+        <option value="$PROJECT_DIR$/_site/assets/webawesome/styles/component/segmented-field.styles.d.ts" />
+        <option value="$PROJECT_DIR$/_site/assets/webawesome/styles/component/visually-hidden.styles.d.ts" />
+        <option value="$PROJECT_DIR$/_site/assets/webawesome/styles/component/host.styles.d.ts" />
+        <option value="$PROJECT_DIR$/_site/assets/webawesome/styles/component/form-control.styles.d.ts" />
+      </list>
+    </option>
   </component>
 </project>

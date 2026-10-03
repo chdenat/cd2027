@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "cd2026",
+      "name": "cd2027",
       "dependencies": {
         "@11ty/eleventy": "^3.1.6",
         "@awesome.me/webawesome": "^3.11.0",
