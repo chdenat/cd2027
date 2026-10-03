@@ -2,6 +2,7 @@ const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
 const { spawn } = require('node:child_process')
+const cleanOutput = require('./clean-output')
 
 const ROOT = path.resolve(__dirname, '..')
 const SITE_DIR = path.join(ROOT, '_site')
@@ -11,6 +12,7 @@ const HOST = '127.0.0.1'
 const MAX_BODY = 1024 * 1024
 const FORMINATOR_IDS = new Set([10569, 10671])
 const MAILPOET_IDS = new Set([1, 5, 7, 9, 11, 12, 13, 15])
+const BUILDING_PAGE = '<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light"><title>Site en préparation · Christine Deloupy</title><link rel="stylesheet" href="/__dev/fallback.css"></head><body><main class="fallback-page"><section class="fallback-card" aria-labelledby="fallback-title"><p class="fallback-eyebrow">Christine Deloupy <span aria-hidden="true">·</span> une petite pause</p><div class="fallback-ornament" aria-hidden="true"><span></span><span></span><span></span></div><h1 id="fallback-title">Nous préparons votre visite</h1><p class="fallback-message">Le site se met à jour en ce moment. Il sera de retour dans un instant.</p><form method="get" action="/"><button type="submit">Réessayer</button></form><p class="fallback-note">Le bouton recharge la page.</p></section></main></body></html>'
 
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
@@ -283,6 +285,13 @@ function serveStatic(request, response, url) {
     file = path.join(SITE_DIR, '404.html')
     response.statusCode = 404
   }
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+    response.statusCode = 503
+    response.setHeader('Content-Type', 'text/html; charset=utf-8')
+    response.setHeader('X-Content-Type-Options', 'nosniff')
+    response.setHeader('Cache-Control', 'no-store')
+    return response.end(BUILDING_PAGE)
+  }
   const contentType = MIME_TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream'
   response.setHeader('Content-Type', contentType)
   response.setHeader('X-Content-Type-Options', 'nosniff')
@@ -309,6 +318,13 @@ function startEleventy() {
 const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${HOST}:${PORT}`)
   try {
+    if (url.pathname === '/__dev/fallback.css' && ['GET', 'HEAD'].includes(request.method)) {
+      response.setHeader('Content-Type', 'text/css; charset=utf-8')
+      response.setHeader('X-Content-Type-Options', 'nosniff')
+      response.setHeader('Cache-Control', 'no-store')
+      if (request.method === 'HEAD') return response.end()
+      return fs.createReadStream(path.join(__dirname, 'dev-fallback.css')).pipe(response)
+    }
     if (url.pathname === '/health') return sendJson(response, 200, { status: 'ok', output: SITE_DIR })
     if (url.pathname === '/api/forms/load' && request.method === 'POST') return await loadForm(request, response)
     if (url.pathname === '/api/forms/submit' && request.method === 'POST') return await submitForm(request, response)
@@ -325,6 +341,7 @@ const server = http.createServer(async (request, response) => {
 server.listen(PORT, HOST, () => {
   console.log(`Eleventy + WordPress local frontend: http://${HOST}:${PORT}`)
   console.log('WooCommerce Store API and supported form requests use same-origin local proxies.')
+  cleanOutput()
   startEleventy()
 })
 
