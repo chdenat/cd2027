@@ -1,6 +1,6 @@
 # Current WordPress route inventory
 
-Snapshot: 2026-10-01. This inventory covers the whole public site, not just the homepage.
+Snapshot: 2026-10-03. This inventory covers the whole public site, not just the homepage.
 
 Sources: public WordPress REST API and Yoast XML sitemaps on christinedeloupy.fr. This is a snapshot; repeat the inventory before migration and after large content changes. The REST API count includes published records that are not necessarily indexed or listed in the sitemaps.
 
@@ -18,6 +18,14 @@ Sources: public WordPress REST API and Yoast XML sitemaps on christinedeloupy.fr
 | Post categories | 5 |
 | Product categories in sitemap | 6 |
 | Author sitemap URLs | 1 |
+
+## Build inclusion and completeness
+
+The current build fetches only public page and post records (`status=publish`) and purchasable products from the WooCommerce Store API. A record is generated when its route is present in the matching Yoast sitemap or an internal link in public site content, navigation, or the footer references it. This keeps linked landing pages available while leaving unrelated published records out of the static site.
+
+The live API currently returns 59 pages, 142 posts, and 7 purchasable products. The build generates 58 referenced pages, all 142 post routes, and all 7 product routes. The `/std-boutique/` page is absent from the page sitemap and has empty content with `noindex` metadata. The cart's “Poursuivre vos achats” link is normalized to `/boutique/`, so `/std-boutique/` is no longer treated as a referenced page. Each full build starts with an empty `_site/`, and the staging deployment promotes a fresh release, so deleted or newly unreferenced records do not survive as stale files.
+
+The build check now verifies both sitemap URLs and each selected WordPress source record against the generated files. It also fails if an excluded record's old output file remains.
 
 The counts do not describe only page templates. The site also has editorial archives, product catalog routes, cart and checkout pages, customer-account pages, subscription and payment-result pages, courses, forms, and newsletter flows.
 
@@ -290,7 +298,24 @@ WordPress reports 142 published articles. The table is the current public API in
 - The WooCommerce Store API returns 7 purchasable product permalinks, while the Yoast product sitemap lists 8 URLs.
 - Published page records absent from the page sitemap: [https://christinedeloupy.fr/std-boutique/](https://christinedeloupy.fr/std-boutique/).
 - Product sitemap URLs absent from the Store API product list: [https://christinedeloupy.fr/std-boutique/](https://christinedeloupy.fr/std-boutique/).
-- Resolve these differences explicitly when defining route coverage, indexability, redirects, and canonicals; do not drop them by relying on the sitemap alone.
+- The route selector handles the discrepancy by checking both typed sitemap membership and internal references. The cart's legacy `/std-boutique/` link is rewritten to `/boutique/`, so the orphan page is excluded.
+
+## Internal links to missing or redirected routes
+
+These are source-content link issues, not missing WordPress records or Eleventy omissions. Live WordPress returned 404 for the listed old URLs on 2026-10-03; the pages/posts that contain the links remain public and are generated.
+
+| Source record | Referenced URL | Current result |
+| --- | --- | --- |
+| Page 8113, Mes Accompagnements | `/seance-clarté/` | 404; the current public page is `/seance-clarte/` |
+| Page 6638, Si vous aviez une baguette magique ? | `/inscrivez-vous-pour-une-seance-decouverte/` | 404 |
+| Post 13481, Parlons respiration | `/breathwork-les-ateliers/` | 404 |
+| Post 12935, Les lectures akashiques | `/accompagnements/lecture-akashique/` | Redirects to `/mes-accompagnements/lecture-akashique/` |
+| Post 12523, Le cercle d’éveil | `/boutique/accompagnements/le-cercle-deveil/` | 404 |
+| Post 12455, Et si, et si, et si | `/inscrivez-vous-pour-une-seance-clarte/` | 404 |
+| Footer navigation | `/accompagnements/` | 404 |
+| Footer profile link | `/je-suis/` | 404 |
+
+Seven source URLs return 404 and have no matching published page/product record to generate. The build canonicalizes three stale destinations (`/seance-clarté/`, `/accompagnements/lecture-akashique/`, and `/accompagnements/`) to current routes; the other five remain broken links and need their intended replacement URLs confirmed before changing the editorial content.
 
 ## Functional route families to preserve
 

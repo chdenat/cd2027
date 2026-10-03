@@ -8,6 +8,12 @@ const { createHash } = require('node:crypto')
 const contentStyleRules = new Map()
 const { decodeHTML } = require('entities')
 const CACHE_FILE = path.resolve(__dirname, '../..', '.data', 'wordpress-public-cache.json')
+const INTERNAL_ROUTE_ALIASES = new Map([
+  ['/std-boutique/', '/boutique/'],
+  ['/seance-clarté/', '/seance-clarte/'],
+  ['/accompagnements/lecture-akashique/', '/mes-accompagnements/lecture-akashique/'],
+  ['/accompagnements/', '/mes-accompagnements/'],
+])
 const SHOP_NAVIGATION_FALLBACK = [
   { label: 'Boutique', href: '/boutique/' },
   { label: 'Panier', href: '/panier/' },
@@ -83,6 +89,92 @@ function localPath(url) {
   return pathname.endsWith('/') ? pathname : `${pathname}/`
 }
 
+async function fetchSitemapPaths(name) {
+  const response = await fetchWithRetry(`${WORDPRESS_ORIGIN}/${name}-sitemap.xml`, `Yoast ${name} sitemap`, {
+    headers: { Accept: 'application/xml,text/xml' },
+  })
+  const xml = await response.text()
+  if (!/<urlset\b/i.test(xml)) throw new Error(`WordPress ${name} sitemap did not contain a URL set.`)
+  const paths = [...xml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)]
+    .map((match) => {
+      try {
+        return localPath(decodeHTML(match[1].trim()))
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+  return new Set(paths)
+}
+
+async function fetchPublicSitemaps() {
+  const names = ['page', 'post', 'product', 'category', 'product_cat', 'author']
+  const entries = await Promise.all(names.map(async (name) => [name, await fetchSitemapPaths(name)]))
+  return Object.fromEntries(entries)
+}
+
+function collectInternalReferences(htmlValues) {
+  const paths = new Set()
+  for (const html of htmlValues) {
+    for (const match of String(html || '').matchAll(/<(?:a|area|form|wa-button|wa-dropdown-item)\b[^>]*?(?:href|action|data-href)=(['"])(.*?)\1[^>]*>/gi)) {
+      try {
+        const path = localPath(localPathOrExternal(decodeHTML(match[2])))
+        if (path) paths.add(path)
+      } catch {
+        // Malformed and external links do not identify a local content route.
+      }
+    }
+  }
+  return paths
+}
+
+function addLocalReference(paths, value) {
+  if (!value) return
+  try {
+    const path = localPath(localPathOrExternal(decodeHTML(value)))
+    if (path) paths.add(path)
+  } catch {
+    // External and malformed links do not identify a local content route.
+  }
+}
+
+function selectReferencedRecords({ recordGroups, sitemapNames, sitemaps, rootHtml, rootLinks, alwaysIncludePaths }) {
+  const selected = Object.fromEntries(Object.entries(recordGroups).map(([kind]) => [kind, new Set()]))
+  for (const [kind, records] of Object.entries(recordGroups)) {
+    const sitemapPaths = sitemaps[sitemapNames[kind]]
+    for (const record of records) {
+      if (sitemapPaths?.has(record.path) || alwaysIncludePaths.has(record.path)) selected[kind].add(record)
+    }
+  }
+
+  let referencedPaths = collectInternalReferences(rootHtml)
+  for (const href of rootLinks) addLocalReference(referencedPaths, href)
+  let changed = true
+  while (changed) {
+    changed = false
+    const activeRecords = Object.values(selected).flatMap((records) => [...records])
+    const html = [
+      ...rootHtml,
+      ...activeRecords.flatMap((record) => [record.contentHtml, record.descriptionHtml, record.shortDescriptionHtml]),
+    ]
+    referencedPaths = collectInternalReferences(html)
+    for (const href of rootLinks) addLocalReference(referencedPaths, href)
+    for (const [kind, records] of Object.entries(recordGroups)) {
+      for (const record of records) {
+        if (!selected[kind].has(record) && referencedPaths.has(record.path)) {
+          selected[kind].add(record)
+          changed = true
+        }
+      }
+    }
+  }
+
+  return {
+    records: Object.fromEntries(Object.entries(selected).map(([kind, records]) => [kind, [...records]])),
+    referencedPaths,
+  }
+}
+
 function outputPath(pathname) {
   return pathname === '/' ? 'index.html' : `${pathname.replace(/^\/+|\/+$/g, '')}/index.html`
 }
@@ -145,7 +237,8 @@ function localPathOrExternal(value) {
     const siteHostname = new URL(WORDPRESS_ORIGIN).hostname.replace(/^www\./i, '').toLowerCase()
     if (hostname !== siteHostname) return parsed.href
     const path = decodeURI(parsed.pathname)
-    return `${path}${parsed.search}${parsed.hash}`
+    const lookupPath = path.endsWith('/') ? path : `${path}/`
+    return `${INTERNAL_ROUTE_ALIASES.get(lookupPath) || path}${parsed.search}${parsed.hash}`
   } catch {
     return value
   }
@@ -640,7 +733,7 @@ async function fetchRenderedFrontPage() {
     const anchors = [...match[1].matchAll(/<a\b[^>]*href=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi)]
     const anchor = anchors.find((item) => textFromHtml(item[3]))
     if (!anchor) return null
-    return { label: textFromHtml(match[1]), href: localPath(decodeHTML(anchor[2])) || decodeHTML(anchor[2]) }
+    return { label: textFromHtml(match[1]), href: localPathOrExternal(decodeHTML(anchor[2])) }
   }).filter(Boolean)
   const logoTag = footerHtml.match(/<img\b[^>]*>/i)?.[0] || ''
   const logo = logoTag.match(/\bdata-src=(['"])(.*?)\1/i)?.[2] || logoTag.match(/\bsrc=(['"])(.*?)\1/i)?.[2]
@@ -774,11 +867,52 @@ async function loadWordPressData() {
   const rawProductCategories = await fetchCollection('wc/store/v1/products/categories?hide_empty=true', 'WooCommerce product categories')
   const rawNavigation = await fetchCollection('wp/v2/navigation?status=publish', 'WordPress navigation')
   const renderedFrontPage = await fetchRenderedFrontPage()
+  const sitemaps = await fetchPublicSitemaps()
   const homepageHtml = renderedFrontPage.content
 
-  const pages = rawPages.map((record) => normalizeWpRecord(record, 'page'))
-  const posts = rawPosts.map((record) => normalizeWpRecord(record, 'post'))
-  const products = rawProducts.map((record) => normalizeWpRecord(record, 'product'))
+  const sourcePages = rawPages.map((record) => normalizeWpRecord(record, 'page'))
+  const sourcePosts = rawPosts.map((record) => normalizeWpRecord(record, 'post'))
+  const sourceProducts = rawProducts.map((record) => normalizeWpRecord(record, 'product'))
+  const sourcePostCategories = rawPostCategories.map((record) => normalizeTerm(record, 'post-category'))
+  const sourceProductCategories = rawProductCategories.map((record) => normalizeTerm(record, 'product-category'))
+  const home = sourcePages.find((record) => record.path === '/') || sourcePages.find((record) => record.id === 10343)
+  const blogPage = sourcePages.find((record) => record.slug === 'mon-blog')
+  if (!home) throw new Error('Could not locate the published WordPress front page')
+  if (!blogPage) throw new Error('Could not locate the published WordPress blog page')
+
+  const footer = renderedFrontPage.footer || {}
+  const selection = selectReferencedRecords({
+    recordGroups: {
+      pages: sourcePages,
+      posts: sourcePosts,
+      products: sourceProducts,
+      postCategories: sourcePostCategories,
+      productCategories: sourceProductCategories,
+    },
+    sitemapNames: {
+      pages: 'page',
+      posts: 'post',
+      products: 'product',
+      postCategories: 'category',
+      productCategories: 'product_cat',
+    },
+    sitemaps,
+    rootHtml: [renderedFrontPage.content, ...rawNavigation.map((record) => record.content?.rendered)],
+    rootLinks: [footer.profileLink?.href, ...(footer.links || []).map((item) => item.href)],
+    alwaysIncludePaths: new Set([home.path, blogPage.path]),
+  })
+  const { referencedPaths } = selection
+  const selectedPages = selection.records.pages
+  const pages = selectedPages.filter((record) => record.id !== home.id && record.id !== blogPage.id)
+  const posts = selection.records.posts
+  const products = selection.records.products
+  const postCategories = selection.records.postCategories
+  const productCategories = selection.records.productCategories
+  const recordSelection = {
+    pages: { fetched: sourcePages.length, generated: selectedPages.length, excluded: sourcePages.filter((record) => !selectedPages.includes(record)).map(({ id, titleText, path, outputPath }) => ({ id, title: titleText, path, outputPath })) },
+    posts: { fetched: sourcePosts.length, generated: posts.length, excluded: sourcePosts.filter((record) => !posts.includes(record)).map(({ id, titleText, path, outputPath }) => ({ id, title: titleText, path, outputPath })) },
+    products: { fetched: sourceProducts.length, generated: products.length, excluded: sourceProducts.filter((record) => !products.includes(record)).map(({ id, titleText, path, outputPath }) => ({ id, title: titleText, path, outputPath })) },
+  }
   const cartPage = pages.find((record) => record.slug === 'panier')
   if (cartPage) {
     const recommendationPaths = new Set()
@@ -795,8 +929,6 @@ async function loadWordPressData() {
     }
     cartPage.recommendationProducts = products.filter((product) => recommendationPaths.has(product.path))
   }
-  const postCategories = rawPostCategories.map((record) => normalizeTerm(record, 'post-category'))
-  const productCategories = rawProductCategories.map((record) => normalizeTerm(record, 'product-category'))
   posts.sort((a, b) => String(b.publishedAt).localeCompare(String(a.publishedAt)))
   for (const post of posts) {
     post.categoryTerms = postCategories.filter((category) => post.categoryIds.includes(category.id))
@@ -808,8 +940,6 @@ async function loadWordPressData() {
   const parsedShopNavigation = parseNavigationItems(shopNavigationRecord?.content?.rendered || '')
   const shopNavigation = parsedShopNavigation.length ? parsedShopNavigation : SHOP_NAVIGATION_FALLBACK
   const footerNavigation = parseNavigationItems(footerNavigationRecord?.content?.rendered || '')
-  const home = pages.find((record) => record.path === '/') || pages.find((record) => record.id === 10343)
-  const blogPage = pages.find((record) => record.slug === 'mon-blog')
   const authorArchive = {
     kind: 'author',
     id: 'christine',
@@ -819,8 +949,6 @@ async function loadWordPressData() {
     outputPath: 'author/christine/index.html',
   }
 
-  if (!home) throw new Error('Could not locate the published WordPress front page')
-  if (!blogPage) throw new Error('Could not locate the published WordPress blog page')
   const latestPostsBlock = /<ul\b(?=[^>]*data-cd-block="latest-posts")[^>]*>[\s\S]*?<\/ul>/i.exec(blogPage.contentHtml)
   if (latestPostsBlock) {
     for (const item of latestPostsBlock[0].matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)) {
@@ -882,6 +1010,9 @@ async function loadWordPressData() {
     shopNavigation,
     footerNavigation,
     authorArchive,
+    recordSelection,
+    sourceSitemaps: Object.fromEntries(Object.entries(sitemaps).map(([kind, paths]) => [kind, [...paths]])),
+    referencedPaths: [...referencedPaths],
     formIds: [...formIds],
     routes: [{ ...home, path: '/', outputPath: 'index.html' }, ...routes].map((record) => record.link),
   }
