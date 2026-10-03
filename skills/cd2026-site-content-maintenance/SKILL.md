@@ -16,6 +16,9 @@ Use this skill for content or route work spanning WordPress records, Eleventy ou
 5. Preserve the published slug, canonical URL, existing links, media alternatives, taxonomy, date, and SEO fields unless the user asks for a change.
 6. For a slug change or removal, add the approved redirect or retirement behavior to the route map.
 7. Inspect the generated route after synchronization when a working CMS sync and build command are available. Never edit `_site/` by hand.
+8. For route selection, compare the matching public sitemap with internal references from pages, posts, navigation, and required flows. Include referenced records even when absent from that sitemap; exclude unrelated records that are neither listed nor referenced, and record the reason for intentional exclusions.
+9. Check internal links to affected content. Update an obsolete destination only when the canonical replacement is clear from the live site or approved route map; ask for or record clarification when it is ambiguous. Make the change in the CMS when authorized or in the source adapter when that is the assigned source of truth.
+10. After removing or excluding content, verify a clean build no longer serves its old output route and does not preserve stale generated files.
 
 ## Gutenberg and embedded behavior
 
