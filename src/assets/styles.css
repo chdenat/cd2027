@@ -205,7 +205,7 @@ wa-button[variant='brand'][appearance='outlined']::part(button):hover {
 [data-theme-selector-trigger]::part(button):hover,
 [data-palette-selector-trigger]::part(button):hover { background: var(--cd2027--color-surface-lowered); color: var(--cd2027--color-tertiary); }
 .theme-selector::part(body) {
-  padding: var(--wa-space-3xs);
+  padding: var(--wa-space-xs);
   border-color: var(--cd2027--color-border);
   border-radius: 0.75rem;
   background: var(--cd2027--color-surface-raised);
