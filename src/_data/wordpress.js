@@ -11,6 +11,8 @@ const CACHE_FILE = path.resolve(__dirname, '../..', '.data', 'wordpress-public-c
 const INTERNAL_ROUTE_ALIASES = new Map([
   ['/std-boutique/', '/boutique/'],
   ['/seance-clarté/', '/seance-clarte/'],
+  ['/inscrivez-vous-pour-une-seance-decouverte/', '/seance-clarte/'],
+  ['/inscrivez-vous-pour-une-seance-clarte/', '/seance-clarte/'],
   ['/accompagnements/lecture-akashique/', '/mes-accompagnements/lecture-akashique/'],
   ['/accompagnements/', '/mes-accompagnements/'],
 ])

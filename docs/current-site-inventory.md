@@ -307,15 +307,17 @@ These are source-content link issues, not missing WordPress records or Eleventy 
 | Source record | Referenced URL | Current result |
 | --- | --- | --- |
 | Page 8113, Mes Accompagnements | `/seance-clarté/` | 404; the current public page is `/seance-clarte/` |
-| Page 6638, Si vous aviez une baguette magique ? | `/inscrivez-vous-pour-une-seance-decouverte/` | 404 |
+| Page 6638, Si vous aviez une baguette magique ? | `/inscrivez-vous-pour-une-seance-decouverte/` | 404; frontend link canonicalized to `/seance-clarte/` |
 | Post 13481, Parlons respiration | `/breathwork-les-ateliers/` | 404 |
 | Post 12935, Les lectures akashiques | `/accompagnements/lecture-akashique/` | Redirects to `/mes-accompagnements/lecture-akashique/` |
 | Post 12523, Le cercle d’éveil | `/boutique/accompagnements/le-cercle-deveil/` | 404 |
-| Post 12455, Et si, et si, et si | `/inscrivez-vous-pour-une-seance-clarte/` | 404 |
+| Post 12455, Et si, et si, et si | `/inscrivez-vous-pour-une-seance-clarte/` | 404; frontend link canonicalized to `/seance-clarte/` |
 | Footer navigation | `/accompagnements/` | 404 |
 | Footer profile link | `/je-suis/` | 404 |
 
-Seven source URLs return 404 and have no matching published page/product record to generate. The build canonicalizes three stale destinations (`/seance-clarté/`, `/accompagnements/lecture-akashique/`, and `/accompagnements/`) to current routes; the other five remain broken links and need their intended replacement URLs confirmed before changing the editorial content.
+Seven source URLs return 404 and have no matching published page/product record to generate. The build canonicalizes five stale destinations (`/seance-clarté/`, `/accompagnements/lecture-akashique/`, `/accompagnements/`, and the two legacy session-registration URLs) to current routes. The remaining three broken destinations are `/je-suis/`, `/breathwork-les-ateliers/`, and `/boutique/accompagnements/le-cercle-deveil/`; their replacements or retirement need clarification.
+
+The follow-up audit on 2026-10-03 reconfirmed the five previously unresolved URLs return 404 without a redirect and are absent from the 59 public pages, 142 public posts, and 7 Store API products. Page 6646 at `/seance-clarte/` returns 200 with that canonical URL and contains the current free introductory-session form. Its SEO description retains the old `inscrivez-vous-pour-une-seance-decouverte` wording. This identifies it as the destination for the discovery and clarity session links. The adapter rewrites these links while the live WordPress content remains unchanged.
 
 ## Functional route families to preserve
 
