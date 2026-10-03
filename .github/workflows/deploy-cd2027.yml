@@ -3,7 +3,7 @@ name: Deploy cd2027.christinedeloupy.fr
 on:
   workflow_dispatch:
   repository_dispatch:
-    types: [cd2026_staging_deploy]
+    types: [cd2027_deploy]
   schedule:
     - cron: '17 6 * * *'
 
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cd2026-staging-deployment
+  group: cd2027-deployment
   cancel-in-progress: false
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: test
+    environment: cd2027
     env:
       SITE_URL: https://cd2027.christinedeloupy.fr
       WORDPRESS_ORIGIN: https://christinedeloupy.fr
@@ -57,11 +57,11 @@ jobs:
       - name: Install password-based SSH client
         run: sudo apt-get update && sudo apt-get install --yes sshpass
 
-      - name: Upload and atomically promote the staging build
+      - name: Upload and atomically promote the CD2027 build
         env:
-          STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
-          STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
-          STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
-          STAGING_SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
-          STAGING_REMOTE_ROOT: ${{ vars.STAGING_REMOTE_ROOT }}
-        run: bash scripts/upload-staging.sh
+          CD2027_SSH_HOST: ${{ secrets.CD2027_SSH_HOST }}
+          CD2027_SSH_PORT: ${{ secrets.CD2027_SSH_PORT }}
+          CD2027_SSH_USER: ${{ secrets.CD2027_SSH_USER }}
+          CD2027_SSH_PASSWORD: ${{ secrets.CD2027_SSH_PASSWORD }}
+          CD2027_REMOTE_ROOT: ${{ vars.CD2027_REMOTE_ROOT }}
+        run: bash scripts/upload-cd2027.sh

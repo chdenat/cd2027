@@ -11,22 +11,24 @@ WordPress remains the content and transaction backend; Eleventy generates the pu
 - The MU-plugin sender reports public post types (including posts/articles, pages, products, and public custom post types), public post metadata, WooCommerce product changes, public taxonomy changes, media changes, and menu changes. Draft edits are ignored; publication and removal from public status are reported. A new custom post type still needs an Eleventy data adapter and template before it can appear in generated output.
 - The PHP MU-plugin batches pending events to GitHub's `repository_dispatch` API. GitHub builds the entire Eleventy site from current public WordPress/WooCommerce data, checks generated routes, then atomically promotes the result to `https://cd2027.christinedeloupy.fr`. The daily full staging rebuild recovers from missed events and failed earlier workflow runs.
 - `localhost:4555` remains the development frontend address and does not participate in publishing.
-- This is a staging workflow. The production hostname is not deployed by it. Configure the GitHub `test` environment as described in [the staging deployment guide](staging-deployment.md).
+- This is a staging workflow. The production hostname is not deployed by it. Configure the GitHub `cd2027` environment as described in [the staging deployment guide](cd2027-deployment.md).
 - `bun run check` runs the Eleventy build and `scripts/check-routes.js`. The route check inspects generated sitemap routes and selected internal-link and archive conditions. It does not exercise checkout payments or every form integration.
 
 ### Connect WordPress to the GitHub staging build
 
-1. Copy `wordpress/mu-plugins/cd2026-eleventy-webhook.php` to the WordPress installation’s `wp-content/mu-plugins/` directory. Create that directory if it does not exist.
+1. Copy `wordpress/mu-plugins/cd2027-eleventy-webhook.php` to the WordPress installation’s `wp-content/mu-plugins/` directory. Create that directory if it does not exist.
 2. Create a fine-grained GitHub token limited to this repository, with `Contents: Read and write`, and add it and the repository name to WordPress `wp-config.php` before WordPress loads:
 
 ```php
-define('CD2026_GITHUB_DISPATCH_TOKEN', 'the-server-side-token');
-define('CD2026_GITHUB_REPOSITORY', 'owner/repository');
+define('CD2027_GITHUB_DISPATCH_TOKEN', 'the-server-side-token');
+define('CD2027_GITHUB_REPOSITORY', 'owner/repository');
 ```
 
 3. Configure Nuxit's scheduled task to call WordPress `wp-cron.php` every five minutes. Save a published page, article, product, or another supported record. WP-Cron sends the notification; GitHub then performs a complete data fetch, build, route check, and staging promotion.
 
 WordPress's default WP-Cron is triggered by site visits, so sender retries may be delayed on a quiet site. Configure the scheduled task in Nuxit's hosting panel; no separate webhook host is needed.
+
+The CD2027 pipeline uses its own `cd2027` GitHub environment, `CD2027_SSH_*` secrets, `CD2027_REMOTE_ROOT` variable, and `cd2027_deploy` dispatch event. Configure these values explicitly; the workflow has no fallback to another environment's deployment credentials. Its WordPress sender likewise reads only the `CD2027_GITHUB_*` constants and uses a dedicated database outbox. When replacing an existing sender, drain or back up its pending notifications before removing it, then install only the CD2027 sender and configure its constants. Renaming repository files does not update the live WordPress installation or GitHub settings.
 
 The [first implementation note](first-implementation.md) records the current page, commerce, and form coverage. In particular, account, subscription, course, payment-result, and some specialized form operations still need integration work.
 
@@ -80,13 +82,13 @@ The public frontend address, WordPress source address, and visible brand name ar
 | `SITE_NAME` | `Christine Deloupy` | Visible brand name, document title, and Open Graph site name. |
 | `SITE_URL` | `https://christinedeloupy.fr` | Public Eleventy origin for canonical URLs and sitemap entries. Use the final public domain. |
 | `WORDPRESS_ORIGIN` | `https://christinedeloupy.fr` | WordPress API, media, and form-handler origin fetched by the build and PHP proxy. This may become a WordPress-only subdomain. |
-| `CD2026_GITHUB_DISPATCH_TOKEN` | stored secret | Fine-grained GitHub token held in WordPress `wp-config.php` for requesting the staging workflow. |
-| `CD2026_GITHUB_REPOSITORY` | `owner/repository` | Repository receiving `repository_dispatch` events. |
+| `CD2027_GITHUB_DISPATCH_TOKEN` | stored secret | Fine-grained GitHub token held in WordPress `wp-config.php` for requesting the staging workflow. |
+| `CD2027_GITHUB_REPOSITORY` | `owner/repository` | Repository receiving `repository_dispatch` events. |
 | Deployment credentials | host-specific | SSH/SFTP/hosting credentials used by GitHub Actions to publish `_site/`. Store them as GitHub Actions secrets. |
 
 Set non-secret build values such as `SITE_NAME`, `SITE_URL`, and `WORDPRESS_ORIGIN` under GitHub repository **Settings → Secrets and variables → Actions → Variables**. Put tokens and deployment credentials under **Secrets**. GitHub documents [workflow variables](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables) and [workflow secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets).
 
-Set the dispatch token in WordPress `wp-config.php`. Set staging upload credentials in the GitHub `test` environment. Never put secrets in `src/`, the generated `_site/`, public JavaScript, or Git.
+Set the dispatch token in WordPress `wp-config.php`. Set staging upload credentials in the GitHub `cd2027` environment. Never put secrets in `src/`, the generated `_site/`, public JavaScript, or Git.
 
 These variables are a configuration target, not currently wired application settings. At present:
 
@@ -110,7 +112,7 @@ When wiring the variables, keep source and output origins separate: use `WORDPRE
 - [Project rules](../PROJECT_RULES.md)
 - [Current site route inventory](current-site-inventory.md)
 - [First implementation status and remaining integrations](first-implementation.md)
-- [WordPress publishing MU-plugin](../wordpress/mu-plugins/cd2026-eleventy-webhook.php)
+- [WordPress publishing MU-plugin](../wordpress/mu-plugins/cd2027-eleventy-webhook.php)
 - [Local development server and API adapters](../scripts/dev-server.js)
 - [WooCommerce browser client](../src/assets/commerce.js)
 - [Form browser client](../src/assets/forms.js)

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORKFLOW=".github/workflows/deploy-staging.yml"
+WORKFLOW=".github/workflows/deploy-cd2027.yml"
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "GitHub CLI (gh) is required. Install it and run 'gh auth login'." >&2
@@ -19,4 +19,4 @@ cd "$ROOT"
 gh workflow run "$WORKFLOW" --ref main
 
 repository="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
-printf 'Déploiement de test demandé sur main. Suivi : https://github.com/%s/actions/workflows/deploy-staging.yml\n' "$repository"
+printf 'Déploiement CD2027 demandé sur main. Suivi : https://github.com/%s/actions/workflows/deploy-cd2027.yml\n' "$repository"

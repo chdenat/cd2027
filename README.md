@@ -27,8 +27,8 @@ The build requires network access to the public WordPress REST and WooCommerce S
 - `src/_data/wordpress.js` fetches published pages, posts, product data, taxonomies, and the WordPress navigation, then maps their canonical links to Eleventy output routes.
 - `src/pages.njk`, `src/posts.njk`, `src/products.njk`, and the category templates generate the site’s current route families.
 - `src/_includes/layouts/` and `src/_includes/includes/` hold the shared layouts and reusable cards.
-- `src/assets/theme.css` defines the WordPress-derived `--cd2026--*` palette and the Web Awesome light/dark theme; `src/assets/styles.css` applies those tokens to page layouts and WordPress block styles.
+- `src/assets/theme.css` defines the WordPress-derived `--cd2027--*` palette and the Web Awesome light/dark theme; `src/assets/styles.css` applies those tokens to page layouts and WordPress block styles.
 - `scripts/dev-server.js` serves the local site and provides same-origin API adapters for WooCommerce and the current Forminator/MailPoet forms.
-- `docs/current-site-inventory.md` is the route inventory; `docs/first-implementation.md` records the prototype’s verified scope and remaining integrations; `docs/wordpress-publishing-and-runtime.md` documents the GitHub staging workflow, Bun webhook, PHP runtime proxy, and environment configuration. For setup steps, see the [site de test et hook WordPress user guide](docs/staging-deployment.md).
+- `docs/current-site-inventory.md` is the route inventory; `docs/first-implementation.md` records the prototype’s verified scope and remaining integrations; `docs/wordpress-publishing-and-runtime.md` documents the GitHub staging workflow, Bun webhook, PHP runtime proxy, and environment configuration. For setup steps, see the [site CD2027 et hook WordPress user guide](docs/cd2027-deployment.md).
 
 The checked-in GitHub workflow deploys only to `https://cd2027.christinedeloupy.fr`. It needs the documented GitHub environment secrets and an internet-reachable webhook host; this does not enable production deployment.

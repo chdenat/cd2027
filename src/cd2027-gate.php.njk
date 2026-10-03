@@ -45,12 +45,12 @@ function cd2027_login_form(string $action, string $returnPath, string $nonce, st
     $escapedNonce = esc_attr($nonce);
     $escapedMessage = $message === '' ? '' : '<p role="alert">' . esc_html($message) . '</p>';
 
-    echo '<!doctype html><html lang="fr" class="wa-theme-cd2026 wa-palette-cd2026 wa-light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
+    echo '<!doctype html><html lang="fr" class="wa-theme-cd2027 wa-palette-cd2027 wa-light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
     echo '<meta name="robots" content="noindex,nofollow,noarchive"><link rel="stylesheet" href="/assets/webawesome/styles/webawesome.css">';
     echo '<link rel="stylesheet" href="/assets/theme.css"><link rel="stylesheet" href="/cd2027-login.css">';
     echo '<title>Connexion administrateur · Christine Deloupy</title></head><body>';
     echo '<wa-button id="cd2027-login-trigger" class="login-trigger" appearance="plain" aria-label="Connexion administrateur"><wa-icon library="pro" name="right-to-bracket" variant="solid" aria-hidden="true"></wa-icon></wa-button>';
-    echo '<main><h1>Site de test privé</h1><p>Ce site de test est privé. Connectez-vous avec votre compte administrateur WordPress.</p></main>';
+    echo '<main><h1>Site CD2027 privé</h1><p>Ce site CD2027 est privé. Connectez-vous avec votre compte administrateur WordPress.</p></main>';
     echo '<wa-dialog id="cd2027-login-dialog" label="Connexion administrateur"><div class="login-dialog-content">' . $escapedMessage;
     echo '<form method="post" action="' . $escapedAction . '">';
     echo '<input type="hidden" name="_wpnonce" value="' . $escapedNonce . '"><input type="hidden" name="return_to" value="' . $escapedReturn . '">';
@@ -251,7 +251,7 @@ if ($requestPath === $logoutPath || $requestPath === $logoutPath . '/') {
         $logoutAction = esc_url($stagingOrigin . $logoutPath . '/');
         echo '<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">';
         echo '<link rel="stylesheet" href="/assets/webawesome/styles/webawesome.css">';
-        echo '<title>Déconnexion du site de test</title><body><main><h1>Déconnexion WordPress</h1>';
+        echo '<title>Déconnexion du site CD2027</title><body><main><h1>Déconnexion WordPress</h1>';
         echo '<p>Cette action déconnecte votre session WordPress sur CD2027.</p>';
         echo '<form method="post" action="' . $logoutAction . '"><input type="hidden" name="_wpnonce" value="' . $escapedNonce . '">';
         echo '<wa-button type="submit">Confirmer la déconnexion</wa-button></form></main>';
