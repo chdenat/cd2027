@@ -59,9 +59,9 @@ jobs:
 
       - name: Upload and atomically promote the CD2027 build
         env:
-          CD2027_SSH_HOST: ${{ secrets.CD2027_SSH_HOST }}
-          CD2027_SSH_PORT: ${{ secrets.CD2027_SSH_PORT }}
-          CD2027_SSH_USER: ${{ secrets.CD2027_SSH_USER }}
-          CD2027_SSH_PASSWORD: ${{ secrets.CD2027_SSH_PASSWORD }}
-          CD2027_REMOTE_ROOT: ${{ vars.CD2027_REMOTE_ROOT }}
+          CD2027_SSH_HOST: ${{ secrets.CD2027_SSH_HOST || secrets.STAGING_SSH_HOST }}
+          CD2027_SSH_PORT: ${{ secrets.CD2027_SSH_PORT || secrets.STAGING_SSH_PORT }}
+          CD2027_SSH_USER: ${{ secrets.CD2027_SSH_USER || secrets.STAGING_SSH_USER }}
+          CD2027_SSH_PASSWORD: ${{ secrets.CD2027_SSH_PASSWORD || secrets.STAGING_SSH_PASSWORD }}
+          CD2027_REMOTE_ROOT: ${{ vars.CD2027_REMOTE_ROOT || vars.STAGING_REMOTE_ROOT }}
         run: bash scripts/upload-cd2027.sh
