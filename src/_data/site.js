@@ -10,6 +10,7 @@ module.exports = {
   stagingAuth: privateView,
   privateView,
   logo: 'https://christinedeloupy.fr/wp-content/uploads/2023/12/Logo-CD2024.png',
+  favicon: 'https://christinedeloupy.fr/wp-content/themes/cd2024/assets/images/Logo-CD2024-blanc.png',
   socialLinks: [
     { label: 'Facebook', href: 'https://www.facebook.com/christinedeloupy.fr/', icon: 'facebook' },
     { label: 'Instagram', href: 'https://www.instagram.com/espace.kocoon/', icon: 'instagram' },

@@ -29,7 +29,7 @@
     <meta property="og:description" content="{{ description or site.description }}" />
     {% if image %}<meta property="og:image" content="{{ image }}" />{% endif %}
     {% if canonicalUrl %}<link rel="canonical" href="{{ canonicalUrl }}" />{% endif %}
-    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="{{ site.favicon }}" type="image/png" />
     <link rel="stylesheet" href="/assets/webawesome/styles/webawesome.css" />
     <link rel="stylesheet" href="/assets/theme.css" />
     <link rel="stylesheet" href="/assets/styles.css" />
