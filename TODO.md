@@ -5,7 +5,7 @@ Ce que j'aimerai faire :
 
 - Avoir sur ce nouveau site un site qui tourne avec eleventy et qui utilise webawesome et font awesome pour toute la mise en page.
 - Je veux aussi continuer à gérer le site depuis le backend et à chaque modification validée, je mets à jour le frontend 11ty.
-- je veux bien entendu un theme dédié webawesome qui reprend EXACTEMENT le look actuel. Il faudra utiliser les variables CSS pour gerer les styles de Wordpress , debutant par '--cd2026--'.
+- je veux bien entendu un theme dédié webawesome qui reprend EXACTEMENT le look actuel. Il faudra utiliser les variables CSS pour gerer les styles de Wordpress , debutant par '--cd2027--'.
 
 
 Dans un premier temps je veux

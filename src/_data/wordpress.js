@@ -599,21 +599,21 @@ function normalizeWordPressMarkup(html = '') {
       'text-font': 'body',
       'button-font': 'button',
     }
-    return `font-family:var(--cd2026--font-${fonts[family.toLowerCase()]})`
-  }).replace(/--wp--preset--spacing--/g, '--cd2026--space-')
-    .replace(/--wp--preset--color--couleur-1\b/g, '--cd2026--color-primary')
-    .replace(/--wp--preset--color--couleur-2\b/g, '--cd2026--color-secondary')
-    .replace(/--wp--preset--color--couleur-3\b/g, '--cd2026--color-tertiary')
-    .replace(/--wp--preset--color--couleur-4\b/g, '--cd2026--color-quaternary')
-    .replace(/--wp--preset--color--couleur-5\b/g, '--cd2026--color-text')
-    .replace(/--wp--preset--color--/g, '--cd2026--color-')
-    .replace(/--wp--preset--font-family--great-vibes/g, '--cd2026--font-script')
-    .replace(/--wp--preset--font-family--made-mirage/g, '--cd2026--font-heading')
-    .replace(/--wp--preset--font-family--menu-font/g, '--cd2026--font-menu')
-    .replace(/--wp--preset--font-family--text-font/g, '--cd2026--font-body')
-    .replace(/--wp--preset--font-family--button-font/g, '--cd2026--font-button')
-    .replace(/--wp--preset--font-family--/g, '--cd2026--font-')
-    .replace(/--wp--preset--font-size--/g, '--cd2026--font-size-')
+    return `font-family:var(--cd2027--font-${fonts[family.toLowerCase()]})`
+  }).replace(/--wp--preset--spacing--/g, '--cd2027--space-')
+    .replace(/--wp--preset--color--couleur-1\b/g, '--cd2027--color-primary')
+    .replace(/--wp--preset--color--couleur-2\b/g, '--cd2027--color-secondary')
+    .replace(/--wp--preset--color--couleur-3\b/g, '--cd2027--color-tertiary')
+    .replace(/--wp--preset--color--couleur-4\b/g, '--cd2027--color-quaternary')
+    .replace(/--wp--preset--color--couleur-5\b/g, '--cd2027--color-text')
+    .replace(/--wp--preset--color--/g, '--cd2027--color-')
+    .replace(/--wp--preset--font-family--great-vibes/g, '--cd2027--font-script')
+    .replace(/--wp--preset--font-family--made-mirage/g, '--cd2027--font-heading')
+    .replace(/--wp--preset--font-family--menu-font/g, '--cd2027--font-menu')
+    .replace(/--wp--preset--font-family--text-font/g, '--cd2027--font-body')
+    .replace(/--wp--preset--font-family--button-font/g, '--cd2027--font-button')
+    .replace(/--wp--preset--font-family--/g, '--cd2027--font-')
+    .replace(/--wp--preset--font-size--/g, '--cd2027--font-size-')
 }
 
 function markPageClass(record = {}) {
@@ -633,19 +633,19 @@ function externalizeContentStyles(html, record = {}) {
     let declarations = attribute ? decodeHTML(attribute[2]).trim() : ''
     if (attribute) {
       declarations = declarations
-      .replace(/--wp--style--root--padding-(?:left|right)|--wp--custom--gap--horizontal/g, '--cd2026--page-padding-inline')
-      .replace(/--wp--style--block-gap/g, '--cd2026--space-40')
-      .replace(/--couleur-texte\b/g, '--cd2026--color-text')
-      .replace(/--texte-principal\b/g, '--cd2026--font-body')
-      .replace(/(^|;)\s*color\s*:\s*#fff(?:fff)?\b/gi, '$1color:var(--cd2026--color-base-foreground)')
-      .replace(/#fff(?:fff)?\b/gi, 'var(--cd2026--color-base)')
+      .replace(/--wp--style--root--padding-(?:left|right)|--wp--custom--gap--horizontal/g, '--cd2027--page-padding-inline')
+      .replace(/--wp--style--block-gap/g, '--cd2027--space-40')
+      .replace(/--couleur-texte\b/g, '--cd2027--color-text')
+      .replace(/--texte-principal\b/g, '--cd2027--font-body')
+      .replace(/(^|;)\s*color\s*:\s*#fff(?:fff)?\b/gi, '$1color:var(--cd2027--color-base-foreground)')
+      .replace(/#fff(?:fff)?\b/gi, 'var(--cd2027--color-base)')
       .replace(/#([0-9a-f]{6}|[0-9a-f]{3})\b/gi, (_match, hex) => {
         const palette = { ecc8c8: 'primary', ddb5b7: 'secondary', '8f6b6b': 'tertiary', f9bfc1: 'quaternary', '737373': 'text', b97a6a: 'lightgray', '000000': 'contrast', '000': 'contrast' }
-        return palette[hex.toLowerCase()] ? `var(--cd2026--color-${palette[hex.toLowerCase()]})` : `var(--cd2026--editorial-color-${hex.toLowerCase()})`
+        return palette[hex.toLowerCase()] ? `var(--cd2027--color-${palette[hex.toLowerCase()]})` : `var(--cd2027--editorial-color-${hex.toLowerCase()})`
       })
     }
-    if (textColorAttribute && colorToken(textColorAttribute[2])) declarations += `${declarations ? ';' : ''}color:var(--cd2026--color-${colorToken(textColorAttribute[2])}) !important`
-    if (backgroundColorAttribute && colorToken(backgroundColorAttribute[2])) declarations += `${declarations ? ';' : ''}background-color:var(--cd2026--color-${colorToken(backgroundColorAttribute[2])}) !important`
+    if (textColorAttribute && colorToken(textColorAttribute[2])) declarations += `${declarations ? ';' : ''}color:var(--cd2027--color-${colorToken(textColorAttribute[2])}) !important`
+    if (backgroundColorAttribute && colorToken(backgroundColorAttribute[2])) declarations += `${declarations ? ';' : ''}background-color:var(--cd2027--color-${colorToken(backgroundColorAttribute[2])}) !important`
     const pageScopedDeclarations = isMark ? `${pageClass}|${declarations}` : declarations
     const className = `cd-content-style-${createHash('sha256').update(pageScopedDeclarations).digest('hex').slice(0, 12)}`
     const markSelector = isMark ? `mark.${pageClass}.${className}[class]` : null
@@ -1025,7 +1025,7 @@ module.exports = async function () {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(data))
     return data
   } catch (error) {
-    if (process.env.CD2026_ALLOW_PUBLIC_CACHE === '1' && fs.existsSync(CACHE_FILE)) {
+    if (process.env.CD2027_ALLOW_PUBLIC_CACHE === '1' && fs.existsSync(CACHE_FILE)) {
       console.warn(`[wordpress] Using the last successful public content snapshot after a fetch failure: ${error.message}`)
       const cached = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
       if (!Array.isArray(cached.shopNavigation) || !cached.shopNavigation.length) {

@@ -1,20 +1,20 @@
 <!doctype html>
-<html lang="fr" class="wa-theme-cd2026 wa-palette-cd2026 wa-light">
+<html lang="fr" class="wa-theme-cd2027 wa-palette-cd2027 wa-light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>
       (() => {
         try {
-          const saved = localStorage.getItem('cd2026-color-scheme')
+          const saved = localStorage.getItem('cd2027-color-scheme')
           const dark = saved === 'dark' || (saved !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
           const palettes = {
-            rose: 'wa-palette-cd2026',
-            green: 'wa-palette-cd2026-green',
-            blue: 'wa-palette-cd2026-blue',
-            orange: 'wa-palette-cd2026-orange'
+            rose: 'wa-palette-cd2027',
+            green: 'wa-palette-cd2027-green',
+            blue: 'wa-palette-cd2027-blue',
+            orange: 'wa-palette-cd2027-orange'
           }
-          const selectedPalette = localStorage.getItem('cd2026-color-palette')
+          const selectedPalette = localStorage.getItem('cd2027-color-palette')
           document.documentElement.classList.remove(...Object.values(palettes))
           document.documentElement.classList.add(palettes[Object.hasOwn(palettes, selectedPalette) ? selectedPalette : 'rose'])
           document.documentElement.classList.toggle('wa-dark', dark)
@@ -81,10 +81,10 @@
               <wa-badge slot="end" data-cart-badge hidden variant="brand" pill><span data-cart-count aria-live="polite">0</span></wa-badge>
             </wa-button>
           {% endif %}
-          <wa-button id="cd2026-color-selector-trigger" data-palette-selector-trigger appearance="plain" size="s" aria-label="Choisir la couleur du thème" aria-haspopup="true">
+          <wa-button id="cd2027-color-selector-trigger" data-palette-selector-trigger appearance="plain" size="s" aria-label="Choisir la couleur du thème" aria-haspopup="true">
             <wa-icon library="pro" name="palette" variant="solid" aria-hidden="true"></wa-icon>
           </wa-button>
-          <wa-popover class="theme-selector theme-selector--palette" for="cd2026-color-selector-trigger" placement="bottom-end" distance="8">
+          <wa-popover class="theme-selector theme-selector--palette" for="cd2027-color-selector-trigger" placement="bottom-end" distance="8">
             <div class="theme-selector__palette-choices" role="group" aria-label="Choisir une couleur de thème">
               <wa-button data-theme-palette="rose" data-popover="close" appearance="plain" size="s" aria-label="Rose" aria-pressed="true"></wa-button>
               <wa-button data-theme-palette="green" data-popover="close" appearance="plain" size="s" aria-label="Vert" aria-pressed="false"></wa-button>
@@ -92,10 +92,10 @@
               <wa-button data-theme-palette="orange" data-popover="close" appearance="plain" size="s" aria-label="Orange" aria-pressed="false"></wa-button>
             </div>
           </wa-popover>
-          <wa-button id="cd2026-theme-selector-trigger" data-theme-selector-trigger appearance="plain" size="s" aria-label="Choisir le mode d’affichage" aria-haspopup="true">
+          <wa-button id="cd2027-theme-selector-trigger" data-theme-selector-trigger appearance="plain" size="s" aria-label="Choisir le mode d’affichage" aria-haspopup="true">
             <wa-icon library="pro" data-theme-selector-icon name="circle-half-stroke" variant="solid" aria-hidden="true"></wa-icon>
           </wa-button>
-          <wa-popover class="theme-selector theme-selector--mode" for="cd2026-theme-selector-trigger" placement="bottom-end" distance="8">
+          <wa-popover class="theme-selector theme-selector--mode" for="cd2027-theme-selector-trigger" placement="bottom-end" distance="8">
             <div class="theme-selector__choices" role="group" aria-label="Choisir le mode d’affichage">
               <wa-button data-theme-choice="system" data-popover="close" appearance="plain" size="s" aria-label="Automatique, selon l’appareil" aria-pressed="false">
                 <wa-icon library="pro" name="desktop" variant="solid" aria-hidden="true"></wa-icon>

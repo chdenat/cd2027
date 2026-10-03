@@ -1,9 +1,9 @@
 ---
-name: cd2026-site-qa
-description: Validate all CD2026 page families, routes, visual fidelity, SEO, accessibility, and backend interactions.
+name: cd2027-site-qa
+description: Validate all CD2027 page families, routes, visual fidelity, SEO, accessibility, and backend interactions.
 ---
 
-# CD2026 site QA
+# CD2027 site QA
 
 Use this skill when checking the public site, the WordPress migration, or a published Eleventy build. Treat generated output and live user flows as the verification surface, not as editing targets.
 
@@ -20,7 +20,7 @@ Use this skill when checking the public site, the WordPress migration, or a publ
 
 - Compare each page family with the current WordPress reference at desktop and mobile viewports.
 - Check typography, colors, layout, image crop, spacing, overlays, and responsive navigation against the approved design references.
-- On `/`, compare the cover and Gutenberg alignment gutters with WordPress: content uses `--cd2026--content-width` without an extra desktop gutter, `wide` uses `--cd2026--wide-width`, `full` spans the desktop viewport, and column gaps match the 1rem WordPress block gap. Check that default flex content stretches like Gutenberg, the KAELYA Talismans button has no duplicate outline, and no gray band remains between testimonials and the footer. Check `/mes-bijoux/` for the same column spacing and confirm the framed mobile gutters remain intact.
+- On `/`, compare the cover and Gutenberg alignment gutters with WordPress: content uses `--cd2027--content-width` without an extra desktop gutter, `wide` uses `--cd2027--wide-width`, `full` spans the desktop viewport, and column gaps match the 1rem WordPress block gap. Check that default flex content stretches like Gutenberg, the KAELYA Talismans button has no duplicate outline, and no gray band remains between testimonials and the footer. Check `/mes-bijoux/` for the same column spacing and confirm the framed mobile gutters remain intact.
 - On `/contact/`, confirm the details and form align at the top on desktop; icons sit at the top of their text rows; the icon column stays narrow; the email wraps without overlapping the form; and mobile keeps the detail rows horizontal while stacking the main columns.
 - Inspect every contact field's hover and keyboard-focus states. Hover must affect the complete Web Awesome field wrapper; for the Forminator consent checkbox, hovering its paragraph wrapper must also activate the checkbox treatment. Check that the two-column name row stacks cleanly on narrow screens.
 - Verify forms, consent, newsletter signups, product options, cart, checkout, payment results, accounts, subscriptions, and course access with a safe test flow.

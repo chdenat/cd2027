@@ -1,4 +1,4 @@
-const CART_TOKEN_KEY = 'cd2026-cart-token'
+const CART_TOKEN_KEY = 'cd2027-cart-token'
 const API_ROOT = '/wp-json/wc/store/v1'
 
 function escapeHtml(value = '') {

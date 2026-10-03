@@ -1,13 +1,13 @@
-const STORAGE_KEY = 'cd2026-color-scheme'
-const PALETTE_STORAGE_KEY = 'cd2026-color-palette'
+const STORAGE_KEY = 'cd2027-color-scheme'
+const PALETTE_STORAGE_KEY = 'cd2027-color-palette'
 const root = document.documentElement
 const preference = window.matchMedia('(prefers-color-scheme: dark)')
 const validChoices = new Set(['system', 'light', 'dark'])
 const paletteClasses = {
-  rose: 'wa-palette-cd2026',
-  green: 'wa-palette-cd2026-green',
-  blue: 'wa-palette-cd2026-blue',
-  orange: 'wa-palette-cd2026-orange',
+  rose: 'wa-palette-cd2027',
+  green: 'wa-palette-cd2027-green',
+  blue: 'wa-palette-cd2027-blue',
+  orange: 'wa-palette-cd2027-orange',
 }
 const validPalettes = new Set(Object.keys(paletteClasses))
 
@@ -38,7 +38,7 @@ function applyColorScheme(choice) {
   const selectedChoice = validChoices.has(choice) ? choice : 'system'
   const dark = selectedChoice === 'dark' || (selectedChoice === 'system' && preference.matches)
   root.classList.remove('wa-light', 'wa-dark')
-  root.classList.add('wa-theme-cd2026', dark ? 'wa-dark' : 'wa-light')
+  root.classList.add('wa-theme-cd2027', dark ? 'wa-dark' : 'wa-light')
 
   const trigger = document.querySelector('[data-theme-selector-trigger]')
   const triggerIcon = trigger?.querySelector('[data-theme-selector-icon]')

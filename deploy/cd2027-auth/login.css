@@ -4,9 +4,9 @@ body {
   place-items: center;
   margin: 0;
   padding: var(--wa-space-xl);
-  background: var(--cd2026--color-surface-lowered);
-  color: var(--cd2026--color-body);
-  font-family: var(--cd2026--font-body);
+  background: var(--cd2027--color-surface-lowered);
+  color: var(--cd2027--color-body);
+  font-family: var(--cd2027--font-body);
 }
 
 main {
@@ -14,10 +14,10 @@ main {
   gap: var(--wa-space-m);
   width: min(100%, 28rem);
   padding: var(--wa-space-2xl);
-  border: 1px solid var(--cd2026--color-border);
-  border-radius: var(--cd2026--radius);
-  background: var(--cd2026--color-surface);
-  box-shadow: var(--cd2026--shadow-page);
+  border: 1px solid var(--cd2027--color-border);
+  border-radius: var(--cd2027--radius);
+  background: var(--cd2027--color-surface);
+  box-shadow: var(--cd2027--shadow-page);
 }
 
 h1,
@@ -35,7 +35,7 @@ p {
 .login-trigger::part(button) {
   min-inline-size: var(--wa-space-2xl);
   min-block-size: var(--wa-space-2xl);
-  color: var(--cd2026--color-tertiary);
+  color: var(--cd2027--color-tertiary);
 }
 
 wa-dialog {
@@ -53,5 +53,5 @@ form {
 }
 
 [role='alert'] {
-  color: var(--cd2026--color-tertiary);
+  color: var(--cd2027--color-tertiary);
 }

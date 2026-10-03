@@ -1,9 +1,9 @@
 ---
-name: cd2026-site-content-maintenance
-description: Maintain WordPress-managed content and preserve all public CD2026 routes, media, metadata, and functional page families.
+name: cd2027-site-content-maintenance
+description: Maintain WordPress-managed content and preserve all public CD2027 routes, media, metadata, and functional page families.
 ---
 
-# CD2026 site content maintenance
+# CD2027 site content maintenance
 
 Use this skill for content or route work spanning WordPress records, Eleventy output, or both. Read `PROJECT_RULES.md` and `docs/current-site-inventory.md` first.
 

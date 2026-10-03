@@ -24,7 +24,7 @@ function initializeCarousel(gallery, index) {
   swiper.setAttribute('aria-label', gallery.getAttribute('aria-label') || 'Galerie d’images')
   swiper.setAttribute('aria-roledescription', 'carrousel')
   swiper.tabIndex = 0
-  track.id ||= `cd2026-gallery-${index + 1}`
+  track.id ||= `cd2027-gallery-${index + 1}`
 
   const render = () => {
     track.dataset.activeSlide = String(active)

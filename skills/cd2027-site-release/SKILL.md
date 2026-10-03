@@ -1,9 +1,9 @@
 ---
-name: cd2026-site-release
+name: cd2027-site-release
 description: Prepare and validate an Eleventy build and its WordPress-driven deployment or rollback.
 ---
 
-# CD2026 site release
+# CD2027 site release
 
 Use this skill when preparing a deployment, enabling the WordPress publishing pipeline, or investigating a failed release.
 

@@ -1,9 +1,9 @@
 ---
-name: cd2026-content-review
-description: Review the clarity, consistency, metadata, route coverage, and freshness of all CD2026 site content.
+name: cd2027-content-review
+description: Review the clarity, consistency, metadata, route coverage, and freshness of all CD2027 site content.
 ---
 
-# CD2026 content review
+# CD2027 content review
 
 Use this skill for editorial audits, route inventory review, copy consistency, metadata checks, and content freshness. The review scope is the whole site, not only its homepage.
 

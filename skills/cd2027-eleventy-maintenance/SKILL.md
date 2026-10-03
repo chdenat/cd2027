@@ -1,9 +1,9 @@
 ---
-name: cd2026-eleventy-maintenance
-description: Maintain CD2026 Eleventy data, Nunjucks templates, Web Awesome styling, Font Awesome assets, and production builds.
+name: cd2027-eleventy-maintenance
+description: Maintain CD2027 Eleventy data, Nunjucks templates, Web Awesome styling, Font Awesome assets, and production builds.
 ---
 
-# CD2026 Eleventy maintenance
+# CD2027 Eleventy maintenance
 
 Use this skill for page generation, WordPress data adapters, template and layout changes, theme work, asset handling, and build debugging.
 
@@ -26,7 +26,7 @@ Use this skill for page generation, WordPress data adapters, template and layout
 5. Select build records from both the matching public sitemap and references in public content, navigation, or required site flows. Sitemap membership alone must not omit linked records; API presence alone must not include unrelated records. Record fetched, selected, and excluded counts so route checks can verify coverage.
 6. Ensure full builds cannot retain stale output for deleted or newly excluded routes. Clean only the generated output directory before a full build; never remove source files or hand-edit generated pages.
 7. Keep content transformation explicit. Map supported Gutenberg blocks and extension output to documented renderers; fail or report clearly on unsupported data.
-8. Use Web Awesome components and utilities for supported layout and controls, with the `--cd2026--*` tokens mapped to documented `--wa-*` tokens.
+8. Use Web Awesome components and utilities for supported layout and controls, with the `--cd2027--*` tokens mapped to documented `--wa-*` tokens.
 9. Use the imported Font Awesome icon definitions through the custom Web Awesome icon library. Add definitions to `scripts/fontawesome-icons.entry.js`, run `bun run build:icons`, and keep the private package token out of source control.
 10. Run the real project build and inspect affected routes once the package manifest and scripts are restored to a reproducible state.
 
@@ -45,7 +45,7 @@ Use this skill for page generation, WordPress data adapters, template and layout
 
 ## Homepage alignment
 
-- Keep the homepage cover content aligned with WordPress's content-width token (`--cd2026--content-width`). Scope `wide` and `full` Gutenberg breakout rules to `.wordpress-home`; on desktop, `wide` uses `--cd2026--wide-width` and `full` spans the viewport. Match desktop content width without adding another gutter, and keep Gutenberg columns at the site's 1rem block gap (`--cd2026--space-40`). Flex content defaults to WordPress's stretch alignment; center it only when requested in source. Preserve framed mobile gutters. Keep the homepage flush to its testimonial section and avoid extra footer spacing after it; verify desktop and mobile layouts, including Mes bijoux.
+- Keep the homepage cover content aligned with WordPress's content-width token (`--cd2027--content-width`). Scope `wide` and `full` Gutenberg breakout rules to `.wordpress-home`; on desktop, `wide` uses `--cd2027--wide-width` and `full` spans the viewport. Match desktop content width without adding another gutter, and keep Gutenberg columns at the site's 1rem block gap (`--cd2027--space-40`). Flex content defaults to WordPress's stretch alignment; center it only when requested in source. Preserve framed mobile gutters. Keep the homepage flush to its testimonial section and avoid extra footer spacing after it; verify desktop and mobile layouts, including Mes bijoux.
 
 ## Safety
 

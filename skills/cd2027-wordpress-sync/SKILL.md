@@ -1,9 +1,9 @@
 ---
-name: cd2026-wordpress-sync
+name: cd2027-wordpress-sync
 description: Design or maintain the authenticated, durable WordPress-to-Eleventy content update pipeline.
 ---
 
-# CD2026 WordPress synchronization
+# CD2027 WordPress synchronization
 
 Use this skill for WordPress publish hooks, webhook verification, API fetching, build queues, retries, publication status, and content reconciliation.
 

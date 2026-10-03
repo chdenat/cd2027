@@ -1,9 +1,9 @@
 ---
-name: cd2026-documentation-authoring
-description: Create and maintain clear CD2026 project and operational documentation for the WordPress-managed Eleventy site.
+name: cd2027-documentation-authoring
+description: Create and maintain clear CD2027 project and operational documentation for the WordPress-managed Eleventy site.
 ---
 
-# CD2026 documentation authoring
+# CD2027 documentation authoring
 
 Use this skill for project rules, architecture notes, migration guidance, operational procedures, and user documentation.
 

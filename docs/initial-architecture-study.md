@@ -7,7 +7,7 @@ Mise à jour de l’état d’implémentation : 2 octobre 2026.
 
 L’objectif étudié est de conserver WordPress pour l’édition et l’administration, puis de générer le frontend public avec Eleventy, Web Awesome et Font Awesome. L’analyse couvre les routes publiques de tout le site : pages de présentation, accompagnements, articles, archives, produits, formulaires, pages légales et parcours liés aux comptes et paiements.
 
-Pour la phase actuelle, l’adresse visée pour le frontend Eleventy est `http://localhost:4555`. C’est une cible locale de développement, pas encore un hébergement de production. WordPress reste la source éditoriale ; les valeurs de thème `--cd2026--*` seront définies dans le code du projet et versionnées avec lui, sans interface de réglage dans WordPress.
+Pour la phase actuelle, l’adresse visée pour le frontend Eleventy est `http://localhost:4555`. C’est une cible locale de développement, pas encore un hébergement de production. WordPress reste la source éditoriale ; les valeurs de thème `--cd2027--*` seront définies dans le code du projet et versionnées avec lui, sans interface de réglage dans WordPress.
 
 L’inventaire détaillé des URL observées est dans [current-site-inventory.md](current-site-inventory.md). Il combine les objets publiés exposés par l’API WordPress et les sitemaps publics. Les pages nécessitant une connexion, une session panier, un paiement ou un service tiers demandent aussi un audit fonctionnel authentifié.
 
@@ -30,7 +30,7 @@ L’API REST WordPress expose des ressources de pages, articles, médias, taxono
 | Garder le backend WordPress | L’éditeur et les habitudes de publication restent en place ; l’administration n’a pas à être reconstruite. |
 | Servir des fichiers statiques | Les pages et articles générés peuvent être livrés rapidement, mis en cache et servis sans exécuter WordPress pour chaque lecture publique. |
 | Séparer contenu et présentation | Eleventy peut reproduire les modèles avec des composants et layouts maîtrisés, sans imposer au frontend les limites du thème WordPress. |
-| Centraliser le thème | Les variables `--cd2026--*` peuvent représenter les valeurs de la marque et alimenter les tokens Web Awesome, ce qui rend les ajustements cohérents. |
+| Centraliser le thème | Les variables `--cd2027--*` peuvent représenter les valeurs de la marque et alimenter les tokens Web Awesome, ce qui rend les ajustements cohérents. |
 | Garder les contenus dans WordPress | Les articles, pages, images, taxonomies et produits peuvent rester éditables dans l’administration, sous réserve que leur structure soit exportable. |
 
 ## Inconvénients et difficultés
@@ -102,7 +102,7 @@ La garantie repose sur une livraison au moins une fois, rendue idempotente, et c
 
 Un hébergeur avec déploiement à partir de Git ou un build hook peut exécuter Eleventy ; Eleventy documente les deux familles d’hébergement. Le choix entre hook de l’hébergeur, GitHub Actions et récepteur Bun dépend de l’hébergement final et de la nécessité d’accéder à des données WordPress privées.
 
-Pour le thème, centraliser les valeurs de référence en variables `--cd2026--*`, puis les relier aux tokens Web Awesome documentés. Les variables personnalisées restent la couche du site ; les tokens `--wa-*` restent l’interface de Web Awesome. Le thème partagé ne remplacera pas le travail de reproduction des gabarits propres aux pages.
+Pour le thème, centraliser les valeurs de référence en variables `--cd2027--*`, puis les relier aux tokens Web Awesome documentés. Les variables personnalisées restent la couche du site ; les tokens `--wa-*` restent l’interface de Web Awesome. Le thème partagé ne remplacera pas le travail de reproduction des gabarits propres aux pages.
 
 ## Décisions restant à prendre
 
