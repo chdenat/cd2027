@@ -12,7 +12,7 @@ eleventyComputed:
   image: "{{ wp.image or site.logo }}"
   ogType: product
 ---
-<article class="product-detail">
+<article class="product-detail" data-product>
   <wa-breadcrumb class="breadcrumbs content-width" aria-label="Fil d’Ariane">
     <wa-breadcrumb-item href="/">Accueil</wa-breadcrumb-item>
     <wa-breadcrumb-item href="/boutique/">Boutique</wa-breadcrumb-item>
@@ -31,6 +31,7 @@ eleventyComputed:
         {% if wp.price %}<p class="product-price">{{ wp.price | price }}</p>{% endif %}
         {% if wp.shortDescriptionHtml %}<div class="product-short-description cd-content">{{ wp.shortDescriptionHtml | safe }}</div>{% endif %}
         {% if wp.purchasable and wp.inStock %}
+          <wa-number-input class="product-summary__quantity" label="Quantité" name="quantity" min="0" max="100" step="1" value="1"></wa-number-input>
           <wa-button variant="brand" appearance="outlined" data-add-to-cart="{{ wp.id }}">
             Ajouter au panier <wa-icon library="pro" slot="end" name="basket-shopping" variant="solid" aria-hidden="true"></wa-icon>
           </wa-button>

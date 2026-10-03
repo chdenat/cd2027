@@ -695,10 +695,22 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
 .breadcrumbs wa-breadcrumb-item { color: var(--cd2027--color-tertiary); }
 .product-detail__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr); align-items: start; gap: clamp(2rem, 6vw, 5rem); }
 .product-gallery { display: grid; gap: 1rem; }
-.product-gallery figure { margin: 0; }
-.product-gallery img { display: block; inline-size: 100%; border-radius: var(--cd2027--radius); }
+.product-gallery figure { margin: 0; overflow: hidden; border-radius: var(--cd2027--radius); }
+.product-gallery img { display: block; inline-size: 100%; border-radius: 0; transform-origin: var(--cd2027--product-zoom-x, 50%) var(--cd2027--product-zoom-y, 50%); }
+@media (hover: hover) and (pointer: fine) {
+  .product-gallery figure { cursor: zoom-in; }
+  .product-gallery figure.is-zoomed { cursor: zoom-out; }
+  .product-gallery img { transition: transform 180ms ease-out; }
+  .product-gallery figure.is-zoomed img { transform: scale(2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-gallery img { transition: none; }
+}
 .product-summary { --spacing: clamp(1.25rem, 3vw, 2rem); position: sticky; inset-block-start: 1.5rem; }
 .product-summary__body { display: grid; gap: 1rem; }
+.product-summary__quantity { --wa-form-control-value-font-weight: 700; display: grid; grid-auto-flow: column; grid-auto-columns: max-content; align-items: center; column-gap: 0.5rem; inline-size: max-content; }
+.product-summary__quantity::part(form-control-label) { margin-block-end: 0; }
+.product-summary__quantity::part(number-input) { font-family: var(--cd2027--font-button); }
 .product-summary h1 { font-size: clamp(2rem, 3.5vw, 3.5rem); }
 .product-price { color: var(--cd2027--color-price); font-family: var(--cd2027--font-menu); font-size: var(--cd2027--font-size-large); font-weight: 700; }
 .product-short-description,
@@ -774,6 +786,7 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
 .checkout-fields wa-input,
 .checkout-fields wa-select,
 .checkout-fields wa-textarea,
+.product-summary wa-number-input,
 .cart-row__actions wa-input {
   --wa-form-control-background-color: var(--cd2027--color-surface);
   --wa-form-control-border-color: var(--cd2027--color-control-border);
@@ -786,6 +799,7 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
 .checkout-fields wa-input::part(input-wrapper),
 .checkout-fields wa-select::part(form-control-input),
 .checkout-fields wa-textarea::part(textarea-wrapper),
+.product-summary wa-number-input::part(number-input),
 .cart-row__actions wa-input::part(input-wrapper) {
   transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
@@ -795,6 +809,7 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
 .checkout-fields wa-input:hover::part(input-wrapper),
 .checkout-fields wa-select:hover::part(form-control-input),
 .checkout-fields wa-textarea:hover::part(textarea-wrapper),
+.product-summary wa-number-input:hover::part(number-input),
 .cart-row__actions wa-input:hover::part(input-wrapper) {
   border-color: var(--cd2027--color-tertiary);
   background-color: var(--cd2027--color-surface-lowered);
@@ -807,6 +822,7 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
 .checkout-fields wa-input:focus-within::part(input-wrapper),
 .checkout-fields wa-select:focus-within::part(form-control-input),
 .checkout-fields wa-textarea:focus-within::part(textarea-wrapper),
+.product-summary wa-number-input:focus-within::part(number-input),
 .cart-row__actions wa-input:focus-within::part(input-wrapper) {
   border-color: var(--cd2027--color-tertiary);
   background-color: var(--cd2027--color-surface);

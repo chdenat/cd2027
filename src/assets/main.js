@@ -9,6 +9,7 @@ await Promise.all([
   import('/assets/webawesome/components/icon/icon.js'),
   import('/assets/webawesome/components/spinner/spinner.js'),
   import('/assets/webawesome/components/input/input.js'),
+  import('/assets/webawesome/components/number-input/number-input.js'),
   import('/assets/webawesome/components/select/select.js'),
   import('/assets/webawesome/components/option/option.js'),
   import('/assets/webawesome/components/textarea/textarea.js'),
@@ -31,5 +32,6 @@ document.addEventListener('wa-select', (event) => {
 
 import('./theme.js')
 import('./editorial.js')
+import('./product-gallery.js')
 import('./commerce.js')
 import('./forms.js')
