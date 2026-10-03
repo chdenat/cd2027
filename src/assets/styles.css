@@ -519,6 +519,8 @@ html.wa-dark .cd-content [data-cd-role='product-price'] b {
 @media (min-width: 701px) {
   .entry-content > :not([data-cd-align='full']):not([data-cd-align='wide']):not([data-cd-align='left']):not([data-cd-align='right']) { inline-size: min(var(--cd2026--content-width), 100%); }
   .entry-content > [data-cd-align='wide'] { inline-size: min(var(--cd2026--wide-width), 100%); }
+  /* Homepage outer groups are section wrappers; constrain their inner Gutenberg blocks instead. */
+  .wordpress-home.cd-content .entry-content > [data-cd-block='group']:not([data-cd-align]) { inline-size: 100%; max-inline-size: none; }
 }
 
 /* Getwid sections and recent-post blocks are imported as editorial markup. */
