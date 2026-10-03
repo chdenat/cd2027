@@ -321,12 +321,20 @@ html.wa-palette-cd2027-orange .theme-logo { filter: hue-rotate(46deg); }
 .contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > [data-cd-block='columns'] h3 { overflow-wrap: anywhere; }
 .contact-page .entry-content [data-cd-block='columns'] > [data-cd-block='column'] > [data-cd-block='columns'] > [data-cd-block='column']:last-child h3 { font-size: var(--cd2027--font-size-medium); }
 .contact-page .entry-content [data-cd-block='columns'] > [data-cd-block='column'] > [data-cd-block='columns'] > [data-cd-block='column']:last-child p { font-size: var(--cd2027--font-size-small); }
+.wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] [data-cd-background-color='background'] { background-color: transparent !important; }
+.wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] > [data-cd-block='group'] > [data-cd-block='spacer'] { height: var(--cd2027--space-70) !important; }
+.wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] [data-cd-block='columns'] > [data-cd-block='column'][data-cd-align-items='center'] { align-self: center; }
+.wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] > [data-cd-block='group'][data-cd-align='wide'][data-cd-layout='flex'] { margin-block-start: var(--cd2027--space-70); }
 .cd-content :where([data-cd-layout='flex']) { display: flex; flex-wrap: wrap; gap: var(--cd2027--space-40); }
 .cd-content :where([data-cd-layout='grid']) { display: grid; gap: var(--cd2027--space-40); }
 .cd-content [data-cd-align-items='top'] { align-items: flex-start; }
 .cd-content [data-cd-align-items='center'] { align-items: center; }
 .cd-content [data-cd-align-items='bottom'] { align-items: flex-end; }
 .cd-content [data-cd-align-items='stretch'] { align-items: stretch; }
+.cd-content [data-cd-block='column'][data-cd-align-items='top'] { align-self: flex-start; }
+.cd-content [data-cd-block='column'][data-cd-align-items='center'] { align-self: center; }
+.cd-content [data-cd-block='column'][data-cd-align-items='bottom'] { align-self: flex-end; }
+.cd-content [data-cd-block='column'][data-cd-align-items='stretch'] { align-self: stretch; }
 .cd-content [data-cd-justify='left'] { justify-content: flex-start; }
 .cd-content [data-cd-justify='center'] { justify-content: center; }
 .cd-content [data-cd-justify='right'] { justify-content: flex-end; }
@@ -905,6 +913,9 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
   .entry-content > [data-cd-align='left'],
   .entry-content > [data-cd-align='right'] { float: none; inline-size: auto; max-inline-size: 100%; margin-inline: auto; }
   .cd-content [data-cd-has-background='true']:where([data-cd-block='group'], [data-cd-block='heading'], [data-cd-block='paragraph']) { padding: 1em; }
+  .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] > [data-cd-block='group'] > [data-cd-block='spacer'] { height: var(--cd2027--space-60) !important; }
+  .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] [data-cd-block='columns'] > [data-cd-block='column'][data-cd-align-items='center'] { align-self: stretch; }
+  .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] > [data-cd-block='group'][data-cd-align='wide'][data-cd-layout='flex'] { margin-block-start: var(--cd2027--space-60); }
 }
 
 @media (min-width: 782px) {

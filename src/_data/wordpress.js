@@ -690,7 +690,33 @@ function normalizeRenderedHtml(html = '', record = {}) {
     )
   }
   normalized = convertFontAwesomeIcons(normalized)
-  return externalizeContentStyles(normalizeWordPressMarkup(normalized), record)
+  normalized = normalizeWordPressMarkup(normalized)
+  normalized = markLectureAkashiqueTestimonials(normalized, record)
+  return externalizeContentStyles(normalized, record)
+}
+
+function markLectureAkashiqueTestimonials(html, record) {
+  if (record.slug !== 'lecture-akashique') return html
+
+  const heading = /<h2\b(?=[^>]*data-cd-block=(['"])heading\1)[^>]*>[\s\S]*?Témoignages[\s\S]*?<\/h2>/i.exec(html)
+  if (!heading) return html
+
+  const divTags = /<\/?div\b[^>]*>/gi
+  const ancestors = []
+  let match
+  while ((match = divTags.exec(html)) && match.index < heading.index) {
+    if (/^<\//.test(match[0])) ancestors.pop()
+    else ancestors.push(match)
+  }
+
+  const section = ancestors.reverse().find((ancestor) =>
+    /\bdata-cd-align=(['"])full\1/i.test(ancestor[0]) &&
+    /\bdata-cd-background-color=(['"])primary\1/i.test(ancestor[0]),
+  )
+  if (!section || /\bdata-cd-role=/.test(section[0])) return html
+
+  const markedOpeningTag = section[0].replace(/>$/, ' data-cd-role="testimonials-section">')
+  return `${html.slice(0, section.index)}${markedOpeningTag}${html.slice(section.index + section[0].length)}`
 }
 
 function findElementRange(html, tagName, searchFrom = 0) {
