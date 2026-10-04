@@ -137,6 +137,14 @@ if (
 define('WP_USE_THEMES', false);
 require $wordpressBootstrap;
 
+$stagingHost = parse_url($stagingOrigin, PHP_URL_HOST);
+if (is_string($stagingHost) && $stagingHost !== '') {
+    add_filter('allowed_redirect_hosts', static function (array $hosts) use ($stagingHost): array {
+        $hosts[] = $stagingHost;
+        return array_values(array_unique($hosts));
+    });
+}
+
 header('X-Robots-Tag: noindex, nofollow, noarchive', true);
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
@@ -240,7 +248,7 @@ if ($requestPath === $loginPath || $requestPath === $loginPath . '/') {
 
 if ($requestPath === $logoutPath || $requestPath === $logoutPath . '/') {
     if (!is_user_logged_in() || !current_user_can('manage_options')) {
-        wp_safe_redirect(wp_login_url($stagingOrigin . '/'));
+        wp_safe_redirect($stagingOrigin . $loginPath . '/?return_to=%2F');
         exit;
     }
 
