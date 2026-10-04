@@ -186,14 +186,8 @@ $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $loginPath = '/__cd2027/login';
 $logoutPath = '/__cd2027/logout';
 
-if (
-    $requestPath === '/cd2027-login.css'
-    || $requestPath === '/assets/theme.css'
-    || $requestPath === '/assets/fontawesome-library.js'
-    || $requestPath === '/assets/fontawesome-icons.js'
-    || str_starts_with($requestPath, '/assets/webawesome/')
-    || str_starts_with($requestPath, '/assets/fonts/')
-) {
+// Static assets provide the page's styling and behavior; only generated HTML routes need WordPress authentication.
+if ($requestPath === '/cd2027-login.css' || str_starts_with($requestPath, '/assets/')) {
     if ($method !== 'GET' && $method !== 'HEAD') {
         header('Allow: GET, HEAD');
         cd2027_fail(405, 'Method not allowed.');
