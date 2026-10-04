@@ -23,7 +23,14 @@ module.exports = function (eleventyConfig) {
   })
   eleventyConfig.addFilter('json', (value) => JSON.stringify(value))
   eleventyConfig.addWatchTarget('.data/wordpress-revision.json')
-  if (process.env.CD2027_WP_AUTH !== '1') {
+  if (process.env.CD2027_WP_AUTH === '1') {
+    eleventyConfig.on('eleventy.after', () => {
+      const path = require('node:path')
+      const versionCd2027Gate = require('./scripts/version-cd2027-gate.js')
+      const gateFile = versionCd2027Gate(path.join(__dirname, '_site'))
+      console.log(`Versioned CD2027 access gate as ${gateFile}`)
+    })
+  } else {
     eleventyConfig.on('eleventy.after', () => {
       const fs = require('node:fs')
       const path = require('node:path')

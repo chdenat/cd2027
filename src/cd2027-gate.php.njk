@@ -99,7 +99,7 @@ function cd2027_serve_static(string $siteRoot, string $requestPath, string $meth
         !$filePath
         || !str_starts_with($filePath, $rootPrefix)
         || !is_file($filePath)
-        || basename($filePath) === 'cd2027-gate.php'
+        || preg_match('/^cd2027-gate-[A-Za-z0-9_-]+\.php$/', basename($filePath))
     ) {
         cd2027_fail(404, 'Not found.');
     }

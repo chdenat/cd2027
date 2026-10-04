@@ -1,9 +1,9 @@
 RewriteEngine On
 
 # Do not allow requests to execute or download the gate directly.
-RewriteCond %{THE_REQUEST} \s/+cd2027-gate\.php(?:[?\s]) [NC]
-RewriteRule ^cd2027-gate\.php$ - [F,L]
+RewriteCond %{THE_REQUEST} \s/+@@CD2027_GATE_REGEX@@(?:[?\s]) [NC]
+RewriteRule ^@@CD2027_GATE_REGEX@@$ - [F,L]
 
 # Route every page and asset through the WordPress administrator check.
-RewriteRule ^cd2027-gate\.php$ - [END]
-RewriteRule ^.*$ cd2027-gate.php [END,QSA]
+RewriteRule ^@@CD2027_GATE_REGEX@@$ - [END]
+RewriteRule ^.*$ @@CD2027_GATE_FILE@@ [END,QSA]
