@@ -72,40 +72,93 @@ Ne colle aucun secret dans le dépôt, une variable GitHub non secrète, le code
 
 ## 3. Lancer et vérifier un premier déploiement
 
-Dans **Actions**, ouvre **Deploy cd2027.christinedeloupy.fr**, sélectionne `main`, puis clique **Run workflow**. GitHub installe les dépendances, construit toutes les routes, exécute le contrôle, transfère `_site/` par SSH/SCP, extrait la nouvelle version dans `releases/` et bascule `current`.
+Le workflow `.github/workflows/deploy-cd2027.yml` doit d’abord être présent sur la branche par défaut `main` de GitHub. Tant qu’il ne l’est pas, GitHub ne peut pas proposer le bouton **Run workflow**. Les lancements manuels nécessitent aussi `workflow_dispatch` dans le fichier et un accès en écriture au dépôt ([conditions GitHub](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow)).
 
-Vérifie l'exécution dans les journaux GitHub Actions, puis ouvre `https://cd2027.christinedeloupy.fr` et plusieurs familles de pages : boutique, fiche produit, archives de blog, catégories, page et article. Si le build ou le transfert échoue, le lien `current` garde la version précédente.
+Ouvre directement [la page Actions du dépôt](https://github.com/chdenat/cd2027/actions) si l’onglet est masqué dans le menu **More**. Quand le workflow CD2027 est publié sur `main`, sélectionne **Deploy cd2027.christinedeloupy.fr**, puis **Run workflow**.
 
-Le workflow peut aussi être lancé depuis un poste avec GitHub CLI et une session autorisée : `bash scripts/deploy-cd2027.sh`. Il déploie le dernier commit de `main`, pas les changements locaux non commités. Une reconstruction complète est également planifiée chaque jour à 06:17 UTC.
+Sans l’interface Actions, connecte-toi avec GitHub CLI puis lance le workflow depuis la racine du dépôt :
+
+```bash
+gh auth login
+bash scripts/deploy-cd2027.sh
+```
+
+Cette commande déclenche le workflow GitHub ; elle ne construit pas les changements locaux non commités. Le workflow reconstruit le dernier commit de `main`. Pour consulter les exécutions et leurs journaux sans l’interface, utilise :
+
+```bash
+gh run list --repo chdenat/cd2027 --workflow deploy-cd2027.yml --limit 5
+gh run view IDENTIFIANT_DE_L_EXECUTION --repo chdenat/cd2027 --log
+```
+
+Vérifie l’exécution, puis ouvre `https://cd2027.christinedeloupy.fr` et plusieurs familles de pages : boutique, fiche produit, archives de blog, catégories, page et article. Si le build ou le transfert échoue, le lien `current` garde la version précédente.
+
+Une reconstruction complète est également planifiée chaque jour à 06:17 UTC.
 
 ## 4. Relier WordPress au workflow par le MU-plugin PHP
 
-Copie [`wordpress/mu-plugins/cd2027-eleventy-webhook.php`](../wordpress/mu-plugins/cd2027-eleventy-webhook.php) dans `wp-content/mu-plugins/` sur l'installation WordPress qui alimente le site. Crée le dossier si nécessaire. WordPress charge automatiquement les extensions *must-use*.
+Le WordPress source (le site CD2020) est actuellement servi à `https://christinedeloupy.fr`. Le frontend construit par ce dépôt est le staging `https://cd2027.christinedeloupy.fr` : le MU-plugin s’installe dans WordPress, pas dans le dossier de déploiement statique CD2027. Le fichier source est [`wordpress/mu-plugins/cd2027-eleventy-webhook.php`](../wordpress/mu-plugins/cd2027-eleventy-webhook.php).
 
-Crée un jeton GitHub finement limité au dépôt du site : **Settings → Developer settings → Personal access tokens → Fine-grained tokens**. Choisis uniquement ce dépôt, fixe une expiration et accorde `Contents: Read and write`, permission requise par l'API GitHub `repository_dispatch` ([documentation GitHub](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event)). Le jeton sert uniquement à demander un build ; les identifiants SSH restent dans l'environnement GitHub.
+Depuis la racine locale du dépôt `cd2027`, crée le dossier distant puis copie le plugin. Remplace `SSH_USER`, `SSH_HOST`, `SSH_PORT` et `WP_ROOT` par les paramètres Nuxit et le chemin absolu de WordPress sur CD2020. `WP_ROOT` doit être le dossier qui contient `wp-config.php`; ne mets pas ici `CD2027_REMOTE_ROOT`, qui désigne le frontend statique.
 
-Dans `wp-config.php`, avant la ligne qui charge `wp-settings.php`, ajoute les deux constantes ci-dessous en remplaçant les exemples. `owner/repository` est le propriétaire et le nom du dépôt GitHub, sans `.git` :
+```bash
+SSH_USER='LOGIN_SSH_NUXIT'
+SSH_HOST='HOTE_SSH_NUXIT'
+SSH_PORT='22'
+WP_ROOT='/home/COMPTE/public_html'
+
+ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+  "mkdir -p '$WP_ROOT/wp-content/mu-plugins'" &&
+scp -P "$SSH_PORT" \
+  wordpress/mu-plugins/cd2027-eleventy-webhook.php \
+  "$SSH_USER@$SSH_HOST:$WP_ROOT/wp-content/mu-plugins/"
+```
+
+La commande demande l’authentification SSH si ta clé n’est pas déjà configurée.
+
+Le transfert remplace le fichier `cd2027-eleventy-webhook.php` s'il existe déjà. Vérifie éventuellement la syntaxe sur l'hébergement si PHP CLI y est disponible :
+
+```bash
+ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+  "php -l '$WP_ROOT/wp-content/mu-plugins/cd2027-eleventy-webhook.php'"
+```
+
+WordPress charge automatiquement les extensions *must-use*. Si un ancien MU-plugin d’envoi est encore actif, sauvegarde ou vide sa file d’attente avant de le retirer et ne laisse pas deux expéditeurs actifs.
+
+Crée ensuite un jeton GitHub finement limité depuis **Settings → Developer settings → Fine-grained personal access tokens → Generate new token** ([guide GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)) :
+
+- Resource owner : `chdenat` ;
+- Repository access : *Only select repositories* → `cd2027` ;
+- Repository permissions : **Contents → Read and write** ;
+- choisis une expiration et copie le jeton à sa création.
+
+GitHub conserve **Metadata → Read-only** comme permission requise par défaut. L’API `repository_dispatch` exige **Contents → write** ([documentation GitHub](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event)) ; aucune permission `Actions` supplémentaire n’est nécessaire. Garde le jeton côté serveur ; il sert seulement à demander un build. Les identifiants SSH du déploiement statique restent dans l'environnement GitHub Actions.
+
+Dans le `wp-config.php` de WordPress CD2020, avant la ligne qui charge `wp-settings.php`, ajoute ces constantes :
 
 ```php
 define('CD2027_GITHUB_DISPATCH_TOKEN', 'COLLER_LE_JETON_GITHUB_ICI');
-define('CD2027_GITHUB_REPOSITORY', 'owner/repository');
+define('CD2027_GITHUB_REPOSITORY', 'chdenat/cd2027');
 ```
 
-Garde le jeton dans `wp-config.php`, jamais dans le MU-plugin, le dépôt ou un fichier servi publiquement. La file des modifications est conservée dans la base WordPress. Le MU-plugin ignore les brouillons non publiés et planifie l'envoi après une modification publique. Il regroupe jusqu'à 100 notifications par demande GitHub ; GitHub reconstruit ensuite le site complet.
+Ne mets pas le jeton dans le MU-plugin, le dépôt, une variable GitHub non secrète ou un fichier publiquement servi. La file est conservée dans la base WordPress. Le MU-plugin ignore les brouillons non publiés, regroupe jusqu’à 100 notifications et les envoie à GitHub ; le workflow reconstruit ensuite le site complet.
 
 ## 5. Faire exécuter WP-Cron régulièrement chez Nuxit
 
-WordPress déclenche normalement WP-Cron lors des visites. Pour que la file parte aussi quand le site reçoit peu de visites, utilise la fonction **Cron**, **Tâches planifiées** ou **Webcron** du panneau Nuxit. Elle doit appeler l'URL de cron WordPress toutes les cinq minutes :
+Dans le panneau Nuxit, ouvre **Hébergements web → Gérer l’hébergement → Base de données & PHP → Tâches Cron → Ajouter un Webcron**. Nuxit demande une URL et les champs de planification ([guide Webcron Nuxit](https://assistance.nuxit.com/knowledge-base/creer-un-webcron/)). Pour le WordPress source CD2020, renseigne :
 
 ```text
 https://christinedeloupy.fr/wp-cron.php?doing_wp_cron
 ```
 
-Si WordPress est installé à une autre adresse, utilise l'URL de son `wp-cron.php`. Dans le panneau, choisis une fréquence de cinq minutes et, si Nuxit demande une commande, utilise la commande HTTP documentée par son interface (souvent `wget` ou `curl`) pour appeler cette URL. Cela ne demande pas `sudo` : la tâche est créée dans le panneau de l'hébergement.
+Fréquence : **toutes les 5 minutes**. Si le panneau affiche les champs séparément, mets `*/5` pour les minutes et `*` pour l’heure, le jour du mois, le mois et le jour de la semaine. En syntaxe cron standard, cela correspond à :
 
-Si `DISABLE_WP_CRON` est déjà défini à `true` dans `wp-config.php`, garde-le ainsi et configure cette tâche Nuxit ; sinon, enlève cette constante pour laisser les visites déclencher WP-Cron en complément. Ne programme pas l'URL du frontend CD2027 à la place de celle de WordPress si WordPress reste sur `christinedeloupy.fr`.
+```text
+*/5 * * * *
+```
 
-Le cron Nuxit ne lance pas le build : il réveille WordPress, qui traite son événement planifié et demande à GitHub de démarrer le build. GitHub exécute le build et se connecte ensuite à Nuxit par SSH.
+Le Webcron Nuxit attend l’URL ci-dessus, pas une commande shell. N’utilise pas l’URL du frontend CD2027. Si `DISABLE_WP_CRON` est déjà défini à `true` dans `wp-config.php`, garde-le : le Webcron Nuxit déclenchera WP-Cron. S’il est absent ou faux, les visites continueront aussi à déclencher WP-Cron.
+
+Ce cron ne lance pas directement le build : il réveille WordPress, qui traite la file et appelle GitHub. Le `17 6 * * *` du workflow GitHub est un rattrapage quotidien distinct, à 06:17 UTC ; ne le remplace pas par celui de Nuxit.
 
 ## 6. Tester toute la chaîne
 

@@ -41,11 +41,17 @@ Use this skill for page generation, WordPress data adapters, template and layout
 ## Imported content normalization
 
 - Preserve `<mark>` elements in `normalizeRenderedHtml()` and extract their inline and WordPress palette styles into generated rules scoped by a deterministic page-specific class. Keep the text and nested semantic HTML intact, and avoid global `<mark>` styling.
+- Convert any element with a class beginning `callout-` into a Web Awesome `<wa-callout variant="brand" appearance="plain">` without an icon. If a class begins `callout-icon-`, use the suffix after `icon-` as the solid Font Awesome icon name. Preserve authored content and spacing, reset source text colors for readable plain callouts, and leave three-corner petal images untouched.
 - Apply generic content borders to block surfaces, not the `<wa-button>` host; Web Awesome button borders belong on its `::part(button)` so imported WordPress border metadata cannot create a second outline.
 
 ## Homepage alignment
 
-- Keep the homepage cover content aligned with WordPress's content-width token (`--cd2027--content-width`). Scope `wide` and `full` Gutenberg breakout rules to `.wordpress-home`; on desktop, `wide` uses `--cd2027--wide-width` and `full` spans the viewport. Match desktop content width without adding another gutter, and keep Gutenberg columns at the site's 1rem block gap (`--cd2027--space-40`). Flex content defaults to WordPress's stretch alignment; center it only when requested in source. Preserve framed mobile gutters. Keep the homepage flush to its testimonial section and avoid extra footer spacing after it; verify desktop and mobile layouts, including Mes bijoux.
+- Keep the homepage cover content aligned with WordPress's content-width token (`--cd2027--content-width`). Scope `wide` and `full` Gutenberg alignment rules to `.wordpress-home`; on desktop, `wide` uses `--cd2027--wide-width` and full-alignment sections keep the shared horizontal inset. Match desktop content width without adding another gutter, and keep Gutenberg columns at the site's 1rem block gap (`--cd2027--space-40`). Flex content defaults to WordPress's stretch alignment; center it only when requested in source. Keep the homepage flush to its testimonial section and avoid extra footer spacing after it; verify desktop and mobile layouts, including Mes bijoux.
+
+## Mobile section surfaces
+
+- Give every full-alignment WordPress `group`, `columns`, `section`, and `cover` the same horizontal inset at every viewport using `--cd2027--section-surface-spacing`; on mobile, use that inset on all sides and the shared radius. Keep full-alignment sections inset on desktop, and keep colored full-width sections rounded at every viewport. Apply the same horizontal inset and radius to the page hero and footer surface. Frame the homepage `.rounded-on-mobile[data-cd-block='cover']` welcome cover with the same inset and radius at every viewport.
+- When a full-alignment section or colored group, columns, section, or cover is immediately followed by another colored section, place `--cd2027--section-surface-spacing` below the first section and clear the next section's top gap. Give the footer a bottom margin on all viewports and a top margin when the final content section is colored; match the footer slot background to the page background to prevent a white band. Keep section spacing scoped to surfaces rather than colored text or individual controls.
 
 ## Safety
 
