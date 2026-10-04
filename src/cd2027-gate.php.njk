@@ -34,6 +34,16 @@ function cd2027_return_path(mixed $value): string
     return $parts === false || isset($parts['scheme']) || isset($parts['host']) ? '/' : $value;
 }
 
+function cd2027_redirect_to_staging(string $stagingOrigin, string $path): never
+{
+    if ($stagingOrigin !== 'https://cd2027.christinedeloupy.fr') {
+        cd2027_fail(503, 'CD2027 access is not configured.');
+    }
+
+    wp_redirect($stagingOrigin . cd2027_return_path($path), 302, 'CD2027');
+    exit;
+}
+
 function cd2027_login_form(string $action, string $returnPath, string $nonce, string $message = '', int $status = 200): never
 {
     http_response_code($status);
@@ -137,14 +147,6 @@ if (
 define('WP_USE_THEMES', false);
 require $wordpressBootstrap;
 
-$stagingHost = parse_url($stagingOrigin, PHP_URL_HOST);
-if (is_string($stagingHost) && $stagingHost !== '') {
-    add_filter('allowed_redirect_hosts', static function (array $hosts) use ($stagingHost): array {
-        $hosts[] = $stagingHost;
-        return array_values(array_unique($hosts));
-    });
-}
-
 header('X-Robots-Tag: noindex, nofollow, noarchive', true);
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
@@ -203,8 +205,7 @@ if ($requestPath === $loginPath || $requestPath === $loginPath . '/') {
             cd2027_fail(405, 'Method not allowed.');
         }
         if (is_user_logged_in() && current_user_can('manage_options')) {
-            wp_safe_redirect($stagingOrigin . $returnPath);
-            exit;
+            cd2027_redirect_to_staging($stagingOrigin, $returnPath);
         }
         cd2027_login_form($stagingOrigin . $loginPath . '/', $returnPath, $nonce);
     }
@@ -242,14 +243,12 @@ if ($requestPath === $loginPath || $requestPath === $loginPath . '/') {
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
-    wp_safe_redirect($stagingOrigin . $returnPath);
-    exit;
+    cd2027_redirect_to_staging($stagingOrigin, $returnPath);
 }
 
 if ($requestPath === $logoutPath || $requestPath === $logoutPath . '/') {
     if (!is_user_logged_in() || !current_user_can('manage_options')) {
-        wp_safe_redirect($stagingOrigin . $loginPath . '/?return_to=%2F');
-        exit;
+        cd2027_redirect_to_staging($stagingOrigin, $loginPath . '/?return_to=%2F');
     }
 
     if ($method === 'GET') {
@@ -278,14 +277,12 @@ if ($requestPath === $logoutPath || $requestPath === $logoutPath . '/') {
     }
 
     wp_logout();
-    wp_safe_redirect($stagingOrigin . '/');
-    exit;
+    cd2027_redirect_to_staging($stagingOrigin, '/');
 }
 
 if (!is_user_logged_in()) {
     $returnPath = cd2027_return_path($_SERVER['REQUEST_URI'] ?? '/');
-    wp_safe_redirect($stagingOrigin . $loginPath . '/?return_to=' . rawurlencode($returnPath));
-    exit;
+    cd2027_redirect_to_staging($stagingOrigin, $loginPath . '/?return_to=' . rawurlencode($returnPath));
 }
 
 if (!current_user_can('manage_options')) {
