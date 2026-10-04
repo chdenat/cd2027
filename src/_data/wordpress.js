@@ -476,7 +476,6 @@ function semanticAttributesForWordPressClass(sourceClass) {
 
   if (className === 'center-on-mobile') return ['data-cd-mobile-text-align', 'center']
   if (className === 'center-children-on-mobile') return ['data-cd-mobile-align-items', 'center']
-  if (className === 'text-2-columns') return ['data-cd-text-columns', '2']
   if (className === 'getwid-columns' || className === 'panel-grid') return ['data-cd-block', 'columns']
   const getwidColumns = className.match(/^getwid-columns-(\d+)$/)
   if (getwidColumns) return ['data-cd-columns', getwidColumns[1]]
@@ -623,6 +622,128 @@ function markPageClass(record = {}) {
   return `cd-mark-page-${createHash('sha256').update(pageIdentity).digest('hex').slice(0, 10)}`
 }
 
+function hasThreeHalfRoundedCorners(declarations = '') {
+  const cornerRadii = new Map()
+  for (const match of declarations.matchAll(/(?:^|;)\s*border-(top|bottom)-(left|right)-radius\s*:\s*([^;]+)/gi)) {
+    cornerRadii.set(`${match[1].toLowerCase()}-${match[2].toLowerCase()}`, match[3].trim())
+  }
+  if (cornerRadii.size !== 4) return false
+
+  const isHalfRounded = (value) => {
+    const radius = /^(\d+(?:\.\d+)?)(%|rem|px)$/i.exec(value.replace(/\s*!important\s*$/i, '').trim())
+    if (!radius) return false
+    const amount = Number(radius[1])
+    const unit = radius[2].toLowerCase()
+    // WordPress exports petal corners as oversized 10–20rem radii rather than percentages.
+    return unit === '%' ? amount >= 50 : unit === 'rem' ? amount >= 10 : amount >= 160
+  }
+
+  return [...cornerRadii.values()].filter(isHalfRounded).length === 3
+}
+
+function stripCalloutLayoutArtifacts(content = '') {
+  const ranges = []
+  for (const match of content.matchAll(/<([a-z][a-z0-9-]*)\b[^>]*>/gi)) {
+    const tagName = match[1].toLowerCase()
+    const blockType = /\bdata-cd-block=(['"])(.*?)\1/i.exec(match[0])?.[2]?.toLowerCase()
+    if (blockType === 'spacer') {
+      const range = findElementRange(content, tagName, match.index)
+      if (range) ranges.push(range)
+    }
+  }
+
+  for (const match of content.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)) {
+    const blockType = /\bdata-cd-block=(['"])(.*?)\1/i.exec(match[0])?.[2]?.toLowerCase()
+    const visibleContent = match[1]
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/&nbsp;|&#160;/gi, '')
+      .replace(/<br\s*\/?>/gi, '')
+      .trim()
+    if (blockType === 'paragraph' && !visibleContent) {
+      ranges.push({ start: match.index, end: match.index + match[0].length })
+    }
+  }
+
+  let normalized = content
+  for (const range of ranges.sort((left, right) => right.start - left.start)) {
+    normalized = `${normalized.slice(0, range.start)}${normalized.slice(range.end)}`
+  }
+  return normalized
+}
+
+function convertClassedElementsToCallouts(html = '') {
+  const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
+  const candidates = []
+  for (const match of html.matchAll(/<([a-z][a-z0-9-]*)\b[^>]*>/gi)) {
+    const tagName = match[1].toLowerCase()
+    if (tagName === 'wa-callout' || voidElements.has(tagName) || /\/\s*>$/.test(match[0])) continue
+
+    const classAttribute = /\bclass=(['"])(.*?)\1/i.exec(match[0])
+    if (!classAttribute) continue
+    const classes = classAttribute[2].split(/\s+/).filter(Boolean)
+    if (!classes.some((className) => className.toLowerCase().startsWith('callout-'))) continue
+
+    const iconClass = classes.find((className) => /^callout-icon-[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(className))
+    const iconName = iconClass ? iconClass.slice('callout-icon-'.length).toLowerCase() : ''
+    candidates.push({ start: match.index, tagName, iconName })
+  }
+
+  for (const candidate of candidates.reverse()) {
+    const range = findElementRange(html, candidate.tagName, candidate.start)
+    if (!range) continue
+    const originalOpening = html.slice(range.start, range.openEnd)
+    const originalClasses = /\bclass=(['"])(.*?)\1/i.exec(originalOpening)?.[2].split(/\s+/).filter(Boolean) || []
+    const preservedAttributes = [...originalOpening.matchAll(/\s+(id|title|role|aria-[\w-]+|data-cd-[\w-]+)\s*=\s*("[^"]*"|'[^']*')/gi)]
+      .filter((attribute) => !/^data-cd-(?:block|role)$/i.test(attribute[1]))
+      .map((attribute) => `${attribute[1]}=${attribute[2]}`)
+    const classes = [...new Set([...originalClasses, 'cd-callout'])].join(' ')
+    const attributes = [...preservedAttributes, `class="${classes}"`].join(' ')
+    const icon = candidate.iconName
+      ? `<wa-icon slot="icon" library="pro" name="${candidate.iconName}" variant="solid" aria-hidden="true"></wa-icon>`
+      : ''
+    const opening = `<wa-callout appearance="plain" variant="brand" data-cd-block="callout" data-cd-role="callout" ${attributes}>${icon}`
+    const content = stripCalloutLayoutArtifacts(html.slice(range.openEnd, range.closeStart))
+    html = `${html.slice(0, range.start)}${opening}${content}</wa-callout>${html.slice(range.end)}`
+  }
+  return html
+}
+
+function markPetalImagesInCachedMarkup(cached) {
+  const petalClasses = new Set()
+  for (const rule of cached.contentStyleRules || []) {
+    if (!hasThreeHalfRoundedCorners(rule.declarations || '')) continue
+    for (const match of rule.selector.matchAll(/\.(cd-content-style-[\da-f]+)/g)) petalClasses.add(match[1])
+  }
+  const markHtml = (html = '') => html.replace(/<img\b[^>]*>/gi, (tag) => {
+    if (/\sdata-cd-image-shape=/i.test(tag)) return tag
+    const classAttribute = /\sclass=(['"])(.*?)\1/i.exec(tag)
+    if (!classAttribute || !classAttribute[2].split(/\s+/).some((className) => petalClasses.has(className))) return tag
+    return tag.replace(/\s*\/?\s*>$/, (closing) => ` data-cd-image-shape="petal"${closing}`)
+  })
+  const normalizeHtml = (html = '') => convertClassedElementsToCallouts(markHtml(html))
+
+  cached.homepageHtml = normalizeHtml(cached.homepageHtml)
+  for (const collection of ['home', 'pages', 'posts', 'products']) {
+    const records = Array.isArray(cached[collection]) ? cached[collection] : [cached[collection]]
+    for (const record of records) {
+      if (!record) continue
+      for (const field of ['contentHtml', 'descriptionHtml', 'shortDescriptionHtml', 'archiveIntroHtml', 'archiveOutroHtml']) {
+        if (record[field]) record[field] = normalizeHtml(record[field])
+      }
+    }
+  }
+  for (const collection of ['postCategories', 'postCategoryArchives', 'productCategories', 'blogArchives']) {
+    const records = Array.isArray(cached[collection]) ? cached[collection] : [cached[collection]]
+    for (const record of records) {
+      if (!record) continue
+      for (const field of ['descriptionHtml', 'contentHtml', 'archiveIntroHtml', 'archiveOutroHtml']) {
+        if (record[field]) record[field] = normalizeHtml(record[field])
+      }
+    }
+  }
+  return cached
+}
+
 // Preserve block-specific geometry and imagery in a deterministic external stylesheet.
 function externalizeContentStyles(html, record = {}) {
   const pageClass = markPageClass(record)
@@ -651,11 +772,15 @@ function externalizeContentStyles(html, record = {}) {
     const pageScopedDeclarations = isMark ? `${pageClass}|${declarations}` : declarations
     const className = `cd-content-style-${createHash('sha256').update(pageScopedDeclarations).digest('hex').slice(0, 12)}`
     const markSelector = isMark ? `mark.${pageClass}.${className}[class]` : null
+    const isPetalImage = /^<img\b/i.test(tag) && hasThreeHalfRoundedCorners(declarations)
     const selector = /^<wa-button\b/i.test(tag)
       ? `:root .${className}[class], :root wa-button.${className}[class]::part(button)`
       : markSelector || `:root .${className}[class]`
     if (declarations) contentStyleRules.set(className, { selector, declarations })
     let cleaned = attribute ? tag.replace(attribute[0], '') : tag
+    if (isPetalImage && !/\sdata-cd-image-shape=/i.test(cleaned)) {
+      cleaned = cleaned.replace(/\s*\/?\s*>$/, (closing) => ` data-cd-image-shape="petal"${closing}`)
+    }
     if (isMark) cleaned = cleaned.replace(/\sdata-cd-(?:text-color|background-color|inline-color)=(['"])[^'"]*\1/gi, '')
     if (/\sclass=(['"])(.*?)\1/i.test(cleaned)) {
       cleaned = cleaned.replace(/\sclass=(['"])(.*?)\1/i, (_match, _quote, classes) => ` class="${classes}${isMark ? ` ${pageClass}` : ''}${declarations ? ` ${className}` : ''}"`)
@@ -692,7 +817,8 @@ function normalizeRenderedHtml(html = '', record = {}) {
   normalized = convertFontAwesomeIcons(normalized)
   normalized = normalizeWordPressMarkup(normalized)
   normalized = markLectureAkashiqueTestimonials(normalized, record)
-  return externalizeContentStyles(normalized, record)
+  normalized = externalizeContentStyles(normalized, record)
+  return convertClassedElementsToCallouts(normalized)
 }
 
 function markLectureAkashiqueTestimonials(html, record) {
@@ -1059,10 +1185,11 @@ module.exports = async function () {
       if (!Array.isArray(cached.shopNavigation) || !cached.shopNavigation.length) {
         cached.shopNavigation = SHOP_NAVIGATION_FALLBACK
       }
-      return cached
+      return markPetalImagesInCachedMarkup(cached)
     }
     throw error
   }
 }
 
 module.exports.textFromHtml = textFromHtml
+module.exports.convertClassedElementsToCallouts = convertClassedElementsToCallouts

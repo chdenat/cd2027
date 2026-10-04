@@ -41,7 +41,7 @@ Use this skill for page generation, WordPress data adapters, template and layout
 ## Imported content normalization
 
 - Preserve `<mark>` elements in `normalizeRenderedHtml()` and extract their inline and WordPress palette styles into generated rules scoped by a deterministic page-specific class. Keep the text and nested semantic HTML intact, and avoid global `<mark>` styling.
-- Convert any element with a class beginning `callout-` into a Web Awesome `<wa-callout variant="brand" appearance="plain">` without an icon. If a class begins `callout-icon-`, use the suffix after `icon-` as the solid Font Awesome icon name. Preserve authored content and spacing, reset source text colors for readable plain callouts, and leave three-corner petal images untouched.
+- Convert any element with a class beginning `callout-` into a Web Awesome `<wa-callout variant="brand" appearance="plain">`. Callout detection depends exclusively on classes; never infer a callout or its icon from geometry. Three-corner petal shapes remain images. If an authored class begins `callout-icon-`, use the suffix after `icon-` as the solid Font Awesome icon name. Preserve the source-authored callout width and meaningful content, remove empty WordPress spacer blocks and empty paragraphs inside the callout, reset inherited margins and padding to the shared callout spacing, and reset source text colors for readable callouts.
 - Apply generic content borders to block surfaces, not the `<wa-button>` host; Web Awesome button borders belong on its `::part(button)` so imported WordPress border metadata cannot create a second outline.
 
 ## Homepage alignment

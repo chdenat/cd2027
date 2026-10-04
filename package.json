@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun scripts/stop-dev-server.js && bun run build:icons && bun scripts/dev-server.js",
     "build": "bun run build:icons && bun scripts/clean-output.js && eleventy",
-    "check": "bun run build && bun scripts/check-routes.js",
+    "check": "bun run test:callouts && bun run build && bun scripts/check-routes.js",
+    "test:callouts": "bun scripts/check-callouts.js",
     "build:icons": "bun scripts/build-fontawesome-icons.js"
   },
   "private": true,

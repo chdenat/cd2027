@@ -149,6 +149,7 @@
   --cd2027--wide-width: 100rem;
   --cd2027--radius: 1rem;
   --cd2027--radius-pill: 2rem;
+  --cd2027--section-surface-spacing: var(--cd2027--space-40);
 }
 
 :where(.wa-palette-cd2027, .wa-palette-cd2027-green, .wa-palette-cd2027-blue, .wa-palette-cd2027-orange) {

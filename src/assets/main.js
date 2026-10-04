@@ -4,6 +4,7 @@ await Promise.all([
   import('/assets/webawesome/components/page/page.js'),
   import('/assets/webawesome/components/button/button.js'),
   import('/assets/webawesome/components/card/card.js'),
+  import('/assets/webawesome/components/callout/callout.js'),
   import('/assets/webawesome/components/badge/badge.js'),
   import('/assets/webawesome/components/divider/divider.js'),
   import('/assets/webawesome/components/icon/icon.js'),
