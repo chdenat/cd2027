@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="0bacfa68-34f2-4ea5-9997-b329d3f14f57" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/cd2026.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.github/workflows/deploy-cd2027.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/deploy-cd2027.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/cd2027-deployment.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/cd2027-deployment.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/visual-parity-review.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/visual-parity-review.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/wordpress-publishing-and-runtime.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/wordpress-publishing-and-runtime.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/assets/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/assets/styles.css" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -23,23 +26,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.1804109543979329" />
-      <entry key="MS500" value="2.5786707880769346" />
-      <entry key="S2" value="3.543563297110092" />
-      <entry key="S5" value="3.80731022907985" />
-      <entry key="S10" value="3.9213939879560265" />
-      <entry key="S30" value="9.483302541404951" />
-      <entry key="S60" value="27.94145111763598" />
-      <entry key="M2" value="54.44115845669315" />
-      <entry key="M5" value="83.13633835436953" />
-      <entry key="M10" value="96.00634044859369" />
-      <entry key="M15" value="100.75184411477709" />
-      <entry key="M30" value="105.74535268910851" />
-      <entry key="H1" value="108.33918606126693" />
-      <entry key="H2" value="109.66111202844216" />
-      <entry key="H4" value="110.3284220542947" />
-      <entry key="D1" value="110.88777278815412" />
-      <entry key="W1" value="110.98396023880478" />
+      <entry key="MS100" value="1.1221018826064209" />
+      <entry key="MS500" value="3.134084909018409" />
+      <entry key="S2" value="7.6180065430489945" />
+      <entry key="S5" value="9.898549113745295" />
+      <entry key="S10" value="10.879129353999167" />
+      <entry key="S30" value="11.812221866724713" />
+      <entry key="S60" value="15.980181294624296" />
+      <entry key="M2" value="33.00110566435054" />
+      <entry key="M5" value="77.55233133441041" />
+      <entry key="M10" value="127.67982980958409" />
+      <entry key="M15" value="184.55968084156592" />
+      <entry key="M30" value="416.97908244316994" />
+      <entry key="H1" value="879.980611972188" />
+      <entry key="H2" value="1432.3372949677216" />
+      <entry key="H4" value="1881.1815943413771" />
+      <entry key="D1" value="2394.7719592660887" />
+      <entry key="W1" value="2499.0889647655745" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -61,29 +64,29 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.1261296623305415" />
-      <entry key="MS500" value="2.5526173121436466" />
-      <entry key="S2" value="3.5339892891248383" />
-      <entry key="S5" value="3.803131927322472" />
-      <entry key="S10" value="3.9192286855043914" />
-      <entry key="S30" value="9.481064507183605" />
-      <entry key="S60" value="27.937599766101705" />
-      <entry key="M2" value="54.437186682952216" />
-      <entry key="M5" value="83.1338417493508" />
-      <entry key="M10" value="96.00488610024459" />
-      <entry key="M15" value="100.75082369133169" />
-      <entry key="M30" value="105.74481566371755" />
-      <entry key="H1" value="108.33891057368584" />
-      <entry key="H2" value="109.6609725059222" />
-      <entry key="H4" value="110.3283518439076" />
-      <entry key="D1" value="110.88776102366363" />
-      <entry key="W1" value="110.98395855662139" />
+      <entry key="MS100" value="1.0623553339945215" />
+      <entry key="MS500" value="3.0969277831981104" />
+      <entry key="S2" value="7.592208091865102" />
+      <entry key="S5" value="9.884741409763848" />
+      <entry key="S10" value="10.871470044326959" />
+      <entry key="S30" value="11.80945293308372" />
+      <entry key="S60" value="15.97849593634577" />
+      <entry key="M2" value="32.999659679468024" />
+      <entry key="M5" value="77.55109507989353" />
+      <entry key="M10" value="127.67881546928562" />
+      <entry key="M15" value="184.5586870781474" />
+      <entry key="M30" value="416.97791147466836" />
+      <entry key="H1" value="879.9793296750196" />
+      <entry key="H2" value="1432.336224432957" />
+      <entry key="H4" value="1881.1808808922783" />
+      <entry key="D1" value="2394.7718058704336" />
+      <entry key="W1" value="2499.0889418432735" />
     </decayedShown>
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 7,
-  "fromUser": false
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3KBtPpsNArfhx1nBzdRmAdL3c9w" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -97,9 +100,14 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "bazel.project.detector.is.bazel.project": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "git-widget-placeholder": "main",
     "javascript.preferred.runtime.type.id": "bun",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "bun",
     "settings.editor.selected.configurable": "preferences.keymap"
   }
@@ -119,6 +127,7 @@
       <option name="presentableId" value="Default" />
       <updated>1789111588355</updated>
       <workItem from="1791042769636" duration="269000" />
+      <workItem from="1791043110802" duration="9546000" />
     </task>
     <servers />
   </component>
