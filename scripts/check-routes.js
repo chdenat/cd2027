@@ -80,6 +80,9 @@ const generatedPaths = new Set(urls.map((value) => {
   if (!pathname.endsWith('/') && !/\.[a-z0-9]{2,6}$/i.test(pathname)) pathname += '/'
   return pathname
 }))
+const stagingGatePaths = process.env.CD2027_WP_AUTH === '1'
+  ? new Set(['/__cd2027/login/', '/__cd2027/logout/'])
+  : new Set()
 const missingInternalLinks = new Map()
 for (const [pathname, html] of generatedPages) {
   for (const match of html.matchAll(/<(a|area|form|wa-button|wa-dropdown-item)\b[^>]*>/gi)) {
@@ -94,7 +97,7 @@ for (const [pathname, html] of generatedPages) {
     if (target.origin !== siteOrigin) continue
     let targetPath = decodeURI(target.pathname)
     if (!targetPath.endsWith('/') && !/\.[a-z0-9]{2,6}$/i.test(targetPath)) targetPath += '/'
-    if (generatedPaths.has(targetPath) || /^\/(?:wp-admin|wp-json|wp-content|feed|tag)(?:\/|$)|^\/\d{4}\/\d{2}\/\d{2}(?:\/|$)/i.test(targetPath)) continue
+    if (generatedPaths.has(targetPath) || stagingGatePaths.has(targetPath) || /^\/(?:wp-admin|wp-json|wp-content|feed|tag)(?:\/|$)|^\/\d{4}\/\d{2}\/\d{2}(?:\/|$)/i.test(targetPath)) continue
     const sources = missingInternalLinks.get(targetPath) || new Set()
     sources.add(pathname)
     missingInternalLinks.set(targetPath, sources)

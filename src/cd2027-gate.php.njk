@@ -144,15 +144,25 @@ if ($siteRoot === false) {
     cd2027_fail(503, 'CD2027 access is not configured.');
 }
 
-if (!CD2027_PRIVATE_VIEW) {
-    $publicPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-    $publicPath = is_string($publicPath) ? rawurldecode($publicPath) : '/';
-    $publicMethod = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
-    if ($publicMethod !== 'GET' && $publicMethod !== 'HEAD') {
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+$requestPath = is_string($requestPath) ? rawurldecode($requestPath) : '/';
+$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+// Static assets are identical for every visitor, so serve them without bootstrapping WordPress.
+if ($requestPath === '/cd2027-login.css' || str_starts_with($requestPath, '/assets/')) {
+    if ($method !== 'GET' && $method !== 'HEAD') {
         header('Allow: GET, HEAD');
         cd2027_fail(405, 'Method not allowed.');
     }
-    cd2027_serve_static($siteRoot, $publicPath, $publicMethod);
+    cd2027_serve_static($siteRoot, $requestPath, $method);
+}
+
+if (!CD2027_PRIVATE_VIEW) {
+    if ($method !== 'GET' && $method !== 'HEAD') {
+        header('Allow: GET, HEAD');
+        cd2027_fail(405, 'Method not allowed.');
+    }
+    cd2027_serve_static($siteRoot, $requestPath, $method);
 }
 
 if (!is_file($configPath)) {
@@ -180,20 +190,8 @@ header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 
-$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
-$requestPath = is_string($requestPath) ? rawurldecode($requestPath) : '/';
-$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $loginPath = '/__cd2027/login';
 $logoutPath = '/__cd2027/logout';
-
-// Static assets provide the page's styling and behavior; only generated HTML routes need WordPress authentication.
-if ($requestPath === '/cd2027-login.css' || str_starts_with($requestPath, '/assets/')) {
-    if ($method !== 'GET' && $method !== 'HEAD') {
-        header('Allow: GET, HEAD');
-        cd2027_fail(405, 'Method not allowed.');
-    }
-    cd2027_serve_static($siteRoot, $requestPath, $method);
-}
 
 $loginToken = $_COOKIE['cd2027_login_nonce'] ?? '';
 if (!is_string($loginToken) || !preg_match('/^[a-f0-9]{64}$/', $loginToken)) {
