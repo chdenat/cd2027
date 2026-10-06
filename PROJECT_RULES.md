@@ -1,3 +1,17 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: PROJECT_RULES.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # Project rules
 
 These rules adapt the relevant LGS1920 site conventions to the Christine Deloupy site. WordPress remains the editorial and transaction backend; Eleventy owns the public visual interface, including dynamic-flow screens where the required APIs support them.
@@ -39,14 +53,14 @@ These rules adapt the relevant LGS1920 site conventions to the Christine Deloupy
 - Keep all `--cd2027--*` theme values in source-controlled code; WordPress is not an editing surface for these variables.
 - Capture the current WordPress design across page families and desktop/mobile viewports before claiming visual parity. Reuse approved logo, font, and image assets where available, and preserve their licensing and alternative text.
 - Define the WordPress-derived source values as `--cd2027--*` tokens, then map Web Awesome semantic `--wa-*` tokens to them. Keep page styles on these shared tokens instead of scattering independent colors, typefaces, spacing, radii, or shadows.
-- Treat Web Awesome as the required component, layout, and theming system for every project-authored template and client-rendered interface. Use its components for navigation menus, cards, buttons and links that act as controls, badges, breadcrumbs, dividers, inputs, selects, textareas, checkboxes, radios, dialogs, and other matching UI. Do not add visible native `<button>`, `<input>`, `<select>`, or `<textarea>` controls where a Web Awesome component exists; hidden transport fields may remain native. Keep semantic document structure such as headings, paragraphs, articles, lists, forms, and navigation landmarks as HTML, and preserve imported editorial HTML when converting it would damage its authored layout.
+- Treat Web Awesome as the required component, layout, and theming system for every project-authored template and client-rendered interface. Whenever Web Awesome has a suitable equivalent that preserves the behavior, accessibility, and intent of a UI element, use that element instead of a native control or another component library. Use Web Awesome for navigation menus, cards, buttons and links that act as controls, badges, breadcrumbs, dividers, inputs, selects, textareas, checkboxes, radios, dialogs, and other matching UI. Do not add visible native `<button>`, `<input>`, `<select>`, or `<textarea>` controls where a Web Awesome component exists; hidden transport fields may remain native. Keep semantic document structure such as headings, paragraphs, articles, lists, forms, and navigation landmarks as HTML, and preserve imported editorial HTML when converting it would damage its authored layout.
 - Use Web Awesome's documented elements, slots, attributes, CSS parts, design tokens, and layout utilities. Use semantic HTML and focused custom CSS for editorial layouts that need a precise match, but compose their controls from Web Awesome components. Do not distort a page to fit a component.
 - When converting imported WordPress button blocks to `<wa-button>`, preserve the enclosing block's source appearance and state colors (including fill/outline, border, text, and hover); do not flatten every button to one Web Awesome appearance.
 - All `<wa-button>` components use the same font family. Their other typographic properties and visual appearance, including size, weight, colors, fill/outline, borders, and hover states, may vary by context.
 - Maintain a project-owned `wa-theme-cd2027` theme and `wa-palette-cd2027` palette with both `wa-light` and `wa-dark` schemes. Define the source palette, typography, spacing, surfaces, borders, component states, and hover colors in version-controlled CSS using `--cd2027--*` variables, then map those values to Web Awesome's `--wa-*` theme tokens. Default to the saved user preference or operating-system color-scheme preference, provide an icon-only Web Awesome theme selector in a popover, and persist the selected system, light, or dark mode. Keep theme variables out of WordPress.
 - Treat Web Awesome as the component, layout, and theming system. All icons used on the site must come from Font Awesome, including icons in buttons, navigation, and forms; do not introduce another icon library, hand-drawn icon SVGs, or emoji substitutes.
 - Use Font Awesome through the project's supported local package or kit configuration. Do not substitute icons for the existing logo or decorative artwork.
-- Treat any element with a class beginning `callout-` as a callout and convert it to `<wa-callout variant="brand" appearance="plain">`. Callout detection depends exclusively on `callout-*` classes; never infer a callout or its icon from geometry. Three-corner petal shapes remain images. If an authored class begins `callout-icon-`, use the suffix after `icon-` as the solid Font Awesome icon name and add it in the `icon` slot. Preserve source-authored callout widths, meaningful content, and remove empty WordPress spacer blocks and empty paragraphs from inside the callout. Reset inherited WordPress margins and padding to the shared callout spacing.
+- Apply the scoped WordPress-to-Web-Awesome translation rules in [`docs/design-rules-catalog.md`](docs/design-rules-catalog.md). Project-wide invariants in this file take precedence; catalog entries may specialize block, page-family, and route behavior without weakening those invariants.
 - Use the shared source `--cd2027--font-size-normal` for editorial paragraph text across pages and articles. Preserve each H1–H6 heading's authored size and explicit font weights. Keep form/control typography separate from editorial body copy.
 - Keep the custom theme and page composition separate: shared tokens define the visual language, while templates reproduce the structure and image treatment of each WordPress page family.
 
@@ -65,8 +79,20 @@ These rules adapt the relevant LGS1920 site conventions to the Christine Deloupy
 
 ## 6. Code, content, and validation
 
+### Source file headers
+
+- Put the canonical CD2027 project header at the beginning of every maintained first-party text source, template, script, and documentation file whose syntax supports comments. Use the identity `Christian Denat`, `christian.denat@orange.fr`, and `Copyright © YYYY Christian Denat`.
+- Use the neutral `wp-awesome` package header for `docs/reusable-wordpress-eleventy-content-pipeline.md`. The standalone package lives in its own `wp-awesome` repository with its own rules and skills; it must not inherit the CD2027 identity, domains, or personal email. CD2027 consumes a verified archive until a remote release exists.
+- Match the comment delimiters to the language: block comments for JavaScript, TypeScript, CSS, and PHP; Nunjucks comments for `.njk`; HTML comments for HTML, Markdown, SVG, and XML; and `#` comments for shell, YAML, and similar configuration files.
+- Preserve shebangs, XML declarations, HTML doctypes, and Eleventy front matter before the header. Strict JSON, generated output, caches, dependencies, vendored files, IDE-local files, and binary assets cannot or must not receive this header.
+- `Created on` is the date of the first Git commit that introduced the file, falling back to today's date in `Europe/Paris` for a new file. `Last modified` is today's date in `Europe/Paris` when the file has a current change, or the latest commit date otherwise. Do not put a commit hash in the header.
+- Install the repository pre-commit hook once with `bun run git:hooks:install`. It updates and stages headers only for supported staged files; it stops if one of those files also has unstaged edits. Use `bun run headers:update:all` to add or refresh headers across the current working tree, `bun run headers:check` to audit them, and `bun run test:file-headers` to test the syntax-specific updater.
+
 - Clean text known to come from Microsoft Word, or containing identifiable Word HTML artifacts, before public rendering. Remove Word-specific classes and declarations (`Mso*`, `mso-*`), Office namespace tags and metadata, and redundant paste wrappers or formatting. Preserve the wording, accents, meaningful spacing, semantic headings, paragraphs, lists, emphasis, links, and intentional editorial formatting; do not infer Word provenance from typography alone. Apply the cleanup in source content or the WordPress data adapter, never directly in `_site/`.
 - Follow the existing runtime and module conventions after checking `package.json`, the lockfile, and source configuration. The current working copy must be brought back into agreement before a clean build can be relied on.
+- Document every developer-facing tool maintained in this repository—including scripts, CLI entry points, and automation workflows—in professional English. Explain its purpose, prerequisites, invocation, required arguments or environment variables, outputs, and notable side effects.
+- Add JSDoc in English to every exported JavaScript function and to non-trivial internal functions that implement shared or non-obvious behavior. Describe relevant parameter and return types, errors, invariants, and side effects.
+- Add concise English comments at critical code paths (“hot spots”) such as security boundaries, filesystem or network side effects, retries and cache fallbacks, content normalization, route selection, concurrency, and deployment promotion. Explain intent and invariants; do not restate obvious code.
 - Group commits by coherent theme when commits are requested; keep unrelated fixes in separate commits and preserve existing user work.
 - Use the Web Awesome documentation for the installed version before styling component internals. Map site tokens to supported Web Awesome design tokens and use documented CSS parts for shadow-DOM styling.
 - Keep new source and documentation files focused. Never hand-edit generated pages to make a check pass.

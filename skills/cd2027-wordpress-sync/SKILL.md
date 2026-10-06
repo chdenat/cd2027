@@ -2,6 +2,19 @@
 name: cd2027-wordpress-sync
 description: Design or maintain the authenticated, durable WordPress-to-Eleventy content update pipeline.
 ---
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: skills/cd2027-wordpress-sync/SKILL.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
 
 # CD2027 WordPress synchronization
 
@@ -45,4 +58,4 @@ Use this skill for WordPress publish hooks, webhook verification, API fetching, 
 
 ## Current implementation note
 
-Current implementation: the WordPress MU-plugin queues public post types (including pages, articles and products), product metadata, public taxonomy, media, and menu changes in the WordPress options table. WP-Cron retries a batched authenticated `repository_dispatch` request to GitHub. The staging workflow performs a full canonical WordPress fetch, Eleventy build, route check, and atomic staging deployment, with a daily reconciliation build. Local development does not consume the publishing queue. Production still needs its own deployment environment and target.
+Current implementation: the WordPress MU-plugin queues public post types (including pages, articles and products), product metadata, public taxonomy, media, and menu changes in the WordPress options table. WP-Cron retries a batched authenticated `repository_dispatch` request to GitHub. The staging workflow performs a full canonical WordPress fetch, Eleventy build, route check, and atomic staging deployment, with a daily reconciliation build. The package's optional admin connector observes queued event metadata and reads workflow-run results. A separate production workflow and GitHub environment are present but must remain locked until the production release root and web-server route are explicitly configured. Local development does not consume the publishing queue.

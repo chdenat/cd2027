@@ -1,3 +1,17 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: docs/initial-architecture-study.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-03
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # Étude initiale — migration WordPress vers Eleventy
 
 Date de l’étude : 1 octobre 2026.

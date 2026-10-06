@@ -2,6 +2,19 @@
 name: cd2027-site-qa
 description: Validate all CD2027 page families, routes, visual fidelity, SEO, accessibility, and backend interactions.
 ---
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: skills/cd2027-site-qa/SKILL.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
 
 # CD2027 site QA
 
@@ -18,13 +31,14 @@ Use this skill when checking the public site, the WordPress migration, or a publ
 
 ## Visual and functional checks
 
+- Read the applicable global, block/element, page-family, and route-specific entries in `docs/design-rules-catalog.md` before checking visual behavior. Report missing or conflicting entries instead of inferring an undocumented page-specific rule.
 - Compare each page family with the current WordPress reference at desktop and mobile viewports.
-- On routes containing classes beginning `callout-`, confirm each element renders as a plain Web Awesome callout. Never infer callouts or icons from rounded geometry; for authored `callout-icon-` classes, confirm the suffix after `icon-` selects that exact solid Font Awesome icon. Check that source-authored widths and readable text are preserved, empty WordPress spacers and paragraphs do not leave oversized gaps, and three-corner petal images remain images with their shape.
+- Check callouts against the catalog entry: confirm their plain Web Awesome rendering, prescribed icon mapping, source-authored width, readable text, removed spacer artifacts, and preserved three-corner petal imagery.
 - Check typography, colors, layout, image crop, spacing, overlays, and responsive navigation against the approved design references.
+- Check B-01, B-03, and B-04 on the homepage and affected editorial routes: compare generic text-color defaults, centered button groups, image aspect ratios and crops, vertical image alignment, and mobile petal width (90% of the full content column, independent of a desktop figure width).
 - Across homepage, page, post, archive, and product routes, verify that all full-alignment sections keep the shared left/right inset on desktop and mobile; on mobile, confirm their all-side inset and radius. Check that the homepage welcome cover is framed and rounded at all widths, colored full-width sections and page heroes are rounded at every viewport, and the footer has a bottom margin plus a top margin when the final content section is colored. Confirm the footer's surrounding background matches the page background and shows no white band.
 - On `/`, compare the cover and Gutenberg alignment gutters with WordPress: content uses `--cd2027--content-width` without an extra desktop gutter, `wide` uses `--cd2027--wide-width`, full-alignment sections keep the shared horizontal inset, and column gaps match the 1rem WordPress block gap. Check that default flex content stretches like Gutenberg, the KAELYA Talismans button has no duplicate outline, and no gray band remains between testimonials and the footer. Check `/mes-bijoux/` for the same column spacing and confirm the framed mobile gutters remain intact.
-- On `/contact/`, confirm the details and form align at the top on desktop; icons sit at the top of their text rows; the icon column stays narrow; the email wraps without overlapping the form; and mobile keeps the detail rows horizontal while stacking the main columns.
-- Inspect every contact field's hover and keyboard-focus states. Hover must affect the complete Web Awesome field wrapper; for the Forminator consent checkbox, hovering its paragraph wrapper must also activate the checkbox treatment. Check that the two-column name row stacks cleanly on narrow screens.
+- For `/contact/`, run the F-05 and P-02 checks at desktop and mobile sizes. Use B-01 for the expected Web Awesome wrapper parts, separate hover/focus treatments, and consent-paragraph hover behavior; check the mobile name row as well.
 - Verify forms, consent, newsletter signups, product options, cart, checkout, payment results, accounts, subscriptions, and course access with a safe test flow.
 - Check page titles, descriptions, canonical URLs, Open Graph metadata, sitemap entries, redirects, and robots rules.
 - Check heading hierarchy, keyboard use, visible focus, labels, image alt text, and readable contrast.

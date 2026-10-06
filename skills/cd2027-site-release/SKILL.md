@@ -2,6 +2,19 @@
 name: cd2027-site-release
 description: Prepare and validate an Eleventy build and its WordPress-driven deployment or rollback.
 ---
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: skills/cd2027-site-release/SKILL.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
 
 # CD2027 site release
 

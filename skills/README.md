@@ -1,6 +1,20 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: skills/README.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # CD2027 project skills
 
-These skills adapt the applicable LGS1920 site workflows to this repository and add guidance for the WordPress-to-Eleventy publishing path. Read the matching `SKILL.md` together with the root `PROJECT_RULES.md`.
+These skills adapt the applicable LGS1920 site workflows to this repository and add guidance for the WordPress-to-Eleventy publishing path. Read the matching `SKILL.md` together with the root `PROJECT_RULES.md`. For the rendering and design decisions that apply globally, to blocks/elements, to page families, or to a single route, consult [`docs/design-rules-catalog.md`](../docs/design-rules-catalog.md); skills describe the workflow for applying those rules and are not a competing rules source.
 
 | Skill | Use it for | LGS1920 source or adaptation |
 | --- | --- | --- |

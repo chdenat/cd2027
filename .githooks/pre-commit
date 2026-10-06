@@ -1,0 +1,26 @@
+#!/bin/sh
+# ******************************************************************************
+# This file is part of the CD2027 project.
+#
+# File: .githooks/pre-commit
+#
+# Author: Christian Denat
+# Email: christian.denat@orange.fr
+#
+# Created on: 2026-10-06
+# Last modified: 2026-10-06
+#
+# Copyright © 2026 Christian Denat
+# ******************************************************************************
+
+set -eu
+
+repositoryRoot="$(git rev-parse --show-toplevel)"
+cd "$repositoryRoot"
+
+if ! command -v bun >/dev/null 2>&1; then
+  printf '%s\n' 'error: Bun is required to update CD2027 source-file headers.' >&2
+  exit 1
+fi
+
+bun scripts/update-file-headers.mjs --staged --stage

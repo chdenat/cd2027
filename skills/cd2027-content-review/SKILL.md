@@ -2,6 +2,19 @@
 name: cd2027-content-review
 description: Review the clarity, consistency, metadata, route coverage, and freshness of all CD2027 site content.
 ---
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: skills/cd2027-content-review/SKILL.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
 
 # CD2027 content review
 

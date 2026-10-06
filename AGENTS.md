@@ -1,3 +1,17 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: AGENTS.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-02
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # Agent guidance
 
 Read `PROJECT_RULES.md` before changing this repository. It defines the project-wide language, architecture, visual, content, security, and delivery rules.

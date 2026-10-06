@@ -1,3 +1,17 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: TODO.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-03
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 Le site christinedeloupy.fr est un site qui à la base est géré par WordPress.
 Il utilise donc des blocks pour la mise e, page, et un backend.
 

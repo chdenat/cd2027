@@ -1,3 +1,17 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: scripts/dev-server.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
 const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
@@ -21,6 +35,7 @@ const MIME_TYPES = {
   '.jpeg': 'image/jpeg',
   '.jpg': 'image/jpeg',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.otf': 'font/otf',
   '.png': 'image/png',
@@ -33,11 +48,13 @@ const MIME_TYPES = {
   '.xml': 'application/xml; charset=utf-8',
 }
 
+/** Writes a non-cacheable JSON response with optional protocol headers. */
 function sendJson(response, status, body, headers = {}) {
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers })
   response.end(JSON.stringify(body))
 }
 
+/** Reads a request body while enforcing the local adapter's one-megabyte memory bound. */
 function readBody(request) {
   return new Promise((resolve, reject) => {
     const chunks = []
@@ -56,6 +73,7 @@ function readBody(request) {
   })
 }
 
+/** Parses quoted or unquoted attributes from one upstream form tag. */
 function parseAttributes(tag) {
   const attributes = {}
   for (const match of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)) {
@@ -64,6 +82,7 @@ function parseAttributes(tag) {
   return attributes
 }
 
+/** Resolves a same-site WordPress page path and rejects absolute, protocol-relative, or traversal paths. */
 function pathFromRequest(value) {
   if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.includes('..')) {
     throw new Error('Invalid form source path.')
@@ -73,6 +92,7 @@ function pathFromRequest(value) {
   return parsed
 }
 
+/** Fetches a public WordPress page with a timeout for supported local form adapters. */
 async function fetchWordPressPage(pageUrl) {
   const response = await fetch(pageUrl, {
     headers: { Accept: 'text/html', 'User-Agent': 'CD2027 Eleventy local form adapter' },
@@ -82,6 +102,7 @@ async function fetchWordPressPage(pageUrl) {
   return response.text()
 }
 
+/** Extracts one balanced JSON object from WordPress's inline Forminator bootstrap script. */
 function extractJsonObject(source, startAt) {
   const opening = source.indexOf('{', startAt)
   if (opening < 0) throw new Error('Forminator configuration was not found on the source page.')
@@ -106,6 +127,7 @@ function extractJsonObject(source, startAt) {
   throw new Error('Forminator configuration was incomplete.')
 }
 
+/** Loads an allowlisted Forminator form through its WordPress AJAX endpoint. */
 async function loadForminatorForm(pageUrl, formId) {
   const pageHtml = await fetchWordPressPage(pageUrl)
   const callPattern = new RegExp(`renderForminatorAjax\\s*\\(\\s*${formId}\\s*,\\s*`)
@@ -144,6 +166,7 @@ async function loadForminatorForm(pageUrl, formId) {
   return { provider: 'forminator', html: result.data.html }
 }
 
+/** Extracts an allowlisted MailPoet form from its public WordPress page markup. */
 async function loadMailPoetForm(pageUrl, formId) {
   const pageHtml = await fetchWordPressPage(pageUrl)
   let formStart = -1
@@ -163,6 +186,7 @@ async function loadMailPoetForm(pageUrl, formId) {
   return { provider: 'mailpoet', html }
 }
 
+/** Validates form provider and ID against local allowlists before returning source markup. */
 async function loadForm(request, response) {
   const payload = JSON.parse((await readBody(request)).toString('utf8') || '{}')
   const provider = payload.provider
@@ -177,6 +201,7 @@ async function loadForm(request, response) {
   return sendJson(response, 400, { message: 'This WordPress form has not been enabled in the Eleventy adapter yet.' })
 }
 
+/** Validates provider-specific submission markers before forwarding fields to WordPress. */
 async function submitForm(request, response) {
   const rawBody = (await readBody(request)).toString('utf8')
   const outer = new URLSearchParams(rawBody)
@@ -230,6 +255,7 @@ async function submitForm(request, response) {
   return sendJson(response, 400, { message: 'This WordPress form has not been enabled in the Eleventy adapter yet.' })
 }
 
+/** Proxies only cart, checkout, and product Store API routes while preserving session tokens. */
 async function proxyStoreApi(request, response, localUrl) {
   const storePath = localUrl.pathname.replace(/^\/wp-json\/wc\/store\/v1/, '') || '/'
   if (!/^\/(cart|checkout|products)(?:\/|$)/.test(storePath) || storePath.includes('..')) {
@@ -267,9 +293,11 @@ async function proxyStoreApi(request, response, localUrl) {
   response.end(payload)
 }
 
+/** Serves generated files after canonical path containment checks, or the fallback response. */
 function serveStatic(request, response, url) {
   let pathname
   try { pathname = decodeURIComponent(url.pathname) } catch { response.writeHead(400).end('Bad request'); return }
+  // Resolve before reading so encoded traversal cannot escape the generated site directory.
   const requested = path.resolve(SITE_DIR, `.${pathname}`)
   if (requested !== SITE_DIR && !requested.startsWith(`${SITE_DIR}${path.sep}`)) {
     response.writeHead(403).end('Forbidden')
@@ -302,6 +330,7 @@ function serveStatic(request, response, url) {
 
 let eleventy
 
+/** Starts Eleventy's watch process with the local public-cache override enabled. */
 function startEleventy() {
   eleventy = spawn(process.execPath, [path.join(ROOT, 'node_modules/@11ty/eleventy/cmd.cjs'), '--watch'], {
     cwd: ROOT,
@@ -326,6 +355,7 @@ const server = http.createServer(async (request, response) => {
       return fs.createReadStream(path.join(__dirname, 'dev-fallback.css')).pipe(response)
     }
     if (url.pathname === '/__dev/shutdown' && request.method === 'POST') {
+      // Require the local restart marker and reject browser-originated calls to prevent drive-by shutdowns.
       if (request.headers.origin || request.headers['x-cd2027-dev-command'] !== 'restart') {
         return sendJson(response, 404, { message: 'Route not found.' })
       }
@@ -355,6 +385,7 @@ server.listen(PORT, HOST, () => {
 
 let stopping = false
 
+/** Closes the local HTTP listener and asks the child Eleventy process to exit. */
 function stop() {
   if (stopping) return
   stopping = true

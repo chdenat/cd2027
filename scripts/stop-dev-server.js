@@ -1,3 +1,17 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: scripts/stop-dev-server.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-03
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
 const fs = require('node:fs')
 const http = require('node:http')
 const net = require('node:net')
@@ -9,6 +23,7 @@ const DEV_SERVER_PATH = path.join(ROOT, 'scripts', 'dev-server.js')
 const HOST = '127.0.0.1'
 const PORT = Number(process.env.PORT || 4555)
 
+/** Sends a bounded request to the local server to verify its identity or request shutdown. */
 function request(pathname, method = 'GET') {
   return new Promise((resolve, reject) => {
     const headers = method === 'POST' ? { 'x-cd2027-dev-command': 'restart' } : {}
@@ -40,6 +55,7 @@ function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
+/** Checks whether the configured loopback port can be bound without contacting another service. */
 function isPortAvailable() {
   return new Promise((resolve, reject) => {
     const probe = net.createServer()
@@ -51,6 +67,7 @@ function isPortAvailable() {
   })
 }
 
+/** Matches a Linux process by both repository working directory and the exact dev-server script. */
 function isThisDevServer(pid) {
   try {
     const cwd = fs.realpathSync(`/proc/${pid}/cwd`)
@@ -61,6 +78,7 @@ function isThisDevServer(pid) {
   }
 }
 
+/** Finds only this checkout's dev-server processes; unrelated Node/Bun processes are ignored. */
 function findLinuxDevServers() {
   if (process.platform !== 'linux') return []
   let entries
@@ -72,6 +90,7 @@ function findLinuxDevServers() {
   return entries.filter((entry) => /^\d+$/.test(entry) && isThisDevServer(Number(entry))).map(Number)
 }
 
+/** Sends SIGTERM only to previously identified project processes and waits for their exit. */
 async function stopBySignal(pids) {
   for (const pid of pids) {
     try {
@@ -90,6 +109,7 @@ async function stopBySignal(pids) {
   throw new Error(`The existing CD2027 dev server did not stop within 10 seconds (PID ${pids.join(', ')}).`)
 }
 
+/** Waits until the port is free or reports if a different service takes it over. */
 async function waitUntilStopped() {
   const deadline = Date.now() + 10000
   while (Date.now() < deadline) {
@@ -108,6 +128,7 @@ async function waitUntilStopped() {
   throw new Error(`The existing dev server did not stop within 10 seconds on port ${PORT}.`)
 }
 
+/** Stops an existing CD2027 server through its verified local control route when needed. */
 async function stopExistingServer() {
   const localProcesses = findLinuxDevServers()
   if (localProcesses.length) {
@@ -136,6 +157,7 @@ async function stopExistingServer() {
     throw new Error(`Port ${PORT} is already in use by a service that is not the CD2027 dev server.`)
   }
 
+  // The server accepts shutdown only with its private restart marker and no Origin header.
   const shutdownResponse = await request('/__dev/shutdown', 'POST')
   if (shutdownResponse.status !== 202) {
     throw new Error('The existing CD2027 dev server does not support automatic shutdown. Stop it once, then run bun run dev again.')

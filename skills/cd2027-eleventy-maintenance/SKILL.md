@@ -2,6 +2,19 @@
 name: cd2027-eleventy-maintenance
 description: Maintain CD2027 Eleventy data, Nunjucks templates, Web Awesome styling, Font Awesome assets, and production builds.
 ---
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: skills/cd2027-eleventy-maintenance/SKILL.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
 
 # CD2027 Eleventy maintenance
 
@@ -20,33 +33,31 @@ Use this skill for page generation, WordPress data adapters, template and layout
 ## Workflow
 
 1. Trace a route from its WordPress record or source data through the Eleventy data cascade, template, assets, and generated URL.
-2. Check the route inventory and all other templates using the data or include before changing its shape.
+2. Check `PROJECT_RULES.md`, the applicable entries in `docs/design-rules-catalog.md`, the route inventory, and all other templates using the data or include before changing its shape. Record any new global, block, family, or route rule in the catalog.
 3. Fetch WordPress data at build time through a server-side adapter. Do not make public visitors wait on a WordPress API request for each page view.
 4. Paginate collection endpoints, keep record IDs and canonical URLs, preserve media and SEO fields, and make API failures visible to the build.
 5. Select build records from both the matching public sitemap and references in public content, navigation, or required site flows. Sitemap membership alone must not omit linked records; API presence alone must not include unrelated records. Record fetched, selected, and excluded counts so route checks can verify coverage.
 6. Ensure full builds cannot retain stale output for deleted or newly excluded routes. Clean only the generated output directory before a full build; never remove source files or hand-edit generated pages.
 7. Keep content transformation explicit. Map supported Gutenberg blocks and extension output to documented renderers; fail or report clearly on unsupported data.
-8. Use Web Awesome components and utilities for supported layout and controls, with the `--cd2027--*` tokens mapped to documented `--wa-*` tokens.
+8. Prefer the suitable Web Awesome equivalent whenever one exists; use semantic HTML where Web Awesome has no suitable counterpart or conversion would damage content intent. Follow the catalog's component and scope rules, with `--cd2027--*` tokens mapped to documented `--wa-*` tokens.
 9. Use the imported Font Awesome icon definitions through the custom Web Awesome icon library. Add definitions to `scripts/fontawesome-icons.entry.js`, run `bun run build:icons`, and keep the private package token out of source control.
 10. Run the real project build and inspect affected routes once the package manifest and scripts are restored to a reproducible state.
 
 ## Contact page and form styling
 
-- The WordPress `/contact/` page is rendered through `wordpress-page.njk` with the `contact-page` class. Keep contact-specific layout rules scoped to that class in `src/assets/styles.css`; do not change the imported WordPress content to fix presentation.
-- On desktop, align the contact details and form at the top. Keep each icon-and-text row left aligned, prevent the icon column from growing (`flex: 0 0 1.5rem`), use a small shared-token gap, and let long email text wrap. On mobile, stack the main columns while keeping each contact detail row horizontal.
-- `forms.js` converts provider fields to Web Awesome controls after the form mounts. Style field hover and focus on the complete documented wrapper part (`input-wrapper`, `textarea-wrapper`, or `form-control-input` for a select), not the inner text-entry part; styling only the inner part can leave an inset strip. Keep hover distinct from keyboard focus.
-- Forminator checkbox markup can retain a paragraph around `wa-checkbox`. Reset that paragraph's default margin and let hovering the paragraph activate the checkbox hover treatment as well as the paragraph surface.
-- For these CSS changes, inspect Contact at desktop and mobile widths and check the full field surface, checkbox paragraph, hover state, and keyboard focus state. Do not edit `_site/` to adjust the result.
+- Implement the contact behavior in catalog entries F-05 and P-02. The WordPress `/contact/` page receives its `.contact-page` modifier in `wordpress-page.njk`; keep its CSS scoped to that root in `src/assets/styles.css` and do not change imported content for presentation.
+- `forms.js` upgrades provider fields to Web Awesome controls after mount. Follow B-01 for field wrapper parts, hover/focus states, and consent-checkbox wrappers. Inspect Contact at desktop and mobile widths; never edit `_site/` to adjust the result.
 
 ## Imported content normalization
 
+- Apply B-01, B-03, and B-04 for generic text-color defaults, image aspect ratios/crops, and source-generated Gutenberg container alignment. Extract safe block-support declarations before removing WordPress container classes. Keep petal figures unconstrained on mobile so the image's 90% width is calculated from the full available content width.
 - Preserve `<mark>` elements in `normalizeRenderedHtml()` and extract their inline and WordPress palette styles into generated rules scoped by a deterministic page-specific class. Keep the text and nested semantic HTML intact, and avoid global `<mark>` styling.
-- Convert any element with a class beginning `callout-` into a Web Awesome `<wa-callout variant="brand" appearance="plain">`. Callout detection depends exclusively on classes; never infer a callout or its icon from geometry. Three-corner petal shapes remain images. If an authored class begins `callout-icon-`, use the suffix after `icon-` as the solid Font Awesome icon name. Preserve the source-authored callout width and meaningful content, remove empty WordPress spacer blocks and empty paragraphs inside the callout, reset inherited margins and padding to the shared callout spacing, and reset source text colors for readable callouts.
+- Follow the callout transformation and icon mapping in the design-rules catalog. Preserve source-authored widths and meaningful content, remove empty WordPress spacer blocks and paragraphs, and reset inherited spacing and text colors as defined there.
 - Apply generic content borders to block surfaces, not the `<wa-button>` host; Web Awesome button borders belong on its `::part(button)` so imported WordPress border metadata cannot create a second outline.
 
 ## Homepage alignment
 
-- Keep the homepage cover content aligned with WordPress's content-width token (`--cd2027--content-width`). Scope `wide` and `full` Gutenberg alignment rules to `.wordpress-home`; on desktop, `wide` uses `--cd2027--wide-width` and full-alignment sections keep the shared horizontal inset. Match desktop content width without adding another gutter, and keep Gutenberg columns at the site's 1rem block gap (`--cd2027--space-40`). Flex content defaults to WordPress's stretch alignment; center it only when requested in source. Keep the homepage flush to its testimonial section and avoid extra footer spacing after it; verify desktop and mobile layouts, including Mes bijoux.
+- Keep the homepage cover content aligned with WordPress's content-width token (`--cd2027--content-width`). Scope `wide` and `full` Gutenberg alignment rules to `.wordpress-home`; on desktop, `wide` uses `--cd2027--wide-width` within the available homepage frame and full-alignment sections keep the shared horizontal inset. Match desktop content width without adding another gutter, and keep Gutenberg columns at the site's 1rem block gap (`--cd2027--space-40`). Flex content defaults to WordPress's stretch alignment; center it only when requested in source. Keep the homepage flush to its testimonial section and avoid extra footer spacing after it; verify desktop and mobile layouts, including Mes bijoux.
 
 ## Mobile section surfaces
 
