@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
+# ******************************************************************************
+# This file is part of the CD2027 project.
+#
+# File: scripts/deploy-cd2027.sh
+#
+# Author: Christian Denat
+# Email: christian.denat@orange.fr
+#
+# Created on: 2026-10-02
+# Last modified: 2026-10-06
+#
+# Copyright © 2026 Christian Denat
+# ******************************************************************************
+
+# Dispatches the repository's main-branch workflow; local uncommitted files are not uploaded.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

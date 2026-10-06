@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
+# ******************************************************************************
+# This file is part of the CD2027 project.
+#
+# File: scripts/upload-cd2027.sh
+#
+# Author: Christian Denat
+# Email: christian.denat@orange.fr
+#
+# Created on: 2026-10-02
+# Last modified: 2026-10-06
+#
+# Copyright © 2026 Christian Denat
+# ******************************************************************************
+
+# Uploads a previously checked _site archive and promotes the extracted release on the host.
 set -euo pipefail
 
 required=(CD2027_SSH_HOST CD2027_SSH_USER CD2027_SSH_PASSWORD CD2027_REMOTE_ROOT)
@@ -43,6 +58,7 @@ if ! command -v sshpass >/dev/null 2>&1 || ! command -v scp >/dev/null 2>&1; the
   exit 1
 fi
 
+# Keep host-key acceptance state private to this runner invocation; StrictHostKeyChecking stays on.
 known_hosts_file="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/cd2027-known-hosts-${GITHUB_RUN_ID:-manual}"
 touch "$known_hosts_file"
 chmod 600 "$known_hosts_file"
@@ -55,6 +71,7 @@ next_link="$remote_root/.current-$release_id"
 target="$CD2027_SSH_USER@$CD2027_SSH_HOST"
 ssh_options=(-p "$port" -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$known_hosts_file" -o ConnectTimeout=20 -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no)
 
+# Remove the named password from the child environment before launching archive/network commands.
 export SSHPASS="$CD2027_SSH_PASSWORD"
 unset CD2027_SSH_PASSWORD
 
@@ -65,6 +82,7 @@ sshpass -e ssh "${ssh_options[@]}" "$target" "mkdir -p '$remote_root/releases' '
 sshpass -e scp -P "$port" -o StrictHostKeyChecking=accept-new -o "UserKnownHostsFile=$known_hosts_file" -o ConnectTimeout=20 -o PreferredAuthentications=password,keyboard-interactive -o PubkeyAuthentication=no \
   "$archive" "$target:$incoming_archive"
 
+# Promote only after extraction; rename of the temporary symlink makes the release switch atomic.
 sshpass -e ssh "${ssh_options[@]}" "$target" "set -eu; if [ -e '$remote_root/current' ] && [ ! -L '$remote_root/current' ]; then echo 'Refusing to replace a non-symlink current path.' >&2; exit 1; fi; mkdir '$release_dir'; tar -xzf '$incoming_archive' -C '$release_dir'; ln -s '$release_dir' '$next_link'; mv -Tf '$next_link' '$remote_root/current'; rm -f '$incoming_archive'"
 
 rm -f "$archive"

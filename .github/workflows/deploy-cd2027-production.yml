@@ -1,34 +1,31 @@
 # ******************************************************************************
 # This file is part of the CD2027 project.
 #
-# File: .github/workflows/deploy-cd2027.yml
+# File: .github/workflows/deploy-cd2027-production.yml
 #
 # Author: Christian Denat
 # Email: christian.denat@orange.fr
 #
-# Created on: 2026-10-02
+# Created on: 2026-10-06
 # Last modified: 2026-10-06
 #
 # Copyright © 2026 Christian Denat
 # ******************************************************************************
 
-name: Deploy cd2027.christinedeloupy.fr
+name: Deploy christinedeloupy.fr production
 
 on:
   workflow_dispatch:
-  # WordPress dispatches after it has safely queued a public content change.
+  # Production is only triggered explicitly; routine WordPress changes target staging.
   repository_dispatch:
-    types: [cd2027_deploy]
-  schedule:
-    - cron: '17 6 * * *'
+    types: [cd2027_production_deploy]
 
 permissions:
-  # The build consumes content and deployment secrets; the GitHub checkout token is read-only.
   contents: read
 
 concurrency:
-  group: cd2027-deployment
-  # Never cancel a live promotion; serialize builds so current cannot point to an incomplete release.
+  group: cd2027-production-deployment
+  # Preserve an active production promotion and serialize writes to its release root.
   cancel-in-progress: false
 
 jobs:
@@ -36,17 +33,40 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: cd2027
+    environment: cd2027-production
     env:
-      # Environment-scoped values keep staging separate from production.
-      SITE_URL: ${{ vars.SITE_URL || 'https://cd2027.christinedeloupy.fr' }}
-      WORDPRESS_ORIGIN: ${{ vars.WORDPRESS_ORIGIN || 'https://christinedeloupy.fr' }}
+      SITE_URL: ${{ vars.SITE_URL }}
+      WORDPRESS_ORIGIN: ${{ vars.WORDPRESS_ORIGIN }}
       WORDPRESS_CONTENT_MODE: ${{ vars.WORDPRESS_CONTENT_MODE || 'auto' }}
       WORDPRESS_API_USERNAME: ${{ secrets.WORDPRESS_API_USERNAME }}
       WORDPRESS_API_APPLICATION_PASSWORD: ${{ secrets.WORDPRESS_API_APPLICATION_PASSWORD }}
-      CD2027_WP_AUTH: '1'
-      PRIVATE_VIEW: ${{ vars.PRIVATE_VIEW || 'true' }}
+      CD2027_WP_AUTH: '0'
+      PRIVATE_VIEW: 'false'
     steps:
+      # Fail before installing or transferring anything until the production origin and host route are deliberate.
+      - name: Verify production configuration is enabled
+        env:
+          CD2027_REMOTE_ROOT: ${{ vars.CD2027_REMOTE_ROOT }}
+          CD2027_PRODUCTION_READY: ${{ vars.CD2027_PRODUCTION_READY }}
+        run: |
+          set -euo pipefail
+          if [ "$SITE_URL" != 'https://christinedeloupy.fr' ]; then
+            echo 'Production SITE_URL must be https://christinedeloupy.fr.' >&2
+            exit 1
+          fi
+          case "$WORDPRESS_ORIGIN" in
+            https://*) ;;
+            *) echo 'WORDPRESS_ORIGIN must be an HTTPS origin.' >&2; exit 1 ;;
+          esac
+          if [ -z "$CD2027_REMOTE_ROOT" ] || [[ "$CD2027_REMOTE_ROOT" != /* ]]; then
+            echo 'Set CD2027_REMOTE_ROOT to the separate production release root.' >&2
+            exit 1
+          fi
+          if [ "$CD2027_PRODUCTION_READY" != 'true' ]; then
+            echo 'Production is locked. Set CD2027_PRODUCTION_READY=true only after the production document root or server route points to the dedicated current release.' >&2
+            exit 1
+          fi
+
       - name: Check out the default branch
         uses: actions/checkout@v7
         with:
@@ -63,7 +83,7 @@ jobs:
           FONTAWESOME_PACKAGE_TOKEN: ${{ secrets.FONTAWESOME_PACKAGE_TOKEN }}
         run: |
           if [ -z "$FONTAWESOME_PACKAGE_TOKEN" ]; then
-            echo "The FONTAWESOME_PACKAGE_TOKEN Actions secret is required to install Font Awesome Pro." >&2
+            echo 'The FONTAWESOME_PACKAGE_TOKEN Actions secret is required to install Font Awesome Pro.' >&2
             exit 1
           fi
           printf '%s\n' '@fortawesome:registry=https://npm.fontawesome.com/' "//npm.fontawesome.com/:_authToken=${FONTAWESOME_PACKAGE_TOKEN}" > "$HOME/.npmrc"
@@ -78,7 +98,7 @@ jobs:
       - name: Install password-based SSH client
         run: sudo apt-get update && sudo apt-get install --yes sshpass
 
-      - name: Upload and atomically promote the CD2027 build
+      - name: Upload and atomically promote the production build
         env:
           CD2027_SSH_HOST: ${{ secrets.CD2027_SSH_HOST }}
           CD2027_SSH_PORT: ${{ secrets.CD2027_SSH_PORT }}

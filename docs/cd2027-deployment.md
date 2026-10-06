@@ -1,6 +1,20 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: docs/cd2027-deployment.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # Installation et déploiement du site CD2027
 
-Ce guide concerne uniquement `https://cd2027.christinedeloupy.fr`. Il n'y a qu'un hébergement distant : le compte SSH fourni par Nuxit. Aucun accès `sudo`, serveur Linux séparé ou service Bun n'est nécessaire.
+Ce guide configure le staging `https://cd2027.christinedeloupy.fr`. La cible de production `https://christinedeloupy.fr` dispose maintenant d'un workflow isolé, mais reste verrouillée jusqu'à la configuration de son environnement GitHub et de son routage web ; voir le [guide WP Awesome et des environnements](wordpress-connector-and-environments.md).
 
 ## Fonctionnement
 
@@ -63,6 +77,8 @@ Ajoute ces variables d'environnement :
 
 | Variable | Valeur |
 | --- | --- |
+| `SITE_URL` | `https://cd2027.christinedeloupy.fr` |
+| `WORDPRESS_ORIGIN` | `https://christinedeloupy.fr` tant que CD2020 reste la source WordPress |
 | `CD2027_REMOTE_ROOT` | Chemin absolu du dossier de déploiement Nuxit, parent de `incoming`, `releases` et `current` |
 | `PRIVATE_VIEW` | `true` pendant la validation privée ; `false` rend le site public |
 
@@ -122,7 +138,7 @@ ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
   "php -l '$WP_ROOT/wp-content/mu-plugins/cd2027-eleventy-webhook.php'"
 ```
 
-WordPress charge automatiquement les extensions *must-use*. Si un ancien MU-plugin d’envoi est encore actif, sauvegarde ou vide sa file d’attente avant de le retirer et ne laisse pas deux expéditeurs actifs.
+WordPress charge automatiquement le MU-plugin. Cette procédure conserve le publisher historique. Le plugin autonome **WP Awesome** est une autre option de publication : suis la migration décrite dans le [guide des environnements](wordpress-connector-and-environments.md) et ne laisse pas les deux expéditeurs actifs.
 
 Crée ensuite un jeton GitHub finement limité depuis **Settings → Developer settings → Fine-grained personal access tokens → Generate new token** ([guide GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)) :
 
@@ -131,7 +147,7 @@ Crée ensuite un jeton GitHub finement limité depuis **Settings → Developer s
 - Repository permissions : **Contents → Read and write** ;
 - choisis une expiration et copie le jeton à sa création.
 
-GitHub conserve **Metadata → Read-only** comme permission requise par défaut. L’API `repository_dispatch` exige **Contents → write** ([documentation GitHub](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event)) ; aucune permission `Actions` supplémentaire n’est nécessaire. Garde le jeton côté serveur ; il sert seulement à demander un build. Les identifiants SSH du déploiement statique restent dans l'environnement GitHub Actions.
+GitHub conserve **Metadata → Read-only** comme permission requise par défaut. L’API `repository_dispatch` exige **Contents → write** ([documentation GitHub](https://docs.github.com/en/rest/repos/repos#create-a-repository-dispatch-event)). Le tableau de bord optionnel a aussi besoin de **Actions → Read** pour lire les workflows d'un dépôt privé ; les exécutions d'un dépôt public peuvent être consultées sans authentification ([API des exécutions GitHub Actions](https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-workflow)). **Actions → Write** n'est pas nécessaire. Garde le jeton côté serveur ; il sert seulement à demander un build et à lire les statuts. Les identifiants SSH du déploiement statique restent dans l'environnement GitHub Actions.
 
 Dans le `wp-config.php` de WordPress CD2020, avant la ligne qui charge `wp-settings.php`, ajoute ces constantes :
 
@@ -141,6 +157,8 @@ define('CD2027_GITHUB_REPOSITORY', 'chdenat/cd2027');
 ```
 
 Ne mets pas le jeton dans le MU-plugin, le dépôt, une variable GitHub non secrète ou un fichier publiquement servi. La file est conservée dans la base WordPress. Le MU-plugin ignore les brouillons non publiés, regroupe jusqu’à 100 notifications et les envoie à GitHub ; le workflow reconstruit ensuite le site complet.
+
+Pour obtenir la page **Outils → WP Awesome**, migre vers le plugin PHP distribué dans le package après avoir vidé et sauvegardé la file historique puis retiré le MU-plugin : copie tous les fichiers PHP de `node_modules/wp-awesome/wordpress-plugin/` dans `wp-content/plugins/wp-awesome/`, puis active **WP Awesome** dans **Extensions**. Configure le token et le dépôt avec `WPEC_CONNECTOR_GITHUB_TOKEN` et `WPEC_CONNECTOR_REPOSITORY`, puis les cibles staging et production avec `WPEC_CONNECTOR_TARGETS` dans `wp-config.php`, selon le [guide des environnements](wordpress-connector-and-environments.md). La cible production reste désactivée tant que son environnement et son dossier de publication ne sont pas prêts.
 
 ## 5. Faire exécuter WP-Cron régulièrement chez Nuxit
 

@@ -1,3 +1,17 @@
+# ******************************************************************************
+# This file is part of the CD2027 project.
+#
+# File: deploy/cd2027-auth/.htaccess
+#
+# Author: Christian Denat
+# Email: christian.denat@orange.fr
+#
+# Created on: 2026-10-02
+# Last modified: 2026-10-04
+#
+# Copyright © 2026 Christian Denat
+# ******************************************************************************
+
 RewriteEngine On
 
 # Do not allow requests to execute or download the gate directly.

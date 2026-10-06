@@ -1,3 +1,17 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: docs/first-implementation.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # First implementation — status and boundaries
 
 Date: 2 October 2026.
@@ -24,6 +38,6 @@ The account, memberships, subscriptions, course access, invoices, booking, and p
 
 The local frontend remains at `localhost:4555` and is separate from publishing. The WordPress MU-plugin dispatches build requests through WP-Cron. GitHub Actions builds and atomically deploys the staging site at `cd2027.christinedeloupy.fr`.
 
-The production domain is not connected to this workflow. Before enabling it, configure a separate production environment and deployment target, test route/link and commerce checks, and retain atomic artifact promotion and rollback. The daily staging build is a recovery path for a missed event. Never expose WordPress credentials in the Eleventy output or browser code.
+The production workflow definition now targets a separate GitHub environment, but it remains locked and is not connected to the live domain. Before enabling it, configure the production environment and release root, complete server routing, test route/link and commerce checks, and retain atomic artifact promotion and rollback. The daily staging build is a recovery path for a missed event. Never expose WordPress credentials in the Eleventy output or browser code.
 
 The browser currently calls same-origin paths such as `/wp-json/wc/store/v1/cart`. A production host must provide an equivalent HTTPS reverse proxy or server adapter and the form routes used here. Direct browser-to-WordPress calls are blocked by the current site’s CORS response for `localhost:4555`.
