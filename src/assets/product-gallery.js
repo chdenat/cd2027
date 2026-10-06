@@ -1,3 +1,18 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/assets/product-gallery.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-03
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+// Enable cursor zoom only for mouse-capable devices; touch users keep the source image unchanged.
 if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
   document.querySelectorAll('.product-gallery figure').forEach((figure) => {
     const image = figure.querySelector('img')

@@ -1,3 +1,24 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/assets/editorial.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+/**
+ * Initializes keyboard-accessible carousel behavior for one imported WordPress gallery.
+ * @param {HTMLElement} gallery Imported gallery root.
+ * @param {number} index Stable page index used to generate an accessible track ID.
+ * @returns {void}
+ * @sideEffects Adds navigation, keyboard, visibility, and autoplay event listeners.
+ */
 function initializeCarousel(gallery, index) {
   const swiper = gallery.querySelector('[data-cd-role="gallery-viewport"] .swiper-container')
   const track = gallery.querySelector('[data-cd-role="carousel-track"]')
@@ -44,6 +65,7 @@ function initializeCarousel(gallery, index) {
     timer = undefined
   }
 
+  // Autoplay pauses for reduced-motion preferences, pointer hover, keyboard focus, and hidden tabs.
   const scheduleNext = () => {
     clearTimer()
     if (!options.autoPlay || reducedMotion || paused) return

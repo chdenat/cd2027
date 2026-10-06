@@ -10,6 +10,20 @@ eleventyComputed:
   description: "{{ archive.category.descriptionText or ('Articles de la catégorie ' + archive.category.titleText) }}"
   canonicalUrl: "{{ archive.link }}"
 ---
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/post-categories.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-02
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 {% set currentCategory = archive.category.id %}
 <section class="archive-page content-width">
   <header class="archive-header">

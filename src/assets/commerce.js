@@ -1,6 +1,25 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/assets/commerce.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
 const CART_TOKEN_KEY = 'cd2027-cart-token'
 const API_ROOT = '/wp-json/wc/store/v1'
 
+/**
+ * Escapes untrusted Store API values before inserting them into generated commerce markup.
+ * @param {unknown} value Value to serialize as HTML text/attribute content.
+ * @returns {string} Escaped string.
+ */
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, (character) => {
     const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
@@ -8,15 +27,24 @@ function escapeHtml(value = '') {
   })
 }
 
+/** Reads the WooCommerce cart token from tab-scoped storage, tolerating restricted storage. */
 function getToken() {
   try { return sessionStorage.getItem(CART_TOKEN_KEY) || '' } catch { return '' }
 }
 
+/** Persists a rotated WooCommerce cart token in tab-scoped storage when available. */
 function saveToken(token) {
   if (!token) return
   try { sessionStorage.setItem(CART_TOKEN_KEY, token) } catch { /* Private mode can disable storage. */ }
 }
 
+/**
+ * Calls the same-origin Store API and persists any returned cart token for this tab.
+ * @param {string} path Store API path below `/cart`, `/checkout`, or `/products`.
+ * @param {RequestInit} [options] Fetch method, body, and request headers.
+ * @returns {Promise<object>} Parsed Store API response.
+ * @throws {Error} When WooCommerce returns a non-success response.
+ */
 async function storeApi(path, options = {}) {
   const headers = new Headers(options.headers || {})
   headers.set('Accept', 'application/json')
@@ -33,11 +61,13 @@ async function storeApi(path, options = {}) {
   return data
 }
 
+/** Formats a WooCommerce minor-unit amount using the visitor-facing French locale. */
 function money(value, currency = 'EUR', minorUnit = 2) {
   const amount = Number(value || 0) / 10 ** Number(minorUnit || 0)
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount)
 }
 
+/** Synchronizes all visible cart badges with the latest Store API item count. */
 function updateCartCount(cart) {
   const count = Number(cart?.items_count || 0)
   document.querySelectorAll('[data-cart-count]').forEach((node) => {
@@ -46,6 +76,7 @@ function updateCartCount(cart) {
   })
 }
 
+/** Hydrates the shared header count without making an unavailable cart block the page. */
 async function loadHeaderCartCount() {
   try {
     updateCartCount(await storeApi('/cart'))
@@ -58,6 +89,7 @@ function statusNode() {
   return document.querySelector('[data-commerce-status]')
 }
 
+/** Updates the shared commerce status region and its error state. */
 function showStatus(message, isError = false) {
   const node = statusNode()
   if (!node) return
@@ -65,6 +97,7 @@ function showStatus(message, isError = false) {
   node.toggleAttribute('data-error', isError)
 }
 
+/** Renders one cart row from escaped Store API content and numeric quantity values. */
 function cartItemMarkup(item) {
   const image = item.images?.[0]?.thumbnail || item.images?.[0]?.src || ''
   const subtotal = item.totals?.line_subtotal || item.totals?.line_total || '0'
@@ -81,6 +114,7 @@ function cartItemMarkup(item) {
   </wa-card>`
 }
 
+/** Renders the live cart contents and totals returned by WooCommerce. */
 function renderCart(cart) {
   updateCartCount(cart)
   const root = document.querySelector('#cart-view')
@@ -114,6 +148,7 @@ const billingFields = [
   ['email', 'Adresse e-mail', 'email', true], ['phone', 'Téléphone', 'tel', false],
 ]
 
+/** Builds named Web Awesome address inputs matching WooCommerce Store API field keys. */
 function makeAddressFields(prefix, address = {}, disabled = false) {
   return billingFields.map(([key, label, type, required]) => {
     const value = address[key] || (key === 'country' ? 'FR' : '')
@@ -121,11 +156,13 @@ function makeAddressFields(prefix, address = {}, disabled = false) {
   }).join('')
 }
 
+/** Maps known gateway IDs to readable French names and formats unknown IDs safely. */
 function paymentLabel(method) {
   const labels = { bacs: 'Virement bancaire', paypal: 'PayPal', stripe: 'Carte bancaire', cheque: 'Chèque' }
   return labels[method] || method.replace(/[_-]+/g, ' ')
 }
 
+/** Renders selectable shipping rates using the current cart packages and totals. */
 function renderShippingRates(cart) {
   const root = document.querySelector('#shipping-methods')
   if (!root) return
@@ -139,6 +176,7 @@ function renderShippingRates(cart) {
   root.innerHTML = `<wa-radio-group class="payment-methods" name="shipping_rate" label="Mode de livraison" value="${selectedRate ? escapeHtml(`${selectedRate.packageId}|${selectedRate.rate_id}`) : ''}">${rates.map((rate) => `<wa-radio value="${escapeHtml(`${rate.packageId}|${rate.rate_id}`)}" ${rate.selected ? 'checked' : ''}><strong>${escapeHtml(rate.name)}</strong> · ${money(rate.price, cart.totals?.currency_code, cart.totals?.currency_minor_unit)}</wa-radio>`).join('')}</wa-radio-group>`
 }
 
+/** Renders customer, shipping, payment, and terms controls from the live WooCommerce session. */
 function renderCheckout(cart, checkout = {}) {
   updateCartCount(cart)
   const root = document.querySelector('#checkout-view')
@@ -170,6 +208,7 @@ function renderCheckout(cart, checkout = {}) {
   renderShippingRates(cart)
 }
 
+/** Loads the current server-side cart and renders an actionable error if the Store API fails. */
 async function loadCartPage() {
   try {
     const cart = await storeApi('/cart')
@@ -180,6 +219,7 @@ async function loadCartPage() {
   }
 }
 
+/** Loads cart and checkout session data before exposing transaction controls. */
 async function loadCheckoutPage() {
   const root = document.querySelector('#checkout-view')
   try {
@@ -192,6 +232,7 @@ async function loadCheckoutPage() {
   }
 }
 
+/** Updates the WooCommerce customer addresses and replaces rates using its authoritative response. */
 async function refreshShipping(form) {
   const status = document.querySelector('#checkout-status')
   const address = collectAddress(form, 'billing_address')
@@ -210,6 +251,7 @@ async function refreshShipping(form) {
   }
 }
 
+/** Converts named form controls into the nested address object expected by Store API routes. */
 function collectAddress(form, prefix) {
   const address = {}
   form.querySelectorAll(`[name^="${prefix}["]`).forEach((field) => {
@@ -219,6 +261,7 @@ function collectAddress(form, prefix) {
   return address
 }
 
+/** Validates checkout data and submits the order through the WooCommerce Store API. */
 async function placeOrder(form) {
   const status = document.querySelector('#checkout-status')
   const submit = document.querySelector('#place-order')
@@ -248,6 +291,7 @@ async function placeOrder(form) {
     expected_total: cartBefore.totals?.total_price,
   }
 
+  // WooCommerce remains authoritative for totals, payment, and order creation; this call submits once.
   if (submit) submit.setAttribute('disabled', '')
   if (status) status.textContent = 'Transmission sécurisée de votre commande…'
   try {

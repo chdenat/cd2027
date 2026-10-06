@@ -1,3 +1,17 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/assets/styles.css
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-08-19
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
 html,
 body {
   min-block-size: 100%;
@@ -162,7 +176,7 @@ wa-button[variant='brand'][appearance='outlined']::part(button):hover {
   color: var(--cd2027--color-text);
   font-family: var(--cd2027--font-menu);
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
 }
 
@@ -173,8 +187,12 @@ wa-button[variant='brand'][appearance='outlined']::part(button):hover {
   color: var(--cd2027--color-text);
   font-family: var(--cd2027--font-menu);
   font-size: inherit;
-  font-weight: 500;
+  font-weight: 400;
 }
+
+/* Match WordPress's tighter submenu indicator spacing in both navigation views. */
+.header-nav wa-button[with-caret]::part(caret),
+.mobile-navigation wa-button[with-caret]::part(caret) { margin-inline-start: 0.25em; }
 
 .header-nav > wa-button,
 .nav-dropdown > wa-button {
@@ -247,7 +265,7 @@ wa-button[variant='brand'][appearance='outlined']::part(button):hover {
 .theme-selector__palette-choices wa-button[aria-pressed='true']::part(button) { outline: 2px solid var(--cd2027--color-tertiary); outline-offset: 1px; }
 .mobile-navigation { padding: 1.5rem; font-family: var(--cd2027--font-menu); }
 .mobile-navigation wa-button { color: var(--cd2027--color-tertiary); text-decoration: none; }
-.mobile-navigation wa-button::part(button) { color: inherit; }
+.mobile-navigation wa-button::part(button) { color: inherit; font-weight: 400; }
 
 wa-page[view='mobile'] .header-nav { display: none; }
 wa-page[view='desktop']::part(navigation) { display: none; }
@@ -326,7 +344,7 @@ html.wa-palette-cd2027-orange .theme-logo { filter: hue-rotate(46deg); }
 .contact-page .entry-content [data-cd-block='column'] > [data-cd-block='columns'] [data-cd-layout='flow'] > * { margin-block-start: var(--wa-space-2xs); }
 .contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] { align-items: flex-start; }
 .contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > p:first-child { padding-inline-start: 0; }
-.contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > [data-cd-block='columns'] { align-items: flex-start; flex-wrap: nowrap; justify-content: flex-start; gap: var(--wa-space-xs); text-align: left; }
+.contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > [data-cd-block='columns'] { display: flex; align-items: flex-start; flex-wrap: nowrap; justify-content: flex-start; gap: var(--wa-space-xs); text-align: left; }
 .contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > [data-cd-block='columns'] > [data-cd-block='column']:first-child { flex: 0 0 1.5rem; }
 .contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > [data-cd-block='columns'] > [data-cd-block='column']:last-child { flex: 1 1 0; }
 .contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > [data-cd-block='columns'] > [data-cd-block='column']:first-child p { text-align: left; }
@@ -338,17 +356,24 @@ html.wa-palette-cd2027-orange .theme-logo { filter: hue-rotate(46deg); }
 .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] [data-cd-block='columns'] > [data-cd-block='column'][data-cd-align-items='center'] { align-self: center; }
 .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] > [data-cd-block='group'][data-cd-align='wide'][data-cd-layout='flex'] { margin-block-start: var(--cd2027--space-70); }
 .cd-content :where([data-cd-layout='flex']) { display: flex; flex-wrap: wrap; gap: var(--cd2027--space-40); }
+.cd-content :where([data-cd-layout='flex']) > * { margin: 0; }
 .cd-content :where([data-cd-layout='grid']) { display: grid; gap: var(--cd2027--space-40); }
 .cd-content [data-cd-align-items='top'] { align-items: flex-start; }
 .cd-content [data-cd-align-items='center'] { align-items: center; }
 .cd-content [data-cd-align-items='bottom'] { align-items: flex-end; }
 .cd-content [data-cd-align-items='stretch'] { align-items: stretch; }
+.cd-content [data-cd-block='column'][data-cd-align-items='top'] { align-self: flex-start; }
+.cd-content [data-cd-block='column'][data-cd-align-items='center'] { align-self: center; }
+.cd-content [data-cd-block='column'][data-cd-align-items='bottom'] { align-self: flex-end; }
 .cd-content [data-cd-justify='left'] { justify-content: flex-start; }
 .cd-content [data-cd-justify='center'] { justify-content: center; }
 .cd-content [data-cd-justify='right'] { justify-content: flex-end; }
 .cd-content [data-cd-justify='space-between'] { justify-content: space-between; }
 .cd-content [data-cd-wrap='nowrap'] { flex-wrap: nowrap; }
-.cd-content [data-cd-direction='vertical'] { flex-direction: column; }
+.cd-content [data-cd-direction='vertical'] { flex-direction: column; align-items: stretch; }
+.cd-content [data-cd-direction='vertical'][data-cd-justify='left'] { align-items: flex-start; justify-content: normal; }
+.cd-content [data-cd-direction='vertical'][data-cd-justify='center'] { align-items: center; justify-content: normal; }
+.cd-content [data-cd-direction='vertical'][data-cd-justify='right'] { align-items: flex-end; justify-content: normal; }
 .cd-content [data-cd-text-align='center'] { text-align: center; }
 .cd-content [data-cd-text-align='left'] { text-align: left; }
 .cd-content [data-cd-text-align='right'] { text-align: right; }
@@ -374,10 +399,11 @@ html.wa-palette-cd2027-orange .theme-logo { filter: hue-rotate(46deg); }
 .cd-content :where([data-cd-layout='constrained']) > :not([data-cd-align='left']):not([data-cd-align='right']):not([data-cd-align='full']):not([data-cd-align='wide']) { max-inline-size: var(--cd2027--content-width); margin-inline: auto; }
 .cd-content [data-cd-align='wide'] { max-inline-size: var(--cd2027--wide-width); margin-inline: auto; }
 .cd-content [data-cd-align='full'] { inline-size: 100%; max-inline-size: none; margin-inline: 0; }
-@media (min-width: 701px) {
+@media (min-width: 782px) {
+  .wordpress-home { container-type: inline-size; }
   .wordpress-home [data-cd-align='wide'],
   .wordpress-home [data-cd-align='full'] { position: relative; inset-inline-start: 50%; transform: translateX(-50%); }
-  .wordpress-home [data-cd-align='wide'] { inline-size: min(var(--cd2027--wide-width), 100vw); margin-inline: 0; }
+  .wordpress-home [data-cd-align='wide'] { inline-size: min(var(--cd2027--wide-width), 100cqi); margin-inline: 0; }
   .wordpress-home [data-cd-align='full'] { inline-size: 100vw; }
 }
 .cd-content [data-cd-block='columns'] { display: flex; flex-wrap: wrap; gap: var(--cd2027--space-40); }
@@ -395,6 +421,11 @@ html.wa-palette-cd2027-orange .theme-logo { filter: hue-rotate(46deg); }
 .wordpress-home [data-cd-role='cover-content'] { inline-size: min(100%, var(--cd2027--content-width)); }
 .wordpress-home [data-cd-role='cover-content'] [data-cd-block='columns'] { gap: 1rem; }
 .cd-content [data-cd-block='image'] { margin-block: 1.5rem; }
+.cd-content [data-cd-layout='flex'] > [data-cd-block='image'] { inline-size: auto; margin: 0; }
+.cd-content [data-cd-layout='flex'] > [data-cd-block='image'][data-cd-align] { inline-size: auto; margin-inline: 0; }
+.cd-content [data-cd-block='image'][data-cd-align='left'] { inline-size: fit-content; margin-inline: 0 auto; }
+.cd-content [data-cd-block='image'][data-cd-align='center'] { inline-size: fit-content; margin-inline: auto; }
+.cd-content [data-cd-block='image'][data-cd-align='right'] { inline-size: fit-content; margin-inline: auto 0; }
 .cd-content :where([data-cd-block='image'] img, img:not([data-cd-role='cover-image']):not(.page-hero__image)),
 .article-featured img { display: block; border-radius: var(--cd2027--radius); }
 .cd-content [data-cd-block='image'] figcaption,
@@ -945,13 +976,8 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
   .site-header { min-block-size: 5rem; gap: 1rem; padding-inline: 1rem; }
   .site-identity { gap: 0; }
   .wordpress-home [data-cd-role='cover-content'] { inline-size: 100%; }
-  /* The page frame already supplies WordPress's mobile gutter. */
-  .wordpress-home.cd-content .entry-content > [data-cd-block='group']:not([data-cd-align]) { inline-size: min(var(--cd2027--content-width), 100%); }
   .cd-content [data-cd-hide='desktop'] { display: block !important; }
   .cd-content [data-cd-hide='mobile'] { display: none !important; }
-  .cd-content [data-cd-mobile-text-align='center'] { text-align: center !important; }
-  .cd-content [data-cd-mobile-align-items='center'] { align-items: center !important; }
-  .cd-content img[data-cd-image-shape='petal'] { display: block; inline-size: 90% !important; max-inline-size: 90% !important; margin-inline: auto !important; }
   .brand-mark img { inline-size: 4.25rem; block-size: 4.25rem; }
   .section-gutter { padding-inline: 1.15rem; }
   .content-width { inline-size: min(var(--cd2027--content-width), calc(100% - 1.25rem)); }
@@ -975,14 +1001,27 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
   .cart-row__actions { grid-column: 2; justify-content: space-between; }
   .footer-links { justify-content: center; }
   .cd-content [data-cd-block='cover'] { min-block-size: 24rem; padding: 1.5rem; }
-  .contact-page .entry-content > [data-cd-block='group'] > [data-cd-block='columns'] > [data-cd-block='column']:first-child > [data-cd-block='columns'] { display: flex; }
-  .cd-content [data-cd-block='columns'] { display: grid; }
   .entry-content > [data-cd-align='left'],
   .entry-content > [data-cd-align='right'] { float: none; inline-size: auto; max-inline-size: 100%; margin-inline: auto; }
   .cd-content [data-cd-has-background='true']:where([data-cd-block='group'], [data-cd-block='heading'], [data-cd-block='paragraph']) { padding: 1em; }
   .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] > [data-cd-block='group'] > [data-cd-block='spacer'] { height: var(--cd2027--space-60) !important; }
   .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] [data-cd-block='columns'] > [data-cd-block='column'][data-cd-align-items='center'] { align-self: stretch; }
   .wordpress-page--lecture-akashique [data-cd-role='testimonials-section'] > [data-cd-block='group'][data-cd-align='wide'][data-cd-layout='flex'] { margin-block-start: var(--cd2027--space-60); }
+}
+
+@media (max-width: 768px) {
+  .wordpress-home.cd-content .entry-content > [data-cd-block='group']:not([data-cd-align]) { inline-size: min(var(--cd2027--content-width), calc(100% - var(--cd2027--section-surface-spacing) - var(--cd2027--section-surface-spacing))); }
+  .cd-content [data-cd-mobile-text-align='center'] { text-align: center !important; align-items: center !important; }
+  .cd-content [data-cd-mobile-align-items='center'] { align-items: center !important; }
+  .cd-content [data-cd-mobile-align-items='center'] > * { margin-inline: auto !important; align-items: center !important; justify-content: center !important; text-align: center !important; float: none !important; }
+  .cd-content [data-cd-block='image']:has(img[data-cd-image-shape='petal']) { inline-size: 100% !important; max-inline-size: 100%; margin-inline: 0 !important; float: none; }
+  .cd-content [data-cd-block='image']:has(img[data-cd-image-shape='petal']) > a { display: block; }
+  .cd-content img[data-cd-image-shape='petal'] { display: block; inline-size: 90% !important; max-inline-size: 90% !important; margin-inline: auto !important; }
+}
+
+@media (max-width: 781px) {
+  .cd-content [data-cd-block='columns']:not([data-cd-mobile-stack='false']) { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .cd-content [data-cd-block='columns'][data-cd-mobile-stack='false'] { flex-wrap: nowrap; }
 }
 
 @media (min-width: 782px) {

@@ -10,6 +10,20 @@ eleventyComputed:
   description: "{{ site.description }}"
   canonicalUrl: "{{ archive.link }}"
 ---
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/blog-archive.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-03
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 <article class="blog-page cd-content">
   {% set wp = wordpress.blogPage %}{% include "includes/page-hero.njk" %}
   {% if archive.pageNumber == 1 %}

@@ -1,5 +1,20 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: scripts/check-callouts.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-04
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+/** Focused regression assertions for the source-class-driven WordPress callout adapter. */
 const assert = require('node:assert/strict')
-const { convertClassedElementsToCallouts } = require('../src/_data/wordpress.js')
+const { convertClassedElementsToCallouts } = require('../src/_lib/wordpress-data.js')
 
 const plainCallout = convertClassedElementsToCallouts('<div class="callout-note"><p>Conseil</p></div>')
 assert.match(plainCallout, /<wa-callout[^>]*class="callout-note cd-callout"><p>Conseil<\/p><\/wa-callout>/)
@@ -41,6 +56,9 @@ assert.match(nestedCallouts, /name="calendar-circle-exclamation"/)
 
 const geometryOnlyGroup = '<div data-cd-block="group" data-cd-has-background="true" class="rounded"><p>Pas un callout</p></div>'
 assert.equal(convertClassedElementsToCallouts(geometryOnlyGroup), geometryOnlyGroup)
+
+const editorialQuote = '<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow"><p>Je recueille ce qui a mûri.</p></blockquote>'
+assert.equal(convertClassedElementsToCallouts(editorialQuote), editorialQuote)
 
 const lookalikeClass = '<div class="not-callout-note calloutish"><p>Contenu</p></div>'
 assert.equal(convertClassedElementsToCallouts(lookalikeClass), lookalikeClass)

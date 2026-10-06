@@ -1,3 +1,21 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: scripts/check-routes.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+/**
+ * Post-build integration check for sitemap outputs, selected source routes, and internal links.
+ * Requires `.data/wordpress-public-cache.json` from the current Eleventy build.
+ */
 const fs = require('node:fs')
 const path = require('node:path')
 
@@ -30,6 +48,7 @@ for (const value of urls) {
 
 if (missing.length) throw new Error(`Missing generated routes:\n${missing.join('\n')}`)
 
+// Compare the route manifest with files on disk so omitted records and stale excluded pages fail QA.
 const sourceRecords = [
   wordpress.home,
   wordpress.blogPage,
@@ -40,7 +59,7 @@ const sourceRecords = [
   ...(wordpress.productCategories || []),
   ...(wordpress.blogArchives || []),
   ...(wordpress.postCategoryArchives || []),
-  wordpress.authorArchive,
+  ...(wordpress.authorArchives || [wordpress.authorArchive]),
 ].filter((record) => record?.outputPath)
 const missingSourceRoutes = sourceRecords
   .filter((record) => !fs.existsSync(path.join(root, record.outputPath)))
@@ -83,6 +102,7 @@ const generatedPaths = new Set(urls.map((value) => {
 const stagingGatePaths = process.env.CD2027_WP_AUTH === '1'
   ? new Set(['/__cd2027/login/', '/__cd2027/logout/'])
   : new Set()
+// Resolve all generated local links against the sitemap route set, with known backend exceptions.
 const missingInternalLinks = new Map()
 for (const [pathname, html] of generatedPages) {
   for (const match of html.matchAll(/<(a|area|form|wa-button|wa-dropdown-item)\b[^>]*>/gi)) {

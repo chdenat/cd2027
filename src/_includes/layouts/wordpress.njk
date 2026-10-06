@@ -1,6 +1,20 @@
 ---
 layout: layouts/base.njk
 ---
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/_includes/layouts/wordpress.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-02
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 {% if wp %}
   {% if wp.kind == 'page' %}
     {% include "includes/wordpress-page.njk" %}

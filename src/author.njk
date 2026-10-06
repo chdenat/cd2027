@@ -1,17 +1,35 @@
 ---
 layout: layouts/wordpress.njk
-permalink: author/christine/index.html
-title: Christine · Mon Blog
-description: Les articles de Christine Deloupy.
+pagination:
+  data: wordpress.authorArchives
+  size: 1
+  alias: authorArchive
+permalink: "{{ authorArchive.outputPath }}"
+title: "{{ authorArchive.titleText }} · Mon Blog"
+description: "{{ authorArchive.descriptionText }}"
 eleventyComputed:
-  canonicalUrl: "{{ site.origin }}/author/christine/"
+  canonicalUrl: "{{ authorArchive.link }}"
 ---
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/author.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 <section class="archive-page content-width">
   <header class="archive-header">
     <p class="eyebrow">Autrice</p>
-    <h1>Christine</h1>
+    <h1>{{ authorArchive.author.name }}</h1>
   </header>
   <div class="content-card-grid">
-    {% for post in wordpress.posts %}{% include "includes/post-card.njk" %}{% endfor %}
+    {% for post in authorArchive.posts %}{% include "includes/post-card.njk" %}{% endfor %}
   </div>
 </section>

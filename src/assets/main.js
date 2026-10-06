@@ -1,3 +1,18 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/assets/main.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-08-19
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+/** Browser entry point: registers Web Awesome components before initializing site interactions. */
 import './fontawesome-library.js'
 
 await Promise.all([

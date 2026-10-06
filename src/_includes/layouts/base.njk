@@ -1,4 +1,18 @@
 <!doctype html>
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/_includes/layouts/base.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-08-19
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 <html lang="fr" class="wa-theme-cd2027 wa-palette-cd2027 wa-light">
   <head>
     <meta charset="utf-8" />
@@ -57,7 +71,7 @@
                 <wa-icon library="pro" name="basket-shopping" variant="solid" label="Voir le panier" aria-hidden="true"></wa-icon>{{ item.label }} <wa-badge data-cart-badge hidden variant="brand" pill><span data-cart-count aria-live="polite">0</span></wa-badge>
               </wa-button>
             {% elif item.href != '/panier/' %}
-              {% if item.items %}
+              {% if item.items and item.items.length > 0 %}
                 <wa-dropdown class="nav-dropdown" placement="bottom-start">
                   <wa-button slot="trigger" appearance="plain" size="s" with-caret>{{ item.label }}</wa-button>
                   {% for child in item.items %}<wa-dropdown-item value="{{ child.href }}" data-href="{{ child.href }}">{{ child.label }}</wa-dropdown-item>{% endfor %}
@@ -118,7 +132,7 @@
                 <wa-icon library="pro" name="basket-shopping" variant="solid" label="Voir le panier" aria-hidden="true"></wa-icon>{{ item.label }} <wa-badge data-cart-badge hidden variant="brand" pill><span data-cart-count aria-live="polite">0</span></wa-badge>
               </wa-button>
             {% elif item.href != '/panier/' %}
-              {% if item.items %}
+              {% if item.items and item.items.length > 0 %}
                 <wa-dropdown class="mobile-nav-dropdown" placement="bottom-start">
                   <wa-button slot="trigger" appearance="plain" with-caret>{{ item.label }}</wa-button>
                   {% for child in item.items %}<wa-dropdown-item value="{{ child.href }}" data-href="{{ child.href }}">{{ child.label }}</wa-dropdown-item>{% endfor %}

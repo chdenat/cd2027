@@ -1,3 +1,17 @@
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/_includes/includes/post-category-nav.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-02
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 <nav class="post-category-nav wa-cluster" aria-label="Parcourir les catégories du journal">
   <wa-button href="/mon-blog/" appearance="{{ 'filled' if currentCategory is not defined else 'plain' }}" variant="{{ 'brand' if currentCategory is not defined else 'neutral' }}" size="s"{% if currentCategory is not defined %} aria-current="page"{% endif %}>Tous les articles</wa-button>
   {% for category in wordpress.postCategories %}

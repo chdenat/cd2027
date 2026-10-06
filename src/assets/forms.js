@@ -1,3 +1,20 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/assets/forms.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+import { sanitizeFormHtml } from './form-sanitizer.mjs'
+
+/** Updates the live status message for one mounted form. */
 function formStatus(container, text, state = 'success') {
   const status = container.querySelector('.cd-form-status')
   if (!status) return
@@ -5,6 +22,7 @@ function formStatus(container, text, state = 'success') {
   status.dataset.state = state
 }
 
+/** Extracts label text without duplicating nested form controls or required markers. */
 function plainLabelText(label, control) {
   const clone = label.cloneNode(true)
   clone.querySelectorAll('input, textarea, select, button').forEach((node) => node.remove())
@@ -12,12 +30,14 @@ function plainLabelText(label, control) {
   return clone.textContent.replace(/\s+/g, ' ').replace(/\s*\*\s*/g, ' ').trim()
 }
 
+/** Resolves either a wrapping or `for`-associated label within the source form. */
 function associatedLabel(form, field) {
   if (field.closest('label')) return field.closest('label')
   if (!field.id) return null
   return [...form.querySelectorAll('label[for]')].find((label) => label.htmlFor === field.id) || null
 }
 
+/** Finds an accessible label across the supported Forminator and MailPoet source structures. */
 function getFieldLabel(form, field) {
   const label = associatedLabel(form, field)
   if (label) return plainLabelText(label, field)
@@ -27,6 +47,7 @@ function getFieldLabel(form, field) {
   return field.getAttribute('aria-label') || field.name?.replace(/[_\[\]]+/g, ' ').trim() || 'Votre réponse'
 }
 
+/** Copies validation attributes while excluding inline code and source-controlled styles. */
 function copyFieldAttributes(source, target, excluded = []) {
   for (const attribute of source.attributes) {
     if (excluded.includes(attribute.name) || attribute.name === 'style' || attribute.name.startsWith('on')) continue
@@ -40,6 +61,12 @@ function removeSourceLabel(form, field) {
   if (label) label.remove()
 }
 
+/**
+ * Rebuilds each native radio set as a labeled Web Awesome group while preserving its values.
+ * @param {HTMLFormElement} form Detached provider form being normalized.
+ * @returns {void}
+ * @sideEffects Replaces radio inputs and their source labels within `form`.
+ */
 function convertRadioGroups(form) {
   const radios = [...form.querySelectorAll('input[type="radio"]')]
   const consumed = new Set()
@@ -72,6 +99,11 @@ function convertRadioGroups(form) {
   }
 }
 
+/**
+ * Removes executable/provider presentation markup and converts supported controls to Web Awesome.
+ * @param {HTMLFormElement} form Detached provider form to normalize.
+ * @returns {HTMLFormElement} The same form with supported controls converted.
+ */
 function cleanForm(form) {
   form.querySelectorAll('script, style').forEach((node) => node.remove())
   for (const node of [form, ...form.querySelectorAll('[style]')]) {
@@ -150,6 +182,13 @@ function cleanForm(form) {
   return form
 }
 
+/**
+ * Sends a validated form through the same-origin adapter and reports the backend result.
+ * @param {HTMLElement} container Mounted form shell containing provider metadata and status.
+ * @param {HTMLFormElement} form Submitted Web Awesome form.
+ * @returns {Promise<void>}
+ * @sideEffects Posts form data to the same-origin local adapter and updates status text.
+ */
 async function submitBackendForm(container, form) {
   const provider = container.dataset.provider
   const formId = Number(container.dataset.formId)
@@ -185,6 +224,12 @@ async function submitBackendForm(container, form) {
   }
 }
 
+/**
+ * Loads, sanitizes, and mounts an allowlisted WordPress form into its page placeholder.
+ * @param {HTMLElement} container Eleventy form mount carrying provider and form ID data attributes.
+ * @returns {Promise<void>}
+ * @sideEffects Fetches form markup and replaces the mount's children.
+ */
 async function mountForm(container) {
   const provider = container.dataset.cdForm
   const formId = Number(container.dataset.formId)
@@ -202,13 +247,8 @@ async function mountForm(container) {
     })
     const result = await response.json()
     if (!response.ok) throw new Error(result.message || 'Le formulaire est momentanément indisponible.')
-    const parser = new DOMParser()
-    const parsed = parser.parseFromString(result.html || '', 'text/html')
-    const sourceForm = parsed.querySelector('form')
-    if (!sourceForm) throw new Error('Le service de formulaire n’a pas fourni de champs utilisables.')
-    // Create Web Awesome controls in the live page document. Moving custom
-    // elements out of DOMParser's separate document breaks adopted stylesheets.
-    const form = document.importNode(sourceForm, true)
+    const form = sanitizeFormHtml(result.html || '', { document, DOMParser })
+    if (!form) throw new Error('Le service de formulaire n’a pas fourni de champs utilisables.')
     mount.replaceChildren(cleanForm(form))
     const status = document.createElement('p')
     status.className = 'cd-form-status'

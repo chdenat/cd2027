@@ -3,6 +3,20 @@ permalink: assets/wordpress-content.css
 layout: false
 eleventyExcludeFromCollections: true
 ---
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/wordpress-content.css.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-02
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 /* Block styles extracted from the public WordPress content at build time. */
 {% for rule in wordpress.contentStyleRules %}{{ rule.selector | safe }} { {{ rule.declarations | safe }} }
 {% endfor %}

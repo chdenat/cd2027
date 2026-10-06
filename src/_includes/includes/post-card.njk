@@ -1,3 +1,17 @@
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/_includes/includes/post-card.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-02
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 <wa-card class="content-card" appearance="outlined"{% if post.image %} with-media{% endif %} with-footer>
   {% if post.image %}<img class="content-card__image" slot="media" src="{{ post.image }}" alt="{{ post.imageAlt }}" loading="lazy" />{% endif %}
   <div class="content-card__body">

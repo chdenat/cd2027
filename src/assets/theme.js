@@ -1,3 +1,17 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/assets/theme.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
 const STORAGE_KEY = 'cd2027-color-scheme'
 const PALETTE_STORAGE_KEY = 'cd2027-color-palette'
 const root = document.documentElement
@@ -11,6 +25,7 @@ const paletteClasses = {
 }
 const validPalettes = new Set(Object.keys(paletteClasses))
 
+/** Reads a validated color-scheme preference; storage failures fall back to the system setting. */
 function savedChoice() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -18,6 +33,7 @@ function savedChoice() {
   } catch { return null }
 }
 
+/** Reads a validated palette preference without making storage availability a page requirement. */
 function savedPalette() {
   try {
     const saved = localStorage.getItem(PALETTE_STORAGE_KEY)
@@ -25,6 +41,11 @@ function savedPalette() {
   } catch { return null }
 }
 
+/**
+ * Applies one known project palette and synchronizes selector accessibility state.
+ * @param {string} palette Palette key from `validPalettes`.
+ * @returns {void}
+ */
 function applyPalette(palette) {
   const selectedPalette = validPalettes.has(palette) ? palette : 'rose'
   root.classList.remove(...Object.values(paletteClasses))
@@ -34,6 +55,11 @@ function applyPalette(palette) {
   })
 }
 
+/**
+ * Applies system, light, or dark mode and updates the selector icon and pressed states.
+ * @param {'system'|'light'|'dark'} choice User color-scheme preference.
+ * @returns {void}
+ */
 function applyColorScheme(choice) {
   const selectedChoice = validChoices.has(choice) ? choice : 'system'
   const dark = selectedChoice === 'dark' || (selectedChoice === 'system' && preference.matches)

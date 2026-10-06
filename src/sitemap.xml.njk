@@ -3,6 +3,20 @@ permalink: sitemap.xml
 eleventyExcludeFromCollections: true
 ---
 <?xml version="1.0" encoding="UTF-8"?>
+{#
+ * This file is part of the CD2027 project.
+ *
+ * File: src/sitemap.xml.njk
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-02
+ *
+ * Copyright © 2026 Christian Denat
+#}
+
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 {% for url in wordpress.routes %}
   <url><loc>{{ url }}</loc></url>

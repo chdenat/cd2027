@@ -1,6 +1,22 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: docs/visual-parity-review.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # Visual migration review
 
 Reviewed on 2026-10-02 against the public WordPress site, including its rendered `/mon-blog/` template. This review covers shared rendering across the site and representative route families; it does not certify pixel-for-pixel parity of every route.
+
+The normative rendering rules now live in [`design-rules-catalog.md`](design-rules-catalog.md). This document remains dated audit evidence and is not a second source of current design rules.
 
 ## Corrections
 

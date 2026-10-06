@@ -1,3 +1,21 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: scripts/fontawesome-icons.entry.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+/**
+ * Browser bundle entry point and allowlist for icons used by templates and client modules.
+ * Keep this registry narrow so unused Pro icon definitions are not shipped to visitors.
+ */
 import {
   faArrowLeft,
   faArrowRight,
