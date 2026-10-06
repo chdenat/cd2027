@@ -1,8 +1,22 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: docs/wordpress-publishing-and-runtime.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # WordPress publishing, GitHub builds, and runtime routes
 
-Status: GitHub Actions staging deployment is implemented; production deployment and the PHP runtime proxy are not connected. Reviewed 3 October 2026.
+Status: GitHub Actions staging deployment is implemented. A separate production workflow is present but remains locked until its environment and web-server route are configured. The PHP runtime proxy is not connected. Reviewed 4 October 2026.
 
-WordPress remains the content and transaction backend; Eleventy generates the public pages; GitHub Actions builds and deploys static output to `cd2027.christinedeloupy.fr`. The source WordPress site is the CD2020 origin, currently configured at `https://christinedeloupy.fr`. The WordPress PHP MU-plugin queues publishing events and dispatches GitHub builds through WP-Cron. Production deployment and runtime API routes are still separate work. See [PROJECT_RULES.md](../PROJECT_RULES.md) and the [whole-site route inventory](current-site-inventory.md).
+WordPress remains the content and transaction backend; Eleventy generates the public pages; GitHub Actions builds and deploys static output to `cd2027.christinedeloupy.fr`. The source WordPress site is the CD2020 origin, currently configured at `https://christinedeloupy.fr`. The WordPress PHP MU-plugin queues publishing events and dispatches GitHub builds through WP-Cron. The production workflow is defined separately but remains locked; its GitHub environment, release root, and web-server route are not configured. Runtime API routes are also still separate work. See [PROJECT_RULES.md](../PROJECT_RULES.md) and the [whole-site route inventory](current-site-inventory.md).
 
 ## What works today
 
@@ -11,12 +25,12 @@ WordPress remains the content and transaction backend; Eleventy generates the pu
 - The MU-plugin sender reports public post types (including posts/articles, pages, products, and public custom post types), public post metadata, WooCommerce product changes, public taxonomy changes, media changes, and menu changes. Draft edits are ignored; publication and removal from public status are reported. A new custom post type still needs an Eleventy data adapter and template before it can appear in generated output.
 - The PHP MU-plugin batches pending events to GitHub's `repository_dispatch` API. GitHub builds the entire Eleventy site from current public WordPress/WooCommerce data, checks generated routes, then atomically promotes the result to `https://cd2027.christinedeloupy.fr`. The daily full staging rebuild recovers from missed events and failed earlier workflow runs.
 - `localhost:4555` remains the development frontend address and does not participate in publishing.
-- This is a staging workflow. The production hostname is not deployed by it. Configure the GitHub `cd2027` environment as described in [the staging deployment guide](cd2027-deployment.md).
+- The staging workflow deploys only `cd2027.christinedeloupy.fr`. A separate `cd2027-production` workflow/environment targets `christinedeloupy.fr` after its readiness flag and approval gate are configured; see the [WP Awesome and environment guide](wordpress-connector-and-environments.md).
 - `bun run check` runs the Eleventy build and `scripts/check-routes.js`. The route check inspects generated sitemap routes and selected internal-link and archive conditions. It does not exercise checkout payments or every form integration.
 
 ### Connect WordPress to the GitHub staging build
 
-The one-time install procedure is in the [CD2027 deployment guide](cd2027-deployment.md#4-relier-wordpress-au-workflow-par-le-mu-plugin-php): it gives the `scp` command to create `wp-content/mu-plugins/` and copy the plugin, the exact GitHub token scope, and the `wp-config.php` constants. The token is limited to `chdenat/cd2027` with **Contents: Read and write**; the constants are `CD2027_GITHUB_DISPATCH_TOKEN` and `CD2027_GITHUB_REPOSITORY`.
+The one-time MU-plugin install procedure is in the [CD2027 deployment guide](cd2027-deployment.md#4-relier-wordpress-au-workflow-par-le-mu-plugin-php). The optional [WP Awesome plugin](wordpress-connector-and-environments.md) adds a WordPress admin dashboard for configuration checks, event history, separate staging/production build results, and explicit build requests. The repository token uses **Contents: Read and write** to dispatch builds; a private repository also needs **Actions: Read** to list workflow runs. The constants are `CD2027_GITHUB_DISPATCH_TOKEN` and `CD2027_GITHUB_REPOSITORY`.
 
 For Nuxit's Webcron, use this URL and schedule it every five minutes (`*/5 * * * *`):
 
@@ -30,7 +44,7 @@ This is the CD2020 WordPress origin currently configured by the staging workflow
 
 Yes, when the fixes are in the repository source and merged into `main`. Each GitHub workflow run checks out `main`, fetches the latest public WordPress content, and rebuilds the site. Later edits to page text or media therefore appear in the next build while templates and CSS from `main` are applied again. A change made only in generated `_site/` output or in an uncommitted local file is not part of that workflow and will not persist. If an edit changes the page's block structure, review any layout rules that depend on that structure.
 
-The CD2027 pipeline uses its own `cd2027` GitHub environment, `CD2027_SSH_*` secrets, `CD2027_REMOTE_ROOT` variable, and `cd2027_deploy` dispatch event. Configure these values explicitly; the workflow has no fallback to another environment's deployment credentials. Its WordPress sender likewise reads only the `CD2027_GITHUB_*` constants and uses a dedicated database outbox. When replacing an existing sender, drain or back up its pending notifications before removing it, then install only the CD2027 sender and configure its constants. Renaming repository files does not update the live WordPress installation or GitHub settings.
+The staging pipeline uses its own `cd2027` GitHub environment, `CD2027_SSH_*` secrets, `CD2027_REMOTE_ROOT` variable, and `cd2027_deploy` dispatch event. Production has a separate `cd2027-production` environment, production-only release root, and `cd2027_production_deploy` event; routine content updates never trigger production. Configure both environments explicitly. Their workflow files do not fall back to each other's deployment credentials. The WordPress sender continues to use the `CD2027_GITHUB_*` constants and its durable database outbox. Do not remove or replace an installed sender until its pending events are drained or backed up.
 
 The [first implementation note](first-implementation.md) records the current page, commerce, and form coverage. In particular, account, subscription, course, payment-result, and some specialized form operations still need integration work.
 
@@ -42,7 +56,7 @@ The webhook should notify the system that content changed. WordPress remains the
 2. WP-Cron retries a batched authenticated GitHub `repository_dispatch` request until GitHub accepts it. The event identifies the batch; it does not carry a content snapshot.
 3. GitHub Actions fetches the latest public WordPress pages, posts, products, taxonomies, menus, and related data, then rebuilds all Eleventy routes and checks them. This handles affected article, archive, page, product, and category outputs without maintaining a hand-built dependency map.
 4. After validation, the workflow uploads a versioned static release and atomically switches the staging `current` symlink. The last successful release remains available if a new build or upload fails.
-5. If GitHub dispatch fails, the MU-plugin retries through WP-Cron. A build or upload failure leaves the previous staging release active; the daily rebuild and manual workflow trigger provide recovery. Production still needs its own environment and target.
+5. If GitHub dispatch fails, the MU-plugin retries through WP-Cron. A staging build or upload failure leaves the previous staging release active; the daily staging rebuild and manual workflow trigger provide recovery. Production has a separate manual workflow and remains locked until the production environment, release root, and web-server route are configured.
 
 The staging path is:
 
@@ -88,7 +102,7 @@ The public frontend address, WordPress source address, and visible brand name ar
 | `CD2027_GITHUB_REPOSITORY` | `chdenat/cd2027` | Repository receiving `repository_dispatch` events. |
 | Deployment credentials | host-specific | SSH/SFTP/hosting credentials used by GitHub Actions to publish `_site/`. Store them as GitHub Actions secrets. |
 
-The current staging workflow sets `SITE_URL` and `WORDPRESS_ORIGIN` directly in `.github/workflows/deploy-cd2027.yml`; `src/_data/site.js`, `src/_data/wordpress.js`, and `scripts/check-routes.js` read those build environment values. The local `scripts/dev-server.js` API proxy currently uses `https://christinedeloupy.fr` directly. Change these source settings deliberately if the WordPress host changes.
+The current staging workflow sets `SITE_URL` and `WORDPRESS_ORIGIN` directly in `.github/workflows/deploy-cd2027.yml`; `src/_lib/wordpress-site-profile.js`, `src/_lib/wordpress-data.js`, and `scripts/check-routes.js` read those build environment values. The local `scripts/dev-server.js` API proxy currently uses `https://christinedeloupy.fr` directly. Change these source settings deliberately if the WordPress host changes.
 
 Set the dispatch token in WordPress `wp-config.php`. Set staging upload credentials in the GitHub `cd2027` environment. Never put secrets in `src/`, the generated `_site/`, public JavaScript, or Git.
 
@@ -99,7 +113,7 @@ Keep source and output origins separate: use `WORDPRESS_ORIGIN` to fetch WordPre
 - Confirm WordPress can make outbound HTTPS requests to GitHub and Nuxit's scheduled task can invoke WP-Cron.
 - Choose how the site files are uploaded and how a known-good release is retained or restored. Confirm whether the host supports a staging directory and atomic promotion.
 - Decide whether WordPress remains on the public domain or moves to a backend origin, and how `/wp-admin`, REST routes, public Eleventy routes, forms, and commerce routes are routed.
-- Install the MU plugin and configure its GitHub dispatch token in `wp-config.php`. Configure a separate production GitHub environment/workflow and deployment target before production publishing.
+- Install the MU-plugin and connector, configure the GitHub dispatch token and target map in `wp-config.php`, and populate the separate production environment before enabling its readiness flag.
 - Complete staging checks for all current route families, WooCommerce payment gateways, form providers, account/subscription/course integrations, and any required redirects before claiming production parity.
 
 ## Project references
@@ -111,6 +125,6 @@ Keep source and output origins separate: use `WORDPRESS_ORIGIN` to fetch WordPre
 - [Local development server and API adapters](../scripts/dev-server.js)
 - [WooCommerce browser client](../src/assets/commerce.js)
 - [Form browser client](../src/assets/forms.js)
-- [Site metadata](../src/_data/site.js)
-- [WordPress build data](../src/_data/wordpress.js)
+- [Site metadata](../src/_lib/wordpress-site-profile.js)
+- [WordPress build data](../src/_lib/wordpress-data.js)
 - [Build and route-check scripts](../package.json) and [`scripts/check-routes.js`](../scripts/check-routes.js)

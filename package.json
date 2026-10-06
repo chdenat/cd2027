@@ -6,9 +6,18 @@
   "scripts": {
     "dev": "bun scripts/stop-dev-server.js && bun run build:icons && bun scripts/dev-server.js",
     "build": "bun run build:icons && bun scripts/clean-output.js && eleventy",
-    "check": "bun run test:callouts && bun run build && bun scripts/check-routes.js",
+    "check": "bun run test:callouts && bun run test:wordpress-colors && bun run test:wordpress-package && bun run test:security && bun run test:file-headers && bun run build && bun scripts/check-routes.js",
+    "test:file-headers": "bun scripts/check-file-headers.js",
+    "headers:update": "bun scripts/update-file-headers.mjs --staged --stage",
+    "headers:update:all": "bun scripts/update-file-headers.mjs --all",
+    "headers:check": "bun scripts/update-file-headers.mjs --all --check",
+    "git:hooks:install": "git config --local core.hooksPath .githooks",
     "test:callouts": "bun scripts/check-callouts.js",
-    "build:icons": "bun scripts/build-fontawesome-icons.js"
+    "test:wordpress-colors": "bun scripts/check-wordpress-colors.js",
+    "test:wordpress-package": "node scripts/check-wordpress-package.js",
+    "test:security": "node --test test/security.test.js",
+    "build:icons": "bun scripts/build-fontawesome-icons.js",
+    "package:wordpress:refresh": "bun scripts/update-wordpress-package.mjs"
   },
   "private": true,
   "dependencies": {
@@ -16,6 +25,11 @@
     "@awesome.me/webawesome": "^3.11.0",
     "@fortawesome/free-brands-svg-icons": "7.3.1",
     "@fortawesome/pro-solid-svg-icons": "7.3.1",
-    "@lgs1920/timeline": "1.4.0"
+    "@lgs1920/timeline": "1.4.0",
+    "entities": "^6.0.1",
+    "wp-awesome": "file:vendor/wp-awesome-0.1.0-bf019719637c.tgz"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
   }
 }

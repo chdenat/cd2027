@@ -1,3 +1,18 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/_data/site.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-08-19
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+/** Runtime-independent public site metadata and staging visibility flags for Eleventy templates. */
 const siteOrigin = (process.env.SITE_URL || 'https://christinedeloupy.fr').replace(/\/$/, '')
 const stagingAuth = process.env.CD2027_WP_AUTH === '1'
 const privateView = stagingAuth && !['0', 'false', 'off', 'no'].includes(String(process.env.PRIVATE_VIEW || 'true').trim().toLowerCase())

@@ -1,3 +1,17 @@
+<!--
+ * This file is part of the CD2027 project.
+ *
+ * File: docs/current-site-inventory.md
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
+
 # Current WordPress route inventory
 
 Snapshot: 2026-10-03. This inventory covers the whole public site, not just the homepage.
@@ -342,3 +356,9 @@ These public route families indicate where forms and submissions must be inspect
 - Appointment, course, and membership flows: inspect the relevant service and course routes for booking, application, login, and access forms.
 
 Render each public form in Eleventy for consistent styling. Submit to the current WordPress plugin/provider through a supported API or a purpose-built protected WordPress endpoint. Do not copy an admin API secret into browser code. Checkout fields and payment submission use the WooCommerce integration, separate from general-purpose contact/newsletter forms.
+
+## WP Awesome extraction verification
+
+On 2026-10-05, a clean CD2027 build using the standalone `wp-awesome` package fetched current public WordPress data and passed the complete route check: 254 generated sitemap routes and 260 checked source-route entries, with 58 of 59 public pages selected, 142 posts, and 7 products. The original homepage template was preserved.
+
+The existing unresolved links remain `/je-suis/`, `/breathwork-les-ateliers/`, and `/boutique/accompagnements/le-cercle-deveil/`. Package extraction did not change their editorial destinations or the live WordPress publishing setup.

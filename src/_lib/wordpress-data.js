@@ -1,39 +1,78 @@
-const WORDPRESS_ORIGIN = (process.env.WORDPRESS_ORIGIN || 'https://christinedeloupy.fr').replace(/\/$/, '')
-const SITE_ORIGIN = (process.env.SITE_URL || 'https://christinedeloupy.fr').replace(/\/$/, '')
-const API_ORIGIN = `${WORDPRESS_ORIGIN}/wp-json`
-const PER_PAGE = 100
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: src/_lib/wordpress-data.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-06
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
 const fs = require('node:fs')
 const path = require('node:path')
-const { createHash } = require('node:crypto')
-const contentStyleRules = new Map()
+const { createHash, randomBytes } = require('node:crypto')
 const { decodeHTML } = require('entities')
+const {
+  assertNoWordPressRouteCollisions,
+  collectWordPressAuthors,
+  convertWordPressContent,
+  createWordPressRestClient,
+  createWordPressRouteResolver,
+  extractWordPressColorPalette,
+  extractWordPressLinkColors,
+  isSafeCssColorValue,
+  normalizeWordPressRecord,
+  normalizeWordPressTaxonomy,
+  resolveWordPressContentPolicy,
+  sanitizeWordPressHtml,
+  toOutputPath,
+} = require('wp-awesome')
+const { createWooCommerceStoreApi } = require('wp-awesome/integrations/woocommerce')
+const { createYoastSitemapIntegration } = require('wp-awesome/integrations/yoast')
+const { collectFormReferences } = require('wp-awesome/integrations/forms')
+const SITE_PROFILE = require('./wordpress-site-profile.js')
+const SITE_HTML_SANITIZER_OPTIONS = SITE_PROFILE.content.default.sanitizerOptions
+const WORDPRESS_ORIGIN = SITE_PROFILE.wordpressOrigin
+const SITE_ORIGIN = SITE_PROFILE.siteOrigin
+const API_ORIGIN = SITE_PROFILE.apiOrigin
+const PER_PAGE = SITE_PROFILE.perPage
 const CACHE_FILE = path.resolve(__dirname, '../..', '.data', 'wordpress-public-cache.json')
-const INTERNAL_ROUTE_ALIASES = new Map([
-  ['/std-boutique/', '/boutique/'],
-  ['/seance-clarté/', '/seance-clarte/'],
-  ['/inscrivez-vous-pour-une-seance-decouverte/', '/seance-clarte/'],
-  ['/inscrivez-vous-pour-une-seance-clarte/', '/seance-clarte/'],
-  ['/accompagnements/lecture-akashique/', '/mes-accompagnements/lecture-akashique/'],
-  ['/accompagnements/', '/mes-accompagnements/'],
-])
-const SHOP_NAVIGATION_FALLBACK = [
-  { label: 'Boutique', href: '/boutique/' },
-  { label: 'Panier', href: '/panier/' },
-  { label: 'Retour', href: '/' },
-]
-// A few old pages still point to removed attachments. Prefer retained
-// WordPress copies or closely related images already in the site's media library.
-const MEDIA_URL_FALLBACKS = new Map([
-  [
-    `${WORDPRESS_ORIGIN}/wp-content/uploads/2022/09/Mon-cadeau-pour-toi.jpg`,
-    `${WORDPRESS_ORIGIN}/wp-content/uploads/2022/09/Mon-cadeau-pour-toi-1.jpg`,
-  ],
-  [
-    `${WORDPRESS_ORIGIN}/wp-content/uploads/2020/04/bel2-1500x2000.jpg`,
-    `${WORDPRESS_ORIGIN}/wp-content/uploads/2020/04/20200406_174408-rotated.jpg`,
-  ],
-])
+const wordpressRoutes = createWordPressRouteResolver({ siteUrl: SITE_ORIGIN, routes: SITE_PROFILE.routes })
+const wordpressRestClient = createWordPressRestClient({
+  baseUrl: `${API_ORIGIN}/`,
+  perPage: PER_PAGE,
+  retries: 3,
+  retryDelayMs: 500,
+  timeoutMs: 20000,
+  getHeaders: ({ context }) => context === 'edit' && SITE_PROFILE.authorization
+    ? { Authorization: SITE_PROFILE.authorization }
+    : {},
+  onPublicFallback: ({ endpoint }) => console.warn(`[wordpress] Edit-context access failed for ${endpoint}; using public rendered content.`),
+})
+const wooCommerceStoreApi = createWooCommerceStoreApi({ restClient: wordpressRestClient })
+const yoastSitemaps = createYoastSitemapIntegration({
+  siteUrl: WORDPRESS_ORIGIN,
+  sitemapNames: SITE_PROFILE.sitemapNames,
+  fetchText: async (url, { name }) => {
+    const response = await fetchWithRetry(url, `Yoast ${name} sitemap`, {
+      headers: { Accept: 'application/xml,text/xml' },
+    })
+    return response.text()
+  },
+})
 
+/**
+ * Fetches a WordPress resource with bounded exponential retries for transient failures.
+ * @param {string|URL} url WordPress resource URL.
+ * @param {string} label Resource description used in errors.
+ * @param {RequestInit} [options] Request headers and other Fetch options.
+ * @returns {Promise<Response>} Successful HTTP response.
+ * @throws {Error} For permanent HTTP errors or exhausted retries.
+ */
 async function fetchWithRetry(url, label, options = {}) {
   let lastError
   for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -41,10 +80,12 @@ async function fetchWithRetry(url, label, options = {}) {
       const response = await fetch(url, { ...options, signal: AbortSignal.timeout(20000) })
       if (response.ok) return response
       const error = new Error(`WordPress ${label} failed: ${response.status} ${response.statusText} (${url})`)
+      error.status = response.status
       if (response.status < 500 && response.status !== 429) throw error
       lastError = error
     } catch (error) {
       lastError = error
+      if (error.status && error.status < 500 && error.status !== 429) break
       if (attempt === 3) break
     }
     await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt))
@@ -52,30 +93,28 @@ async function fetchWithRetry(url, label, options = {}) {
   throw lastError
 }
 
-async function fetchJson(url, label) {
-  const response = await fetchWithRetry(url, `API ${label}`, { headers: { Accept: 'application/json' } })
-  return { response, data: await response.json() }
+/**
+ * Fetches a WordPress collection through the shared REST client with a type-specific context policy.
+ * @param {string} endpoint REST path relative to the configured WordPress API root.
+ * @param {string} _label Kept for caller diagnostics; the shared client formats its own errors.
+ * @param {{params?: object, policy?: object}} [options] Query parameters and content-context policy.
+ * @returns {Promise<object[]>} Collection records in WordPress order.
+ */
+async function fetchCollection(endpoint, _label, { params = {}, policy } = {}) {
+  return wordpressRestClient.getCollection(endpoint, {
+    params,
+    context: policy?.requestEditContext ? 'edit' : undefined,
+    perPage: PER_PAGE,
+    allowPublicFallback: Boolean(policy?.allowPublicFallback),
+  })
 }
 
-async function fetchCollection(endpoint, label) {
-  const firstUrl = new URL(`${API_ORIGIN}/${endpoint}`)
-  firstUrl.searchParams.set('per_page', String(PER_PAGE))
-  firstUrl.searchParams.set('page', '1')
-  const first = await fetchJson(firstUrl, label)
-  const pageCount = Number(first.response.headers.get('x-wp-totalpages') || 1)
-  const remaining = []
-  for (let page = 2; page <= pageCount; page += 1) {
-    const url = new URL(firstUrl)
-    url.searchParams.set('page', String(page))
-    remaining.push((await fetchJson(url, `${label} page ${page}`)).data)
-  }
-  return first.data.concat(...remaining)
-}
-
+/** Converts rendered WordPress HTML and entities to normalized human-readable text. */
 function textFromHtml(value = '') {
   return decodeHTML(value.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
 }
 
+/** Escapes a string for a double-quoted HTML attribute emitted by the adapter. */
 function escapeAttributeValue(value) {
   return String(value)
     .replace(/&/g, '&amp;')
@@ -84,43 +123,48 @@ function escapeAttributeValue(value) {
     .replace(/>/g, '&gt;')
 }
 
+/** Keeps public attribute URLs on HTTP(S), resolving source-relative URLs against WordPress. */
+function safePublicHttpUrl(value) {
+  if (typeof value !== 'string' || !value.trim() || /[\u0000-\u001f\u007f\\]/.test(value)) return null
+  try {
+    const parsed = new URL(value.trim(), WORDPRESS_ORIGIN)
+    if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) return null
+    return parsed.href
+  } catch {
+    return null
+  }
+}
+
+/** Resolves a WordPress URL to a local trailing-slash path, or returns null for another host. */
 function localPath(url) {
   const parsed = new URL(url, WORDPRESS_ORIGIN)
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) return null
   if (parsed.hostname.replace(/^www\./i, '').toLowerCase() !== new URL(WORDPRESS_ORIGIN).hostname.replace(/^www\./i, '').toLowerCase()) return null
   const pathname = decodeURI(parsed.pathname)
   return pathname.endsWith('/') ? pathname : `${pathname}/`
 }
 
-async function fetchSitemapPaths(name) {
-  const response = await fetchWithRetry(`${WORDPRESS_ORIGIN}/${name}-sitemap.xml`, `Yoast ${name} sitemap`, {
-    headers: { Accept: 'application/xml,text/xml' },
-  })
-  const xml = await response.text()
-  if (!/<urlset\b/i.test(xml)) throw new Error(`WordPress ${name} sitemap did not contain a URL set.`)
-  const paths = [...xml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)]
-    .map((match) => {
-      try {
-        return localPath(decodeHTML(match[1].trim()))
-      } catch {
-        return null
-      }
-    })
-    .filter(Boolean)
-  return new Set(paths)
-}
-
+/** Fetches the sitemap families that define the current public route inventory. */
 async function fetchPublicSitemaps() {
-  const names = ['page', 'post', 'product', 'category', 'product_cat', 'author']
-  const entries = await Promise.all(names.map(async (name) => [name, await fetchSitemapPaths(name)]))
-  return Object.fromEntries(entries)
+  const locations = await yoastSitemaps.load()
+  return Object.fromEntries(Object.entries(locations).map(([name, urls]) => [name, new Set(urls.map((url) => {
+    try {
+      return localPath(url)
+    } catch {
+      return null
+    }
+  }).filter(Boolean))]))
 }
 
+/** Collects same-site destinations from navigable elements in source HTML. */
 function collectInternalReferences(htmlValues) {
   const paths = new Set()
   for (const html of htmlValues) {
     for (const match of String(html || '').matchAll(/<(?:a|area|form|wa-button|wa-dropdown-item)\b[^>]*?(?:href|action|data-href)=(['"])(.*?)\1[^>]*>/gi)) {
       try {
-        const path = localPath(localPathOrExternal(decodeHTML(match[2])))
+        const destination = localPathOrExternal(decodeHTML(match[2]))
+        if (!destination) continue
+        const path = localPath(destination)
         if (path) paths.add(path)
       } catch {
         // Malformed and external links do not identify a local content route.
@@ -130,16 +174,25 @@ function collectInternalReferences(htmlValues) {
   return paths
 }
 
+/** Adds a valid same-site destination to the route-reference set and ignores malformed input. */
 function addLocalReference(paths, value) {
   if (!value) return
   try {
-    const path = localPath(localPathOrExternal(decodeHTML(value)))
+    const destination = localPathOrExternal(decodeHTML(value))
+    if (!destination) return
+    const path = localPath(destination)
     if (path) paths.add(path)
   } catch {
     // External and malformed links do not identify a local content route.
   }
 }
 
+/**
+ * Selects records included by a sitemap or reachable from root/navigation/content links.
+ * The fixed-point pass follows links in each newly selected record so linked public routes survive.
+ * @param {object} options Public record groups, sitemap path sets, root HTML, links, and required paths.
+ * @returns {{records: Record<string, object[]>, referencedPaths: Set<string>}} Selected records and links.
+ */
 function selectReferencedRecords({ recordGroups, sitemapNames, sitemaps, rootHtml, rootLinks, alwaysIncludePaths }) {
   const selected = Object.fromEntries(Object.entries(recordGroups).map(([kind]) => [kind, new Set()]))
   for (const [kind, records] of Object.entries(recordGroups)) {
@@ -149,6 +202,7 @@ function selectReferencedRecords({ recordGroups, sitemapNames, sitemaps, rootHtm
     }
   }
 
+  // Repeat until selection stops growing; selected records can reveal additional linked routes.
   let referencedPaths = collectInternalReferences(rootHtml)
   for (const href of rootLinks) addLocalReference(referencedPaths, href)
   let changed = true
@@ -177,10 +231,12 @@ function selectReferencedRecords({ recordGroups, sitemapNames, sitemaps, rootHtm
   }
 }
 
+/** Converts a public route to the directory-index file path used by Eleventy. */
 function outputPath(pathname) {
-  return pathname === '/' ? 'index.html' : `${pathname.replace(/^\/+|\/+$/g, '')}/index.html`
+  return toOutputPath(pathname)
 }
 
+/** Restores browser-facing image URLs from common WordPress lazy-loading attributes. */
 function activateLazyImages(html) {
   const readAttribute = (tag, name) => {
     const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -214,6 +270,7 @@ function activateLazyImages(html) {
   })
 }
 
+/** Replaces a balanced div with a known ID, preserving surrounding serialized markup. */
 function replaceElementById(html, id, placeholder) {
   const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const openPattern = new RegExp(`<div\\b(?=[^>]*\\bid=(['"])${escapedId}\\1)[^>]*>`, 'i')
@@ -232,20 +289,25 @@ function replaceElementById(html, id, placeholder) {
   return html
 }
 
+/** Rewrites same-site WordPress URLs to this build's route aliases and preserves external URLs. */
 function localPathOrExternal(value) {
   try {
     const parsed = new URL(value, WORDPRESS_ORIGIN)
+    if (parsed.username || parsed.password) return ''
+    if (['mailto:', 'tel:'].includes(parsed.protocol)) return parsed.href
+    if (!['http:', 'https:'].includes(parsed.protocol)) return ''
     const hostname = parsed.hostname.replace(/^www\./i, '').toLowerCase()
     const siteHostname = new URL(WORDPRESS_ORIGIN).hostname.replace(/^www\./i, '').toLowerCase()
     if (hostname !== siteHostname) return parsed.href
     const path = decodeURI(parsed.pathname)
     const lookupPath = path.endsWith('/') ? path : `${path}/`
-    return `${INTERNAL_ROUTE_ALIASES.get(lookupPath) || path}${parsed.search}${parsed.hash}`
+    return `${SITE_PROFILE.internalRouteAliases.get(lookupPath) || path}${parsed.search}${parsed.hash}`
   } catch {
-    return value
+    return ''
   }
 }
 
+/** Converts WordPress links and form actions to the Eleventy site's canonical local paths. */
 function rewriteInternalLinks(html = '') {
   return html.replace(/<(a|area|form)\b[^>]*>/gi, (tag) => {
     const isForm = /^<form\b/i.test(tag)
@@ -258,6 +320,7 @@ function rewriteInternalLinks(html = '') {
   })
 }
 
+/** Converts recognized WordPress button anchors and preserves the enclosing style variant. */
 function convertWordPressButtonLinks(html, style = 'fill') {
   const appearance = style === 'outline' ? 'outlined' : 'filled'
   return html.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (tag, attributes, content) => {
@@ -267,6 +330,7 @@ function convertWordPressButtonLinks(html, style = 'fill') {
   })
 }
 
+/** Converts core button wrappers while retaining the source fill or outline treatment. */
 function convertWordPressButtons(html = '') {
   const ranges = []
   const openings = /<div\b[^>]*>/gi
@@ -308,6 +372,7 @@ function convertWordPressButtons(html = '') {
   return convertWordPressButtonLinks(html, 'fill')
 }
 
+/** Converts imported native buttons to Web Awesome controls and labels gallery navigation. */
 function convertNativeButtons(html = '') {
   return html.replace(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi, (_tag, attributes, content) => {
     const classes = attributes.match(/\bclass=(['"])(.*?)\1/i)?.[2] || ''
@@ -324,6 +389,7 @@ function convertNativeButtons(html = '') {
   })
 }
 
+/** Maps imported Font Awesome class markup to the project's registered Web Awesome icon library. */
 function convertFontAwesomeIcons(html = '') {
   return html.replace(/<i\b([^>]*)>[\s\S]*?<\/i>/gi, (tag, attributes) => {
     const classes = attributes.match(/\bclass=(['"])(.*?)\1/i)?.[2]?.split(/\s+/) || []
@@ -343,6 +409,7 @@ function convertFontAwesomeIcons(html = '') {
   })
 }
 
+/** Promotes known text-only plugin wrappers without moving nested block-level content. */
 function convertWordPressContentDivs(html = '') {
   const semanticTags = new Map([
     ['wp-block-getwid-recent-posts__entry-meta', 'p'],
@@ -379,6 +446,7 @@ function convertWordPressContentDivs(html = '') {
   return html
 }
 
+/** Maps legacy site-owned `cd-*` classes to the WordPress class contract. */
 function normalizeLegacyWordPressClass(sourceClass) {
   return sourceClass
     .replace(/^cd-post-listing/, 'wp-block-getwid-recent-posts')
@@ -391,6 +459,7 @@ function normalizeLegacyWordPressClass(sourceClass) {
     .replace(/^cd-align/, 'align')
 }
 
+/** Maps known WordPress and legacy classes to the adapter's stable semantic data attributes. */
 function semanticAttributesForWordPressClass(sourceClass) {
   const className = normalizeLegacyWordPressClass(sourceClass)
   const overlayOpacity = className.match(/^has-background-dim-(\d+)$/)
@@ -552,12 +621,57 @@ function semanticAttributesForWordPressClass(sourceClass) {
   if (columns) return ['data-cd-columns', columns[1]]
   if (className === 'has-multiple-rows') return ['data-cd-multiple-rows', 'true']
   if (className === 'has-aligned-buttons') return ['data-cd-aligned-buttons', 'true']
+  if (className === 'is-not-stacked-on-mobile') return ['data-cd-mobile-stack', 'false']
   if (className === 'has-cropped-images') return ['data-cd-cropped-images', 'true']
 
   return null
 }
 
-function normalizeWordPressMarkup(html = '') {
+/** Converts a saved Gutenberg preset reference or custom color to a safe adapter value. */
+function gutenbergColorValue(value) {
+  const color = String(value || '').trim()
+  const preset = color.match(/^var:preset\|color\|([a-z0-9][a-z0-9-]*)$/i)
+  if (preset) return { token: preset[1].toLowerCase() }
+  return isSafeCssColorValue(color) ? { value: color } : null
+}
+
+/** Adds sanitizer-safe inline colors to markup reconstructed for one Gutenberg block. */
+function transformGutenbergBlockColors({ block, innerHTML }) {
+  const style = block.attrs?.style || {}
+  const declarations = []
+  const linkDeclarations = []
+  const addColor = (sourceValue, property, target) => {
+    const color = gutenbergColorValue(sourceValue)
+    if (!color) return
+    const value = color.token ? `var(--wp--preset--color--${color.token})` : color.value
+    target.push(`${property}:${value}`)
+  }
+
+  addColor(style.color?.text, 'color', declarations)
+  addColor(style.color?.background, 'background-color', declarations)
+  addColor(style.border?.color, 'border-color', declarations)
+  addColor(style.elements?.link?.color?.text, 'color', linkDeclarations)
+
+  const addInlineStyles = (tag, addedDeclarations) => {
+    if (!addedDeclarations.length) return tag
+    let opening = tag
+    const styleAttribute = /\sstyle=(['"])(.*?)\1/i.exec(opening)
+    const existing = styleAttribute ? decodeHTML(styleAttribute[2]).trim().replace(/;+\s*$/, '') : ''
+    const combined = [existing, ...addedDeclarations].filter(Boolean).join(';')
+    if (styleAttribute) opening = opening.replace(styleAttribute[0], ` style="${escapeAttributeValue(combined)}"`)
+    else opening = opening.replace(/\s*\/?\s*>$/, (closing) => ` style="${escapeAttributeValue(combined)}"${closing}`)
+    return opening
+  }
+
+  let transformed = innerHTML.replace(/<[a-z][\w:-]*(?:"[^"]*"|'[^']*'|[^'">])*>/i, (tag) => addInlineStyles(tag, declarations))
+  if (linkDeclarations.length) {
+    transformed = transformed.replace(/<a(?=[\s/>])(?:"[^"]*"|'[^']*'|[^'">])*>/gi, (tag) => addInlineStyles(tag, linkDeclarations))
+  }
+  return transformed
+}
+
+/** Removes WordPress implementation classes and maps recognized semantics to stable data attributes. */
+function normalizeWordPressMarkup(html = '', contentContext = {}, recordStyleContext = {}) {
   return html.replace(/<[a-z][\w:-]*(?:"[^"]*"|'[^']*'|[^'">])*>/gi, (tag) => {
     const classAttribute = /\sclass=(['"])(.*?)\1/i.exec(tag)
     if (!classAttribute) return tag
@@ -567,6 +681,28 @@ function normalizeWordPressMarkup(html = '') {
     for (const className of classNames) {
       const attribute = semanticAttributesForWordPressClass(className)
       if (attribute && !semanticAttributes.has(attribute[0])) semanticAttributes.set(attribute[0], attribute[1])
+      const linkColor = recordStyleContext.elementLinkColors?.get?.(className)
+      if (/^wp-elements-[a-z0-9][a-z0-9-]*$/i.test(className) && isSafeCssColorValue(linkColor || '') && !semanticAttributes.has('data-cd-link-color-value')) {
+        semanticAttributes.set('data-cd-link-color-value', linkColor)
+      }
+    }
+
+    // Gutenberg's generic text-color class has a theme default even without a named preset.
+    const sourceStyle = /\sstyle=(['"])(.*?)\1/i.exec(tag)
+    if (classNames.includes('has-text-color') && !semanticAttributes.has('data-cd-text-color') &&
+      !/(?:^|;)\s*color\s*:/i.test(sourceStyle ? decodeHTML(sourceStyle[2]) : '')) {
+      semanticAttributes.set('data-cd-text-color', 'text')
+    }
+
+    const layoutDeclarations = classNames
+      .map((className) => recordStyleContext.blockLayoutStyles?.get?.(className))
+      .filter(Boolean)
+      .join(';')
+    if (layoutDeclarations) {
+      const declarations = [layoutDeclarations, sourceStyle ? decodeHTML(sourceStyle[2]) : ''].filter(Boolean).join(';')
+      tag = sourceStyle
+        ? tag.replace(sourceStyle[0], ` style="${escapeAttributeValue(declarations)}"`)
+        : tag.replace(/\s*\/?\s*>$/, (closing) => ` style="${escapeAttributeValue(declarations)}"${closing}`)
     }
 
     const retainedClasses = classNames.filter((className) => {
@@ -602,12 +738,14 @@ function normalizeWordPressMarkup(html = '') {
     }
     return `font-family:var(--cd2027--font-${fonts[family.toLowerCase()]})`
   }).replace(/--wp--preset--spacing--/g, '--cd2027--space-')
-    .replace(/--wp--preset--color--couleur-1\b/g, '--cd2027--color-primary')
-    .replace(/--wp--preset--color--couleur-2\b/g, '--cd2027--color-secondary')
-    .replace(/--wp--preset--color--couleur-3\b/g, '--cd2027--color-tertiary')
-    .replace(/--wp--preset--color--couleur-4\b/g, '--cd2027--color-quaternary')
-    .replace(/--wp--preset--color--couleur-5\b/g, '--cd2027--color-text')
-    .replace(/--wp--preset--color--/g, '--cd2027--color-')
+    .replace(/--wp--preset--color--([a-z0-9][a-z0-9-]*)/gi, (_match, rawSlug) => {
+      const slug = rawSlug.toLowerCase()
+      const palette = contentContext.wordpressColorPalette
+      const hasPaletteValue = palette instanceof Map ? palette.has(slug) : Boolean(palette?.[slug])
+      if (hasPaletteValue) return `--cd2027--wordpress-color-${slug}`
+      const aliases = { 'couleur-1': 'primary', 'couleur-2': 'secondary', 'couleur-3': 'tertiary', 'couleur-4': 'quaternary', 'couleur-5': 'text' }
+      return `--cd2027--color-${aliases[slug] || slug}`
+    })
     .replace(/--wp--preset--font-family--great-vibes/g, '--cd2027--font-script')
     .replace(/--wp--preset--font-family--made-mirage/g, '--cd2027--font-heading')
     .replace(/--wp--preset--font-family--menu-font/g, '--cd2027--font-menu')
@@ -617,11 +755,62 @@ function normalizeWordPressMarkup(html = '') {
     .replace(/--wp--preset--font-size--/g, '--cd2027--font-size-')
 }
 
+/** Extracts safe Gutenberg container layout declarations from public block-support styles. */
+function extractWordPressBlockLayoutStyles(html = '') {
+  const layouts = new Map()
+  const properties = new Set(['flex-direction', 'flex-wrap', 'align-items', 'justify-content', 'gap', 'row-gap', 'column-gap'])
+  for (const style of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)) {
+    let depth = 0
+    let ruleStart = 0
+    let bodyStart = 0
+    let quote = ''
+    let comment = false
+    let nested = false
+    for (let index = 0; index < style[1].length; index += 1) {
+      const character = style[1][index]
+      const next = style[1][index + 1]
+      if (comment) {
+        if (character === '*' && next === '/') { comment = false; index += 1 }
+        continue
+      }
+      if (quote) {
+        if (character === '\\') index += 1
+        else if (character === quote) quote = ''
+        continue
+      }
+      if (character === '/' && next === '*') { comment = true; index += 1; continue }
+      if (character === '"' || character === "'") { quote = character; continue }
+      if (style[1][index] === '{') {
+        if (depth === 0) { bodyStart = index + 1; nested = false }
+        else nested = true
+        depth += 1
+      } else if (style[1][index] === '}') {
+        depth -= 1
+        if (depth !== 0) continue
+        const selector = style[1].slice(ruleStart, bodyStart - 1).replace(/\/\*[\s\S]*?\*\//g, '').trim()
+        const body = style[1].slice(bodyStart, index).replace(/\/\*[\s\S]*?\*\//g, '')
+        ruleStart = index + 1
+        const className = /^\.(wp-container-[a-z0-9-]+)$/i.exec(selector)?.[1]
+        // Nested at-rules and descendant selectors cannot become unconditional element styles.
+        if (!className || nested) continue
+        const declarations = body.split(';').filter((declaration) => properties.has(declaration.split(':')[0].trim().toLowerCase())).join(';')
+        if (!declarations) continue
+        const safeMarkup = sanitizeWordPressHtml(`<div style="${escapeAttributeValue(declarations)}"></div>`)
+        const safeDeclarations = /\sstyle="([^"]*)"/i.exec(safeMarkup)?.[1]
+        if (safeDeclarations) layouts.set(className, [layouts.get(className), decodeHTML(safeDeclarations)].filter(Boolean).join(';'))
+      }
+    }
+  }
+  return layouts
+}
+
+/** Builds a stable CSS scope class from a record's type, ID, slug, or route. */
 function markPageClass(record = {}) {
   const pageIdentity = [record.kind || 'page', record.id || record.slug || record.path || 'home'].join(':')
   return `cd-mark-page-${createHash('sha256').update(pageIdentity).digest('hex').slice(0, 10)}`
 }
 
+/** Detects the authored three-corner petal image treatment so it is not mistaken for a callout. */
 function hasThreeHalfRoundedCorners(declarations = '') {
   const cornerRadii = new Map()
   for (const match of declarations.matchAll(/(?:^|;)\s*border-(top|bottom)-(left|right)-radius\s*:\s*([^;]+)/gi)) {
@@ -641,6 +830,7 @@ function hasThreeHalfRoundedCorners(declarations = '') {
   return [...cornerRadii.values()].filter(isHalfRounded).length === 3
 }
 
+/** Removes only empty paragraph and spacer artifacts inside explicit callouts. */
 function stripCalloutLayoutArtifacts(content = '') {
   const ranges = []
   for (const match of content.matchAll(/<([a-z][a-z0-9-]*)\b[^>]*>/gi)) {
@@ -671,6 +861,12 @@ function stripCalloutLayoutArtifacts(content = '') {
   return normalized
 }
 
+/**
+ * Converts elements with `callout-*` classes to Web Awesome callouts.
+ * Only `callout-icon-<name>` supplies an icon; other callout classes remain icon-free.
+ * @param {string} html WordPress-rendered content HTML.
+ * @returns {string} Converted HTML with source content and attributes preserved.
+ */
 function convertClassedElementsToCallouts(html = '') {
   const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
   const candidates = []
@@ -681,6 +877,7 @@ function convertClassedElementsToCallouts(html = '') {
     const classAttribute = /\bclass=(['"])(.*?)\1/i.exec(match[0])
     if (!classAttribute) continue
     const classes = classAttribute[2].split(/\s+/).filter(Boolean)
+    // Class prefix is the complete callout signal; visual geometry is not inferred here.
     if (!classes.some((className) => className.toLowerCase().startsWith('callout-'))) continue
 
     const iconClass = classes.find((className) => /^callout-icon-[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(className))
@@ -708,7 +905,89 @@ function convertClassedElementsToCallouts(html = '') {
   return html
 }
 
+/** Accepts only the selector shapes generated by the content-style adapter. */
+function isSafeCachedStyleSelector(selector) {
+  const styleClass = String.raw`\.cd-content-style-[a-f\d]{12}\[class\]`
+  return selector === ':root' ||
+    new RegExp(`^:root ${styleClass}$`, 'i').test(selector) ||
+    new RegExp(`^:root ${styleClass}, :root wa-button\\.cd-content-style-[a-f\\d]{12}\\[class\\]::part\\(button\\)$`, 'i').test(selector) ||
+    new RegExp(`^:root ${styleClass} :where\\(a:not\\(\\.wp-element-button\\)\\)$`, 'i').test(selector) ||
+    new RegExp(`^mark\\.cd-mark-page-[a-f\\d]{10}\\.cd-content-style-[a-f\\d]{12}\\[class\\]$`, 'i').test(selector)
+}
+
+/** Allows only stable theme tokens that the content normalizer can generate. */
+function isSafeCachedStyleVariable(name, palette) {
+  if (/^--cd2027--(?:color-[a-z\d-]+|font-[a-z\d-]+|space-[a-z\d-]+|page-padding-inline|editorial-color-[a-f\d]{3,8})$/i.test(name)) return true
+  const wordpressColor = /^--cd2027--wordpress-color-([a-z\d-]+)$/i.exec(name)
+  return Boolean(wordpressColor && palette[wordpressColor[1]] && isSafeCssColorValue(palette[wordpressColor[1]]))
+}
+
+/** Revalidates the cached CSS boundary instead of trusting rules from an older build. */
+function sanitizeCachedContentStyleRules(cached) {
+  const palette = Object.fromEntries(Object.entries(cached.wordpressColorPalette || {})
+    .filter(([slug, color]) => /^[a-z\d][a-z\d-]*$/i.test(slug) && typeof color === 'string' && isSafeCssColorValue(color)))
+  cached.wordpressColorPalette = palette
+  const rootPaletteRule = wordpressColorPaletteRule(new Map(Object.entries(palette)))
+  const safeRules = rootPaletteRule ? [rootPaletteRule] : []
+
+  for (const rule of Array.isArray(cached.contentStyleRules) ? cached.contentStyleRules : []) {
+    if (!rule || typeof rule.selector !== 'string' || rule.selector === ':root' || !isSafeCachedStyleSelector(rule.selector)) continue
+    if (typeof rule.declarations !== 'string' || rule.declarations.length > 10000) continue
+    const cssVariables = [...new Set([...rule.declarations.matchAll(/var\(\s*(--[a-z][a-z\d-]*)/gi)]
+      .map((match) => match[1])
+      .filter((name) => isSafeCachedStyleVariable(name, palette))) ]
+    const safeHtml = sanitizeWordPressHtml(`<i style="${escapeAttributeValue(rule.declarations)}"></i>`, {
+      additionalFontFamilies: SITE_HTML_SANITIZER_OPTIONS.additionalFontFamilies,
+      allowedBackgroundImagePrefixes: SITE_HTML_SANITIZER_OPTIONS.allowedBackgroundImagePrefixes,
+      allowedCssVariables: cssVariables,
+    })
+    const style = /\sstyle="([^"]*)"/i.exec(safeHtml)?.[1]
+    const declarations = style ? decodeHTML(style).trim() : ''
+    if (declarations) safeRules.push({ selector: rule.selector, declarations })
+  }
+  cached.contentStyleRules = safeRules
+}
+
+/** Normalizes navigation URLs stored in the previous public snapshot. */
+function sanitizeCachedNavigation(items) {
+  if (!Array.isArray(items)) return []
+  return items.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const children = sanitizeCachedNavigation(item.items)
+    const normalizedItem = {
+      ...item,
+      label: String(item.label || ''),
+      href: localPathOrExternal(item.href) || '#',
+    }
+    if (children.length) normalizedItem.items = children
+    else delete normalizedItem.items
+    return [normalizedItem]
+  })
+}
+
+/** Restores petal image markers and sanitizes HTML when serving an older public snapshot. */
 function markPetalImagesInCachedMarkup(cached) {
+  sanitizeCachedContentStyleRules(cached)
+  cached.navigation = sanitizeCachedNavigation(cached.navigation)
+  cached.shopNavigation = sanitizeCachedNavigation(cached.shopNavigation)
+  cached.footerNavigation = sanitizeCachedNavigation(cached.footerNavigation)
+  if (cached.footer && typeof cached.footer === 'object') {
+    cached.footer.logo = safePublicHttpUrl(cached.footer.logo) || ''
+    if (cached.footer.profileLink) {
+      cached.footer.profileLink = {
+        ...cached.footer.profileLink,
+        label: String(cached.footer.profileLink.label || ''),
+        href: localPathOrExternal(cached.footer.profileLink.href) || '#',
+      }
+    }
+    cached.footer.links = sanitizeCachedNavigation(cached.footer.links)
+    cached.footer.socialLinks = (Array.isArray(cached.footer.socialLinks) ? cached.footer.socialLinks : [])
+      .flatMap((item) => {
+        const href = localPathOrExternal(item?.href)
+        if (!href || !/^[a-z\d-]+$/i.test(item?.icon || '')) return []
+        return [{ ...item, href, label: String(item.label || '') }]
+      })
+  }
   const petalClasses = new Set()
   for (const rule of cached.contentStyleRules || []) {
     if (!hasThreeHalfRoundedCorners(rule.declarations || '')) continue
@@ -720,13 +999,23 @@ function markPetalImagesInCachedMarkup(cached) {
     if (!classAttribute || !classAttribute[2].split(/\s+/).some((className) => petalClasses.has(className))) return tag
     return tag.replace(/\s*\/?\s*>$/, (closing) => ` data-cd-image-shape="petal"${closing}`)
   })
-  const normalizeHtml = (html = '') => convertClassedElementsToCallouts(markHtml(html))
+  const normalizeHtml = (html = '') => sanitizeWordPressHtml(
+    convertClassedElementsToCallouts(markHtml(html)),
+    SITE_HTML_SANITIZER_OPTIONS,
+  )
 
   cached.homepageHtml = normalizeHtml(cached.homepageHtml)
   for (const collection of ['home', 'pages', 'posts', 'products']) {
     const records = Array.isArray(cached[collection]) ? cached[collection] : [cached[collection]]
     for (const record of records) {
       if (!record) continue
+      if ('image' in record) record.image = safePublicHttpUrl(record.image)
+      if (Array.isArray(record.images)) {
+        record.images = record.images.flatMap((image) => {
+          const src = safePublicHttpUrl(image?.src)
+          return src ? [{ ...image, src, alt: String(image.alt || '') }] : []
+        })
+      }
       for (const field of ['contentHtml', 'descriptionHtml', 'shortDescriptionHtml', 'archiveIntroHtml', 'archiveOutroHtml']) {
         if (record[field]) record[field] = normalizeHtml(record[field])
       }
@@ -745,19 +1034,47 @@ function markPetalImagesInCachedMarkup(cached) {
 }
 
 // Preserve block-specific geometry and imagery in a deterministic external stylesheet.
-function externalizeContentStyles(html, record = {}) {
+/**
+ * Moves imported inline declarations into deterministic page-scoped external CSS rules.
+ * The build context owns the rule map so templates can emit a stylesheet without inline styles.
+ * @param {string} html Normalized WordPress HTML.
+ * @param {object} [record] Record identity used to scope page-specific styles.
+ * @param {{contentStyleRules: Map}} contentContext Build-scoped style rule registry.
+ * @returns {string} HTML with inline declarations removed and stable style classes attached.
+ */
+function externalizeContentStyles(html, record = {}, contentContext) {
+  contentContext ||= { contentStyleRules: new Map(), wordpressColorPalette: new Map() }
+  contentContext.contentStyleRules ||= new Map()
   const pageClass = markPageClass(record)
   return html.replace(/<[a-z][\w:-]*(?:"[^"]*"|'[^']*'|[^'">])*>/gi, (tag) => {
     const isMark = /^<mark\b/i.test(tag)
     const attribute = /\sstyle\s*=\s*(['"])(.*?)\1/i.exec(tag)
-    const textColorAttribute = isMark ? /\sdata-cd-text-color=(['"])(.*?)\1/i.exec(tag) : null
-    const backgroundColorAttribute = isMark ? /\sdata-cd-background-color=(['"])(.*?)\1/i.exec(tag) : null
+    const textColorAttribute = /\sdata-cd-text-color=(['"])(.*?)\1/i.exec(tag)
+    const backgroundColorAttribute = /\sdata-cd-background-color=(['"])(.*?)\1/i.exec(tag)
+    const borderColorAttribute = /\sdata-cd-border-color=(['"])(.*?)\1/i.exec(tag)
+    const linkColorAttribute = /\sdata-cd-link-color=(['"])(.*?)\1/i.exec(tag)
+    const linkColorValueAttribute = /\sdata-cd-link-color-value=(['"])(.*?)\1/i.exec(tag)
     const colorToken = (token) => ({ primary: 'primary', secondary: 'secondary', tertiary: 'tertiary', quaternary: 'quaternary', text: 'text', lightgray: 'lightgray', contrast: 'contrast-foreground', base: 'base-foreground', 'couleur-1': 'primary', 'couleur-2': 'secondary', 'couleur-3': 'tertiary', 'couleur-4': 'quaternary', 'couleur-5': 'text', 'couleur-texte': 'text', white: 'base-foreground', blanc: 'base-foreground', black: 'contrast-foreground', noir: 'contrast-foreground', foreground: 'contrast-foreground', background: 'base' })[token]
+    const palette = contentContext.wordpressColorPalette || new Map()
+    const colorForToken = (rawToken) => {
+      const token = String(rawToken || '').toLowerCase()
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(token)) return null
+      const hasPaletteValue = palette instanceof Map ? palette.has(token) : Boolean(palette?.[token])
+      if (hasPaletteValue) return `var(--cd2027--wordpress-color-${token})`
+      const fallbackToken = colorToken(token)
+      return fallbackToken ? `var(--cd2027--color-${fallbackToken})` : null
+    }
     let declarations = attribute ? decodeHTML(attribute[2]).trim() : ''
     if (attribute) {
       declarations = declarations
       .replace(/--wp--style--root--padding-(?:left|right)|--wp--custom--gap--horizontal/g, '--cd2027--page-padding-inline')
       .replace(/--wp--style--block-gap/g, '--cd2027--space-40')
+      .replace(/var\(\s*--cd2027--wordpress-color-([a-z0-9][a-z0-9-]*)\s*\)/gi, (_match, rawSlug) => {
+        const token = rawSlug.toLowerCase()
+        const hasPaletteValue = palette instanceof Map ? palette.has(token) : Boolean(palette?.[token])
+        const fallbackToken = colorToken(token)
+        return hasPaletteValue ? `var(--cd2027--wordpress-color-${token})` : fallbackToken ? `var(--cd2027--color-${fallbackToken})` : 'currentColor'
+      })
       .replace(/--couleur-texte\b/g, '--cd2027--color-text')
       .replace(/--texte-principal\b/g, '--cd2027--font-body')
       .replace(/(^|;)\s*color\s*:\s*#fff(?:fff)?\b/gi, '$1color:var(--cd2027--color-base-foreground)')
@@ -767,25 +1084,43 @@ function externalizeContentStyles(html, record = {}) {
         return palette[hex.toLowerCase()] ? `var(--cd2027--color-${palette[hex.toLowerCase()]})` : `var(--cd2027--editorial-color-${hex.toLowerCase()})`
       })
     }
-    if (textColorAttribute && colorToken(textColorAttribute[2])) declarations += `${declarations ? ';' : ''}color:var(--cd2027--color-${colorToken(textColorAttribute[2])}) !important`
-    if (backgroundColorAttribute && colorToken(backgroundColorAttribute[2])) declarations += `${declarations ? ';' : ''}background-color:var(--cd2027--color-${colorToken(backgroundColorAttribute[2])}) !important`
-    const pageScopedDeclarations = isMark ? `${pageClass}|${declarations}` : declarations
+    const textColor = textColorAttribute && colorForToken(textColorAttribute[2])
+    const backgroundColor = backgroundColorAttribute && colorForToken(backgroundColorAttribute[2])
+    const borderColor = borderColorAttribute && colorForToken(borderColorAttribute[2])
+    if (textColor) declarations += `${declarations ? ';' : ''}color:${textColor} !important`
+    if (backgroundColor) declarations += `${declarations ? ';' : ''}background-color:${backgroundColor} !important`
+    if (borderColor) declarations += `${declarations ? ';' : ''}border-color:${borderColor} !important`
+    const linkColor = linkColorAttribute && colorForToken(linkColorAttribute[2])
+    const linkColorValue = linkColorValueAttribute ? decodeHTML(linkColorValueAttribute[2]).trim() : ''
+    const linkDeclarations = linkColor
+      ? `color:${linkColor} !important`
+      : isSafeCssColorValue(linkColorValue) ? `color:${linkColorValue} !important` : ''
+    const pageScopedDeclarations = isMark ? `${pageClass}|${declarations}|${linkDeclarations}` : `${declarations}|${linkDeclarations}`
     const className = `cd-content-style-${createHash('sha256').update(pageScopedDeclarations).digest('hex').slice(0, 12)}`
     const markSelector = isMark ? `mark.${pageClass}.${className}[class]` : null
     const isPetalImage = /^<img\b/i.test(tag) && hasThreeHalfRoundedCorners(declarations)
     const selector = /^<wa-button\b/i.test(tag)
       ? `:root .${className}[class], :root wa-button.${className}[class]::part(button)`
       : markSelector || `:root .${className}[class]`
-    if (declarations) contentStyleRules.set(className, { selector, declarations })
+    if (declarations) contentContext.contentStyleRules.set(className, { selector, declarations })
+    if (linkDeclarations) {
+      contentContext.contentStyleRules.set(`${className}-links`, {
+        selector: `:root .${className}[class] :where(a:not(.wp-element-button))`,
+        declarations: linkDeclarations,
+      })
+    }
+    const hasExternalStyles = Boolean(declarations || linkDeclarations)
     let cleaned = attribute ? tag.replace(attribute[0], '') : tag
+    if (linkColorAttribute) cleaned = cleaned.replace(linkColorAttribute[0], '')
+    if (linkColorValueAttribute) cleaned = cleaned.replace(linkColorValueAttribute[0], '')
     if (isPetalImage && !/\sdata-cd-image-shape=/i.test(cleaned)) {
       cleaned = cleaned.replace(/\s*\/?\s*>$/, (closing) => ` data-cd-image-shape="petal"${closing}`)
     }
     if (isMark) cleaned = cleaned.replace(/\sdata-cd-(?:text-color|background-color|inline-color)=(['"])[^'"]*\1/gi, '')
     if (/\sclass=(['"])(.*?)\1/i.test(cleaned)) {
-      cleaned = cleaned.replace(/\sclass=(['"])(.*?)\1/i, (_match, _quote, classes) => ` class="${classes}${isMark ? ` ${pageClass}` : ''}${declarations ? ` ${className}` : ''}"`)
+      cleaned = cleaned.replace(/\sclass=(['"])(.*?)\1/i, (_match, _quote, classes) => ` class="${classes}${isMark ? ` ${pageClass}` : ''}${hasExternalStyles ? ` ${className}` : ''}"`)
     } else {
-      const classes = [isMark ? pageClass : '', declarations ? className : ''].filter(Boolean).join(' ')
+      const classes = [isMark ? pageClass : '', hasExternalStyles ? className : ''].filter(Boolean).join(' ')
       if (!classes) return cleaned
       cleaned = cleaned.replace(/\s*\/?\s*>$/, (closing) => ` class="${classes}"${closing}`)
     }
@@ -793,36 +1128,60 @@ function externalizeContentStyles(html, record = {}) {
   })
 }
 
-function normalizeRenderedHtml(html = '', record = {}) {
-  let normalized = activateLazyImages(html)
-  for (const [missingUrl, availableUrl] of MEDIA_URL_FALLBACKS) {
-    normalized = normalized.replaceAll(missingUrl, availableUrl)
+/**
+ * Applies the ordered content, route, form, icon, callout, and external-style transformations.
+ * @param {string} html WordPress rendered or serialized HTML.
+ * @param {object} [record] Record identity used by page-specific transforms.
+ * @param {{contentStyleRules: Map}} [contentContext] Build-scoped stylesheet accumulator.
+ * @returns {string} Normalized HTML ready for Eleventy templates.
+ */
+function normalizeRenderedHtml(html = '', record = {}, contentContext = { contentStyleRules: new Map(), wordpressColorPalette: new Map() }, recordStyleContext = {}) {
+  const formMounts = []
+  const createFormMountMarker = (provider, id) => {
+    const marker = `CD2027FORMPLACEHOLDER${randomBytes(16).toString('hex')}`
+    formMounts.push({ marker, provider, id })
+    return marker
   }
-  normalized = rewriteInternalLinks(normalized)
-  normalized = convertWordPressButtons(normalized)
-  normalized = normalized.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
-  normalized = convertNativeButtons(normalized)
-  normalized = convertWordPressContentDivs(normalized)
+  let normalized = activateLazyImages(String(html || ''))
   normalized = normalized.replace(
     /<form\b[^>]*id=(['"])forminator-module-(\d+)\1[^>]*>[\s\S]*?<\/form>/gi,
-    (_, _quote, formId) => `<div class="cd-form-mount" data-cd-form="forminator" data-form-id="${formId}"></div>`,
+    (_match, _quote, formId) => createFormMountMarker('forminator', formId),
   )
   for (const match of [...normalized.matchAll(/id=(['"])mailpoet_form_(\d+)\1/gi)]) {
     normalized = replaceElementById(
       normalized,
       `mailpoet_form_${match[2]}`,
-      `<div class="cd-form-mount" data-cd-form="mailpoet" data-form-id="${match[2]}"></div>`,
+      createFormMountMarker('mailpoet', match[2]),
     )
   }
+  // Remove active markup and source-controlled adapter attributes before any transformation
+  // can consume the source HTML as structured input.
+  normalized = sanitizeWordPressHtml(normalized, {
+    additionalFontFamilies: SITE_HTML_SANITIZER_OPTIONS.additionalFontFamilies,
+    allowedBackgroundImagePrefixes: SITE_HTML_SANITIZER_OPTIONS.allowedBackgroundImagePrefixes,
+    allowedCssVariables: SITE_HTML_SANITIZER_OPTIONS.allowedCssVariables,
+  })
+  for (const [missingUrl, availableUrl] of SITE_PROFILE.mediaUrlFallbacks) {
+    normalized = normalized.replaceAll(missingUrl, availableUrl)
+  }
+  normalized = rewriteInternalLinks(normalized)
+  normalized = convertWordPressButtons(normalized)
+  normalized = convertNativeButtons(normalized)
+  normalized = convertWordPressContentDivs(normalized)
   normalized = convertFontAwesomeIcons(normalized)
-  normalized = normalizeWordPressMarkup(normalized)
+  normalized = normalizeWordPressMarkup(normalized, contentContext, recordStyleContext)
   normalized = markLectureAkashiqueTestimonials(normalized, record)
-  normalized = externalizeContentStyles(normalized, record)
-  return convertClassedElementsToCallouts(normalized)
+  normalized = externalizeContentStyles(normalized, record, contentContext)
+  normalized = convertClassedElementsToCallouts(normalized)
+  for (const { marker, provider, id } of formMounts) {
+    normalized = normalized.replaceAll(marker, `<div class="cd-form-mount" data-cd-form="${provider}" data-form-id="${id}"></div>`)
+  }
+  return sanitizeWordPressHtml(normalized, SITE_HTML_SANITIZER_OPTIONS)
 }
 
+/** Adds the testimonials section marker only to the configured testimonial page's matching section. */
 function markLectureAkashiqueTestimonials(html, record) {
-  if (record.slug !== 'lecture-akashique') return html
+  if (record.slug !== SITE_PROFILE.testimonialsPageSlug) return html
 
   const heading = /<h2\b(?=[^>]*data-cd-block=(['"])heading\1)[^>]*>[\s\S]*?Témoignages[\s\S]*?<\/h2>/i.exec(html)
   if (!heading) return html
@@ -845,6 +1204,7 @@ function markLectureAkashiqueTestimonials(html, record) {
   return `${html.slice(0, section.index)}${markedOpeningTag}${html.slice(section.index + section[0].length)}`
 }
 
+/** Finds the balanced source range for one same-name nested HTML element. */
 function findElementRange(html, tagName, searchFrom = 0) {
   const openPattern = new RegExp(`<${tagName}\\b[^>]*>`, 'gi')
   openPattern.lastIndex = searchFrom
@@ -867,9 +1227,19 @@ function findElementRange(html, tagName, searchFrom = 0) {
   return null
 }
 
-async function fetchRenderedFrontPage() {
+/**
+ * Fetches the public homepage and extracts the content and shared footer used by Eleventy.
+ * @param {{contentStyleRules: Map}} contentContext Build-scoped CSS rule accumulator.
+ * @returns {Promise<{content: string, footer: object}>} Normalized homepage content and shared footer.
+ * @throws {Error} When the public page does not contain the expected shared header/footer structure.
+ */
+async function fetchRenderedFrontPage(contentContext) {
   const response = await fetchWithRetry(`${WORDPRESS_ORIGIN}/`, 'homepage', { headers: { Accept: 'text/html' } })
   const html = await response.text()
+  const colorPalette = extractWordPressColorPalette(html)
+  contentContext.wordpressColorPalette = new Map(Object.entries(colorPalette))
+  const elementLinkColors = new Map(Object.entries(extractWordPressLinkColors(html, { colorPalette })))
+  const blockLayoutStyles = extractWordPressBlockLayoutStyles(html)
   const bodyStart = html.indexOf('<body')
   const blocksIndex = html.indexOf('<div class="wp-site-blocks"', bodyStart)
   const header = findElementRange(html, 'header', blocksIndex)
@@ -887,39 +1257,148 @@ async function fetchRenderedFrontPage() {
     const anchors = [...match[1].matchAll(/<a\b[^>]*href=(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi)]
     const anchor = anchors.find((item) => textFromHtml(item[3]))
     if (!anchor) return null
-    return { label: textFromHtml(match[1]), href: localPathOrExternal(decodeHTML(anchor[2])) }
+    const href = localPathOrExternal(decodeHTML(anchor[2]))
+    return href ? { label: textFromHtml(match[1]), href } : null
   }).filter(Boolean)
   const logoTag = footerHtml.match(/<img\b[^>]*>/i)?.[0] || ''
   const logo = logoTag.match(/\bdata-src=(['"])(.*?)\1/i)?.[2] || logoTag.match(/\bsrc=(['"])(.*?)\1/i)?.[2]
   const socialLinks = [...footerHtml.matchAll(/<li\b[^>]*class=(['"])[^'"]*wp-social-link-([\w-]+)[^'"]*\1[^>]*>([\s\S]*?)<\/li>/gi)].map((match) => ({
     icon: match[2],
     label: { facebook: 'Facebook', instagram: 'Instagram', youtube: 'YouTube', linkedin: 'LinkedIn', pinterest: 'Pinterest' }[match[2]] || match[2],
-    href: decodeHTML(match[3].match(/<a\b[^>]*href=(['"])(.*?)\1/i)?.[2] || ''),
+    href: localPathOrExternal(decodeHTML(match[3].match(/<a\b[^>]*href=(['"])(.*?)\1/i)?.[2] || '')),
   })).filter((item) => item.href)
-  if (!logo || headingLinks.length < 2) throw new Error('The public WordPress footer is missing its logo or navigation.')
-  return { content: normalizeRenderedHtml(content, { kind: 'page', slug: 'home' }), footer: { logo: decodeHTML(logo), profileLink: headingLinks[0], links: headingLinks.slice(1), socialLinks } }
+  const safeLogo = safePublicHttpUrl(decodeHTML(logo || ''))
+  if (!safeLogo || headingLinks.length < 2) throw new Error('The public WordPress footer is missing its logo or navigation.')
+  return {
+    content: normalizeRenderedHtml(content, { kind: 'page', slug: 'home' }, contentContext, { elementLinkColors, blockLayoutStyles }),
+    elementLinkColors,
+    footer: { logo: safeLogo, profileLink: headingLinks[0], links: headingLinks.slice(1), socialLinks },
+  }
 }
 
-function normalizeWpRecord(record, kind) {
-  const path = localPath(record.link || record.permalink)
-  if (!path) throw new Error(`Unexpected external ${kind} permalink for record ${record.id}`)
+/** Fetches page-local WordPress color and layout rules only for records that reference them. */
+async function fetchWordPressElementLinkColors(records, contentContext) {
+  contentContext.recordBlockLayoutStyles = new Map()
+  const requests = records.flatMap(({ record, kind }) => {
+    const html = [record.content?.rendered, record.description, record.short_description].filter((value) => typeof value === 'string').join('\n')
+    if (!/\b(?:wp-elements|wp-container)-[a-z0-9][a-z0-9-]*\b/i.test(html)) return []
+    const sourceUrl = record.link || record.permalink
+    if (!sourceUrl) return []
+    try {
+      const route = localPath(sourceUrl)
+      if (!route) return []
+      return [{ record, kind, url: new URL(route, WORDPRESS_ORIGIN) }]
+    } catch {
+      return []
+    }
+  })
+  const results = new Map()
+  let nextRequest = 0
+  const worker = async () => {
+    while (nextRequest < requests.length) {
+      const request = requests[nextRequest++]
+      const key = `${request.kind}:${request.record.id}`
+      try {
+        const response = await fetchWithRetry(request.url, `color styles for ${request.kind} ${request.record.slug || request.record.id}`, {
+          headers: { Accept: 'text/html' },
+        })
+        const html = await response.text()
+        contentContext.recordBlockLayoutStyles.set(key, extractWordPressBlockLayoutStyles(html))
+        const pagePalette = extractWordPressColorPalette(html)
+        for (const [slug, value] of Object.entries(pagePalette)) {
+          if (!contentContext.wordpressColorPalette.has(slug)) contentContext.wordpressColorPalette.set(slug, value)
+        }
+        const colorPalette = Object.fromEntries(contentContext.wordpressColorPalette)
+        const colors = new Map(Object.entries(extractWordPressLinkColors(html, { colorPalette })))
+        if (colors.size) results.set(key, colors)
+      } catch (error) {
+        console.warn(`[wordpress] Could not extract link colors for ${request.kind} ${request.record.slug || request.record.id}: ${error.message}`)
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(6, requests.length) }, worker))
+  return results
+}
+
+/** Builds the external root variables that preserve the source WordPress palette values. */
+function wordpressColorPaletteRule(palette) {
+  const declarations = [...palette]
+    .filter(([slug, color]) => /^[a-z0-9][a-z0-9-]*$/i.test(slug) && isSafeCssColorValue(color))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([slug, color]) => `--cd2027--wordpress-color-${slug}:${color}`)
+    .join(';')
+  return declarations ? { selector: ':root', declarations } : null
+}
+
+/**
+ * Normalizes WordPress source data into the site-specific template record contract.
+ * @param {object} record WordPress REST resource.
+ * @param {string} kind Site content family such as `page`, `post`, or `product`.
+ * @param {{contentStyleRules: Map}} contentContext Build-scoped style accumulator.
+ * @returns {object} Public record with canonical route, normalized content, and presentation fields.
+ * @throws {Error} When its public permalink resolves outside the WordPress site.
+ */
+function normalizeWpRecord(record, kind, contentContext) {
+  const route = resolveSiteRecordRoute({ ...record, type: kind })
+  const recordStyleContext = {
+    elementLinkColors: contentContext.recordElementLinkColors?.get(`${kind}:${record.id}`) || new Map(),
+    blockLayoutStyles: contentContext.recordBlockLayoutStyles?.get(`${kind}:${record.id}`) || new Map(),
+  }
   const rawTitle = record.title?.rendered || record.name || ''
   const description =
     record.yoast_head_json?.description || record.excerpt?.rendered || record.short_description || ''
-  const content = record.content?.rendered || record.description || ''
-  const image = record.images?.[0]?.src || record._embedded?.['wp:featuredmedia']?.[0]?.source_url || null
+  const contentPolicy = resolveWordPressContentPolicy(SITE_PROFILE.content, kind)
+  const wordpressRecord = normalizeWordPressRecord(record, {
+    type: kind,
+    contentPolicy,
+    routeResolver: resolveSiteRecordRoute,
+    customFields: SITE_PROFILE.publicCustomFields?.[kind] || [],
+    transformBlock: transformGutenbergBlockColors,
+    transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext),
+  })
+  const publicContent = record.content && typeof record.content === 'object'
+    ? { ...record.content }
+    : record.content
+  if (publicContent && typeof publicContent === 'object') delete publicContent.raw
+  const publicRecord = { ...record, content: publicContent }
+  delete publicRecord.meta
+  delete publicRecord.acf
+  delete publicRecord._embedded
+  if (publicRecord.author && typeof publicRecord.author === 'object') publicRecord.author = wordpressRecord.author?.id ?? null
+  const images = (Array.isArray(record.images) ? record.images : []).flatMap((item) => {
+    const src = safePublicHttpUrl(item?.src)
+    return src ? [{ ...item, src, alt: String(item.alt || '') }] : []
+  })
+  const image = safePublicHttpUrl(record.images?.[0]?.src || record._embedded?.['wp:featuredmedia']?.[0]?.source_url || '')
   const alt = record.images?.[0]?.alt || record._embedded?.['wp:featuredmedia']?.[0]?.alt_text || textFromHtml(rawTitle)
   return {
-    ...record,
+    ...publicRecord,
     kind,
     titleText: textFromHtml(rawTitle),
     descriptionText: textFromHtml(description),
-    descriptionHtml: normalizeRenderedHtml(description, { ...record, kind }),
-    shortDescriptionHtml: normalizeRenderedHtml(record.short_description || '', { ...record, kind }),
-    contentHtml: normalizeRenderedHtml(content, { ...record, kind }),
-    link: new URL(path, SITE_ORIGIN).href,
-    path,
-    outputPath: outputPath(path),
+    descriptionHtml: convertWordPressContent({
+      renderedHtml: description,
+      mode: 'rendered',
+      transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext),
+    }).html,
+    shortDescriptionHtml: convertWordPressContent({
+      renderedHtml: record.short_description || '',
+      mode: 'rendered',
+      transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext),
+    }).html,
+    author: wordpressRecord.author,
+    taxonomies: wordpressRecord.taxonomies,
+    customFields: wordpressRecord.customFields,
+    route: wordpressRecord.route,
+    contentHtml: wordpressRecord.content.html,
+    contentMode: contentPolicy.mode,
+    contentSource: wordpressRecord.content.source,
+    contentBlockTypes: wordpressRecord.content.blockTypes,
+    unsupportedContentBlocks: wordpressRecord.content.unsupportedBlockNames,
+    contentFallbackReason: wordpressRecord.content.fallbackReason,
+    link: route.canonicalUrl,
+    path: route.path,
+    outputPath: route.outputPath,
     image,
     imageAlt: alt,
     excerptText: textFromHtml(record.excerpt?.rendered || record.short_description || ''),
@@ -927,21 +1406,59 @@ function normalizeWpRecord(record, kind) {
     categoryIds: (record.categories || []).map((category) =>
       typeof category === 'object' ? category.id : category,
     ),
-    images: record.images || [],
+    images,
     price: record.prices || null,
     purchasable: record.is_purchasable ?? true,
     inStock: record.is_in_stock ?? true,
   }
 }
 
-function normalizeTerm(term, kind) {
+/**
+ * Normalizes a taxonomy record using the same content conversion policy as pages and products.
+ * @param {object} term WordPress taxonomy record.
+ * @param {string} kind Site-specific taxonomy family.
+ * @param {{contentStyleRules: Map}} contentContext Build-scoped CSS rule accumulator.
+ * @returns {object} Normalized taxonomy record with route and rendered description.
+ */
+function normalizeTerm(term, kind, contentContext) {
+  const recordStyleContext = {
+    elementLinkColors: contentContext.recordElementLinkColors?.get(`${kind}:${term.id}`) || new Map(),
+    blockLayoutStyles: contentContext.recordBlockLayoutStyles?.get(`${kind}:${term.id}`) || new Map(),
+  }
   const normalized = normalizeWpRecord(
-    { ...term, title: { rendered: term.name }, content: { rendered: term.description || '' } },
+    { ...term, type: kind, title: { rendered: term.name }, content: { rendered: term.description || '' } },
     kind,
+    contentContext,
   )
-  return { ...normalized, descriptionHtml: normalizeRenderedHtml(term.description || '', { ...term, kind }), count: term.count ?? term.products ?? 0 }
+  const taxonomy = normalizeWordPressTaxonomy({ ...term, type: kind }, {
+    taxonomy: kind,
+    routeResolver: resolveSiteRecordRoute,
+  })
+  return {
+    ...normalized,
+    ...taxonomy,
+    kind,
+    titleText: textFromHtml(term.name || ''),
+    descriptionHtml: normalizeRenderedHtml(term.description || '', { ...term, kind }, contentContext, recordStyleContext),
+    descriptionText: textFromHtml(term.description || ''),
+    count: term.count ?? term.products ?? 0,
+  }
 }
 
+/**
+ * Resolves a content record only after confirming that its source link belongs to WordPress.
+ * @param {object} record WordPress REST record or normalized author/taxonomy.
+ * @returns {object} Canonical route metadata from the shared route resolver.
+ * @throws {Error} When the source permalink is external or cannot form a valid route.
+ */
+function resolveSiteRecordRoute(record) {
+  if (record.type === 'author') return wordpressRoutes(record)
+  const path = localPath(record.link || record.permalink || record.sourceUrl)
+  if (!path) throw new Error(`Unexpected external ${record.type || 'WordPress'} permalink for record ${record.id}`)
+  return wordpressRoutes({ ...record, type: record.type || record.kind }, { route: path })
+}
+
+/** Reconstructs nested navigation data from rendered WordPress list markup. */
 function parseNavigationItems(html = '') {
   const roots = []
   const stack = []
@@ -965,7 +1482,7 @@ function parseNavigationItems(html = '') {
     const href = tag.match(/\bhref=(['"])(.*?)\1/i)?.[2] || '#'
     const labelHtml = token.match(/<span[^>]*wp-block-navigation-item__label[^>]*>([\s\S]*?)<\/span>/i)?.[1]
       || token.replace(/^<a\b[^>]*>|<\/a>$/gi, '')
-    current.href = localPathOrExternal(decodeHTML(href))
+    current.href = localPathOrExternal(decodeHTML(href)) || '#'
     current.label = textFromHtml(labelHtml)
   }
   const clean = (items) => items
@@ -975,17 +1492,12 @@ function parseNavigationItems(html = '') {
   return clean(roots)
 }
 
+/** Fails the build if two selected records claim the same public path. */
 function checkRouteCollisions(records) {
-  const paths = new Map()
-  for (const record of records) {
-    const previous = paths.get(record.path)
-    if (previous) {
-      throw new Error(`Published route collision at ${record.path}: ${previous.kind} ${previous.id} and ${record.kind} ${record.id}`)
-    }
-    paths.set(record.path, record)
-  }
+  assertNoWordPressRouteCollisions(records)
 }
 
+/** Builds stable archive-page records and previous/current/next navigation metadata. */
 function paginatedArchives({ base, records, pageSize, kind, category = null }) {
   const totalPages = Math.max(1, Math.ceil(records.length / pageSize))
   const pageLinks = Array.from({ length: totalPages }, (_, index) => {
@@ -1012,25 +1524,79 @@ function paginatedArchives({ base, records, pageSize, kind, category = null }) {
   }))
 }
 
+/** Aggregates content-source, fallback, unsupported-block, and block-type counts for build logs. */
+function summarizeContentPipeline(records) {
+  const summary = {
+    records: records.length,
+    modes: {},
+    sources: {},
+    blockTypes: {},
+    fallbackReasons: {},
+    unsupportedBlocks: {},
+  }
+
+  for (const record of records) {
+    const modeKey = `${record.kind}:${record.contentMode || 'auto'}`
+    summary.modes[modeKey] = (summary.modes[modeKey] || 0) + 1
+    summary.sources[record.contentSource] = (summary.sources[record.contentSource] || 0) + 1
+    if (record.contentFallbackReason) {
+      summary.fallbackReasons[record.contentFallbackReason] = (summary.fallbackReasons[record.contentFallbackReason] || 0) + 1
+    }
+    for (const [name, count] of Object.entries(record.contentBlockTypes || {})) {
+      summary.blockTypes[name] = (summary.blockTypes[name] || 0) + count
+    }
+    for (const name of record.unsupportedContentBlocks || []) {
+      summary.unsupportedBlocks[name] = (summary.unsupportedBlocks[name] || 0) + 1
+    }
+  }
+
+  return summary
+}
+
+/**
+ * Fetches, normalizes, selects, and assembles all public data consumed by Eleventy templates.
+ * @returns {Promise<object>} Complete site data, route selection, diagnostics, and style rules.
+ * @throws {Error} When canonical public content cannot be fetched or route conflicts are found.
+ */
 async function loadWordPressData() {
-  contentStyleRules.clear()
-  const rawPages = await fetchCollection('wp/v2/pages?_embed=1&status=publish', 'pages')
-  const rawPosts = await fetchCollection('wp/v2/posts?_embed=1&status=publish', 'posts')
-  const rawPostCategories = await fetchCollection('wp/v2/categories?hide_empty=true', 'post categories')
-  const rawProducts = await fetchCollection('wc/store/v1/products', 'WooCommerce products')
-  const rawProductCategories = await fetchCollection('wc/store/v1/products/categories?hide_empty=true', 'WooCommerce product categories')
-  const rawNavigation = await fetchCollection('wp/v2/navigation?status=publish', 'WordPress navigation')
-  const renderedFrontPage = await fetchRenderedFrontPage()
-  const sitemaps = await fetchPublicSitemaps()
+  const contentContext = { contentStyleRules: new Map(), wordpressColorPalette: new Map() }
+  const pagePolicy = resolveWordPressContentPolicy(SITE_PROFILE.content, 'page')
+  const postPolicy = resolveWordPressContentPolicy(SITE_PROFILE.content, 'post')
+  const rawPages = await fetchCollection('wp/v2/pages', 'pages', {
+    params: { _embed: 1, status: 'publish' },
+    policy: pagePolicy,
+  })
+  const rawPosts = await fetchCollection('wp/v2/posts', 'posts', {
+    params: { _embed: 1, status: 'publish' },
+    policy: postPolicy,
+  })
+  const rawPostCategories = await fetchCollection('wp/v2/categories', 'post categories', { params: { hide_empty: true } })
+  const rawProducts = await wooCommerceStoreApi.listProducts()
+  const rawProductCategories = await wooCommerceStoreApi.listCategories()
+  const rawNavigation = await fetchCollection('wp/v2/navigation', 'WordPress navigation', { params: { status: 'publish' } })
+  const renderedFrontPage = await fetchRenderedFrontPage(contentContext)
+  const [recordElementLinkColors, sitemaps] = await Promise.all([
+    fetchWordPressElementLinkColors([
+      ...rawPages.map((record) => ({ record, kind: 'page' })),
+      ...rawPosts.map((record) => ({ record, kind: 'post' })),
+      ...rawProducts.map((record) => ({ record, kind: 'product' })),
+      ...rawPostCategories.map((record) => ({ record, kind: 'post-category' })),
+      ...rawProductCategories.map((record) => ({ record, kind: 'product-category' })),
+    ], contentContext),
+    fetchPublicSitemaps(),
+  ])
+  contentContext.recordElementLinkColors = recordElementLinkColors
   const homepageHtml = renderedFrontPage.content
 
-  const sourcePages = rawPages.map((record) => normalizeWpRecord(record, 'page'))
-  const sourcePosts = rawPosts.map((record) => normalizeWpRecord(record, 'post'))
-  const sourceProducts = rawProducts.map((record) => normalizeWpRecord(record, 'product'))
-  const sourcePostCategories = rawPostCategories.map((record) => normalizeTerm(record, 'post-category'))
-  const sourceProductCategories = rawProductCategories.map((record) => normalizeTerm(record, 'product-category'))
-  const home = sourcePages.find((record) => record.path === '/') || sourcePages.find((record) => record.id === 10343)
-  const blogPage = sourcePages.find((record) => record.slug === 'mon-blog')
+  const sourcePages = rawPages.map((record) => normalizeWpRecord(record, 'page', contentContext))
+  const sourcePosts = rawPosts.map((record) => normalizeWpRecord(record, 'post', contentContext))
+  const sourceProducts = rawProducts.map((record) => normalizeWpRecord(record, 'product', contentContext))
+  const sourcePostCategories = rawPostCategories.map((record) => normalizeTerm(record, 'post-category', contentContext))
+  const sourceProductCategories = rawProductCategories.map((record) => normalizeTerm(record, 'product-category', contentContext))
+  const contentPipeline = summarizeContentPipeline([...sourcePages, ...sourcePosts, ...sourceProducts])
+  console.log(`[wordpress] content conversion: ${JSON.stringify(contentPipeline)}`)
+  const home = sourcePages.find((record) => record.path === '/') || sourcePages.find((record) => record.id === SITE_PROFILE.homePageId)
+  const blogPage = sourcePages.find((record) => record.slug === SITE_PROFILE.blogPageSlug)
   if (!home) throw new Error('Could not locate the published WordPress front page')
   if (!blogPage) throw new Error('Could not locate the published WordPress blog page')
 
@@ -1087,21 +1653,25 @@ async function loadWordPressData() {
   for (const post of posts) {
     post.categoryTerms = postCategories.filter((category) => post.categoryIds.includes(category.id))
   }
-  const mainNavigationRecord = rawNavigation.find((record) => record.slug === 'main-menu')
-  const shopNavigationRecord = rawNavigation.find((record) => record.slug === 'boutique')
-  const footerNavigationRecord = rawNavigation.find((record) => record.title?.rendered === 'Menu Bas de Page')
+  const mainNavigationRecord = rawNavigation.find((record) => record.slug === SITE_PROFILE.mainNavigationSlug)
+  const shopNavigationRecord = rawNavigation.find((record) => record.slug === SITE_PROFILE.shopNavigationSlug)
+  const footerNavigationRecord = rawNavigation.find((record) => record.title?.rendered === SITE_PROFILE.footerNavigationTitle)
   const navigation = parseNavigationItems(mainNavigationRecord?.content?.rendered || '')
   const parsedShopNavigation = parseNavigationItems(shopNavigationRecord?.content?.rendered || '')
-  const shopNavigation = parsedShopNavigation.length ? parsedShopNavigation : SHOP_NAVIGATION_FALLBACK
+  const shopNavigation = parsedShopNavigation.length ? parsedShopNavigation : SITE_PROFILE.shopNavigationFallback
   const footerNavigation = parseNavigationItems(footerNavigationRecord?.content?.rendered || '')
-  const authorArchive = {
+  const authors = collectWordPressAuthors(posts, { routeResolver: wordpressRoutes })
+  const authorArchives = authors.map((author) => ({
     kind: 'author',
-    id: 'christine',
-    titleText: 'Christine',
-    path: '/author/christine/',
-    link: `${SITE_ORIGIN}/author/christine/`,
-    outputPath: 'author/christine/index.html',
-  }
+    id: `author-${author.id}`,
+    author,
+    titleText: author.name,
+    descriptionText: author.description || `Articles de ${author.name}.`,
+    path: author.path,
+    link: author.link,
+    outputPath: author.outputPath,
+    posts: posts.filter((post) => String(post.author?.id) === String(author.id)),
+  }))
 
   const latestPostsBlock = /<ul\b(?=[^>]*data-cd-block="latest-posts")[^>]*>[\s\S]*?<\/ul>/i.exec(blogPage.contentHtml)
   if (latestPostsBlock) {
@@ -1117,13 +1687,13 @@ async function loadWordPressData() {
   const blogArchives = paginatedArchives({
     base: blogPage,
     records: posts,
-    pageSize: 9,
+    pageSize: SITE_PROFILE.blogArchivePageSize,
     kind: 'blog-archive',
   })
   const postCategoryArchives = postCategories.flatMap((category) => paginatedArchives({
     base: category,
     records: posts.filter((post) => post.categoryIds.includes(category.id)),
-    pageSize: 9,
+    pageSize: SITE_PROFILE.blogArchivePageSize,
     kind: 'post-category-archive',
     category,
   }))
@@ -1134,19 +1704,28 @@ async function loadWordPressData() {
     ...productCategories,
     ...blogArchives,
     ...postCategoryArchives,
-    authorArchive,
+    ...authorArchives,
   ]
   checkRouteCollisions(routes)
 
-  const formIds = new Set()
-  for (const record of [...pages, ...posts]) {
-    for (const match of record.contentHtml.matchAll(/data-cd-form="(?:forminator|mailpoet)" data-form-id="(\d+)"/g)) {
-      formIds.add(Number(match[1]))
-    }
-  }
+  const formReferences = collectFormReferences([...pages, ...posts], {
+    providers: [
+      {
+        name: 'forminator',
+        findForms: (html) => [...html.matchAll(/data-cd-form="forminator" data-form-id="(\d+)"/g)].map((match) => match[1]),
+      },
+      {
+        name: 'mailpoet',
+        findForms: (html) => [...html.matchAll(/data-cd-form="mailpoet" data-form-id="(\d+)"/g)].map((match) => match[1]),
+      },
+    ],
+  })
+  const formIds = new Set(formReferences.map((form) => Number(form.id)))
 
   return {
-    contentStyleRules: [...contentStyleRules.values()],
+    contentStyleRules: [wordpressColorPaletteRule(contentContext.wordpressColorPalette), ...contentContext.contentStyleRules.values()].filter(Boolean),
+    wordpressColorPalette: Object.fromEntries(contentContext.wordpressColorPalette),
+    contentPipeline,
     siteOrigin: SITE_ORIGIN,
     fetchedAt: new Date().toISOString(),
     home,
@@ -1160,22 +1739,31 @@ async function loadWordPressData() {
     postCategories,
     postCategoryArchives,
     productCategories,
+    authors,
+    authorArchives,
     navigation,
     shopNavigation,
     footerNavigation,
-    authorArchive,
+    authorArchive: authorArchives[0] || null,
     recordSelection,
     sourceSitemaps: Object.fromEntries(Object.entries(sitemaps).map(([kind, paths]) => [kind, [...paths]])),
     referencedPaths: [...referencedPaths],
     formIds: [...formIds],
+    formReferences,
     routes: [{ ...home, path: '/', outputPath: 'index.html' }, ...routes].map((record) => record.link),
   }
 }
 
+/**
+ * Eleventy global-data provider for canonical public WordPress content.
+ * @returns {Promise<object>} Normalized site data and generated-route metadata.
+ * @sideEffects Fetches WordPress resources and refreshes the private build cache on success.
+ */
 module.exports = async function () {
   try {
     const data = await loadWordPressData()
     fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true })
+    // Persist only the last successful public snapshot; auth-only raw content is removed upstream.
     fs.writeFileSync(CACHE_FILE, JSON.stringify(data))
     return data
   } catch (error) {
@@ -1183,7 +1771,7 @@ module.exports = async function () {
       console.warn(`[wordpress] Using the last successful public content snapshot after a fetch failure: ${error.message}`)
       const cached = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'))
       if (!Array.isArray(cached.shopNavigation) || !cached.shopNavigation.length) {
-        cached.shopNavigation = SHOP_NAVIGATION_FALLBACK
+        cached.shopNavigation = SITE_PROFILE.shopNavigationFallback
       }
       return markPetalImagesInCachedMarkup(cached)
     }
@@ -1191,5 +1779,19 @@ module.exports = async function () {
   }
 }
 
+/**
+ * Converts rendered HTML or entities to normalized human-readable text.
+ * @param {string} [value] Rendered HTML or encoded text.
+ * @returns {string} Decoded text with collapsed whitespace.
+ */
 module.exports.textFromHtml = textFromHtml
+/** Converts class-marked WordPress callouts according to the explicit `callout-*` class contract. */
 module.exports.convertClassedElementsToCallouts = convertClassedElementsToCallouts
+/** Normalizes public or serialized WordPress markup and externalizes its styles for regression checks. */
+module.exports.normalizeRenderedHtml = normalizeRenderedHtml
+/** Carries saved Gutenberg color attributes into the consumer's markup normalization stage. */
+module.exports.transformGutenbergBlockColors = transformGutenbergBlockColors
+/** Reads sanitizer-approved container layout declarations from WordPress block-support CSS. */
+module.exports.extractWordPressBlockLayoutStyles = extractWordPressBlockLayoutStyles
+/** Revalidates public HTML, route links, assets, and style rules from a previous build cache. */
+module.exports.markPetalImagesInCachedMarkup = markPetalImagesInCachedMarkup

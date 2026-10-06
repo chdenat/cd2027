@@ -1,100 +1,176 @@
-# Reusable WordPress-to-Eleventy content pipeline
+<!--
+ * This file is part of the wp-awesome package.
+ *
+ * File: docs/reusable-wordpress-eleventy-content-pipeline.md
+ *
+ * Author: Christian Denat
+ *
+ * Created on: 2026-10-04
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+-->
 
-Status: architecture proposal; no implementation decision has been approved.
+# Reusable WordPress-to-Eleventy content package
+
+Status: CD2027 consumes a verified local archive from the standalone package checkout; the package itself has not been published as a registry release.
 Reviewed: 4 October 2026.
 
-## Recommendation
+## Product boundary
 
-Extract the repeated WordPress fetching, content modeling, route selection, and Eleventy integration into a configurable library made of optional adapters. Keep each site's route rules, theme mapping, custom blocks, and exceptional content in a site profile.
+The package should let a site connect a WordPress REST API to Eleventy with configuration and small site-owned adapters. It should not guess a site's theme, layout, permalink conventions, plugin behavior, or editorial rules. Each consumer supplies its WordPress origin, authentication provider, endpoints, type-specific policies, routes, public custom fields, renderers, and record-selection rules.
 
-The WordPress Gutenberg parser is a promising part of this design. The package to evaluate is [`@wordpress/block-serialization-default-parser`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-block-serialization-default-parser/). It parses serialized Gutenberg source into a tree of block names, attributes, nested blocks, and inner HTML. It does not fetch WordPress pages, render blocks, reproduce a theme, or replace the full content pipeline.
+The package core now contains a paginated REST client, renderer-neutral record contracts, author and taxonomy normalization, route resolution and collision checks, Gutenberg conversion policies, and an Eleventy global-data plugin. WooCommerce, Yoast sitemap, and form-reference support are separate opt-in subpaths. Site templates, styles, link rewriting, custom block rendering, commerce presentation, and form submission remain with the consuming project.
 
-## Current implementation
+## Implemented package surface
 
-[`src/_data/wordpress.js`](../src/_data/wordpress.js) currently combines these responsibilities:
+The reusable library is the standalone `wp-awesome` package, maintained in the sibling `../wp-awesome/` checkout. CD2027 installs the verified `vendor/wp-awesome-0.1.0-bf019719637c.tgz` archive so a clean CI runner does not require that sibling checkout or an unpublished registry release. Its public entry points are exposed from the package root or optional subpaths:
 
-- Fetch public WordPress REST collections, WooCommerce Store API collections, and Yoast sitemaps, with pagination and retries.
-- Normalize pages, posts, products, and taxonomy terms into records used by Eleventy.
-- Select generated records from sitemap membership and links found in selected content, then derive archives and route checks.
-- Rewrite internal links and normalize WordPress, WooCommerce, Getwid, CoBlocks, and site-specific HTML.
-- Extract navigation and footer data from the current WordPress front page and assemble the `wordpress` Eleventy data object.
+| Package API | Responsibility |
+| --- | --- |
+| `createWordPressRestClient()` | REST requests, pagination, configurable headers/authentication, timeouts, transient retries, and optional edit-to-public fallback. |
+| `normalizeWordPressRecord()` | Common page, post, and custom-type fields, Gutenberg diagnostics, author, taxonomy, media, route, and explicitly allowlisted custom fields. It omits the raw REST body and `content.raw`. |
+| `normalizeWordPressAuthor()` and `collectWordPressAuthors()` | Normalize standard embedded WordPress authors and deduplicate them by user ID. Co-author plugins are not part of the core contract. |
+| `normalizeWordPressTaxonomy()` | Normalize core or custom taxonomy terms and preserve their identity and route. |
+| `createWordPressRouteResolver()` and `assertNoWordPressRouteCollisions()` | Configure routes by content type, derive Eleventy output paths, canonical URLs, and reject output collisions. |
+| `resolveWordPressContentPolicy()` and `convertWordPressContent()` | Apply Gutenberg support and fallback rules per content type, with source and unsupported-block diagnostics. |
+| `createWordPressEleventyPlugin()` | Register a site-owned asynchronous loader as Eleventy global data. The package remains usable without Eleventy. |
+| `integrations/woocommerce` | Optional WooCommerce Store API collection adapter over the generic REST client. |
+| `integrations/yoast` | Optional configurable sitemap transport and location parser. |
+| `integrations/forms` | Optional form-reference collection through caller-provided plugin detectors; no form plugin is assumed. |
 
-Some of these are good library candidates, with configuration for the source origin and endpoint types. Others are current-site policy: canonical aliases, media fallbacks, the blog and home-page identities, CD2027 CSS tokens, custom callouts, and page-specific presentation rules. The module also keeps generated content CSS in a module-level map; a shared implementation should put that state in a per-build context.
+The REST client accepts a REST root and relative endpoint paths, so a custom post type exposed through `show_in_rest` can use its configured `rest_base` with the same pagination and normalization. A consumer chooses a stable type key, route, content policy, and allowlist for any public custom fields. Application Passwords are provided as a helper, while `getHeaders` allows another authentication scheme.
 
-The library must cover the whole site contract. The current inventory records editorial routes as well as products, archives, checkout, accounts, subscriptions, courses, forms, and legal pages. Dynamic customer and transaction data remains a runtime concern, not build-time content. See the [current route inventory](current-site-inventory.md), [initial architecture study](initial-architecture-study.md), and [WordPress runtime and publishing notes](wordpress-publishing-and-runtime.md).
+The normalizer keeps one standard WordPress `author` relation. `_embed=1` is needed to collect each author's public profile from post responses; authors are deduplicated by ID. The contract does not query the user directory or depend on co-author plugins. A site that needs a directory independent of selected posts can add a separately reviewed user-endpoint adapter.
 
-## Gutenberg parser assessment
+## Gutenberg input and validation
 
-WordPress stores Gutenberg content as serialized markup in `post_content`. Block delimiters are HTML comments such as `<!-- wp:paragraph -->`; the official default parser turns that source into a block tree. The package can therefore replace custom code that tries to infer block boundaries from saved Gutenberg markup. It provides structure, not a finished public page. See the [parser package documentation](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-block-serialization-default-parser/) and [WordPress parser overview](https://developer.wordpress.org/block-editor/reference-guides/filters/parser-filters/).
+The parser dependency is WordPress's official [`@wordpress/block-serialization-default-parser`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-block-serialization-default-parser/). It turns serialized Gutenberg source into nested block data. It does not fetch records, run shortcodes, load a site's registered blocks, reproduce a theme, or render dynamic blocks.
 
-The distinction between source and rendered output matters here. This repository currently normalizes `content.rendered` from public REST responses. The parser needs serialized block source. WordPress exposes `content.raw` in the REST response's edit context, which requires an authenticated build-time request; the REST controller documents the raw and rendered fields in its [response schema](https://developer.wordpress.org/reference/classes/wp_rest_posts_controller/prepare_item_for_response/). WordPress also explains why raw and rendered content differ: shortcodes and dynamic blocks can require server-side rendering, while a JavaScript consumer cannot render every block on its own ([REST content example](https://developer.wordpress.org/block-editor/how-to-guides/data-basics/3-building-an-edit-form/)).
+Each content type can define its own `mode`, supported block names, renderers, and freeform policy. `auto` uses serialized content only when the whole block tree is covered and otherwise selects server-rendered HTML with a reason. `rendered` always uses the REST `content.rendered` field. `blocks` fails if serialized source or renderer coverage is incomplete. The normalizer returns the selected HTML and diagnostic metadata without returning privileged `content.raw`.
 
-Recommended content input model:
+WordPress exposes `content.raw` in edit context, which requires an authenticated build-time request. Public rendered HTML remains the compatibility path for dynamic blocks, shortcodes, classic content, and unsupported plugin blocks. [REST API authentication](https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/), [REST response fields](https://developer.wordpress.org/reference/classes/wp_rest_posts_controller/prepare_item_for_response/), and [REST pagination](https://developer.wordpress.org/rest-api/using-the-rest-api/pagination/) describe these source behaviors.
 
-```text
-ContentRecord
-  identity: source, type, id, slug, canonical URL, status, modified time
-  editorial: title, excerpt, rawContent?, renderedHtml
-  relations: media, taxonomy, SEO fields
-  provenance: source endpoint and selected route policy
+The package sanitizes returned title, excerpt, content, caption, author-description, and taxonomy-description HTML with a strict allowlist, including HTML returned by custom renderers. Custom fields remain selected data rather than safe HTML; validate their types, use normal template escaping, and sanitize them separately if rendering as markup.
+
+## Example consumer configuration
+
+The package API is independent of a site's content types. A small Eleventy consumer can fetch standard post types and a custom `projects` type, while opting into only the integrations it uses:
+
+```js
+const {
+  createApplicationPasswordHeaders,
+  createWordPressEleventyPlugin,
+  createWordPressRestClient,
+  createWordPressRouteResolver,
+  normalizeWordPressRecord,
+  resolveWordPressContentPolicy,
+} = require('wp-awesome')
+
+const policies = {
+  default: { mode: 'rendered' },
+  types: {
+    page: { mode: 'auto', supportedBlockNames: ['core/paragraph', 'core/heading'] },
+    post: { mode: 'auto', supportedBlockNames: ['core/paragraph', 'core/heading'] },
+    project: { mode: 'rendered' },
+  },
+}
+
+const rest = createWordPressRestClient({
+  baseUrl: `${process.env.WORDPRESS_ORIGIN}/wp-json/`,
+  getHeaders: ({ context }) => context === 'edit'
+    ? createApplicationPasswordHeaders(process.env.WP_USER, process.env.WP_APP_PASSWORD)
+    : {},
+})
+const routes = createWordPressRouteResolver({
+  siteUrl: process.env.SITE_URL,
+  routes: { page: '/{slug}/', post: '/articles/{slug}/', project: '/projects/{slug}/' },
+})
+
+async function loadWordPressData() {
+  const definitions = [
+    { type: 'page', endpoint: 'wp/v2/pages' },
+    { type: 'post', endpoint: 'wp/v2/posts' },
+    { type: 'project', endpoint: 'wp/v2/projects', customFields: ['subtitle'] },
+  ]
+  const collections = await Promise.all(definitions.map(async (definition) => {
+    const policy = resolveWordPressContentPolicy(policies, definition.type)
+    const records = await rest.getCollection(definition.endpoint, {
+      params: { _embed: 1, status: 'publish' },
+      ...(policy.mode !== 'rendered' ? { context: 'edit', allowPublicFallback: policy.mode === 'auto' } : {}),
+    })
+    return records.map((record) => normalizeWordPressRecord(record, {
+      ...definition,
+      contentPolicy: policy,
+      routeResolver: routes,
+    }))
+  }))
+  return { pages: collections[0], posts: collections[1], projects: collections[2] }
+}
+
+module.exports = (eleventyConfig) => {
+  eleventyConfig.addPlugin(createWordPressEleventyPlugin({ loadData: loadWordPressData }))
+}
 ```
 
-Keep `rawContent` optional. Parse it to a block tree when a site can provide it. Keep WordPress-rendered HTML as a compatibility path for classic editor content, shortcodes, dynamic blocks, and plugins that have no configured renderer. Unknown blocks must remain visible in the output or produce a clear build report; they must not disappear silently.
+The sample is a starting integration, not a universal publishing policy. Consumers should select records from their sitemaps, internal links, navigation, and required runtime routes; filter public status explicitly; and check their full route inventory after builds.
 
-For specific dynamic blocks, WordPress also documents a server-side [rendered block REST endpoint](https://developer.wordpress.org/rest-api/reference/rendered-blocks/). Treat that as an optional renderer adapter to investigate per block family. It does not make every plugin's surrounding page behavior portable.
+## Optional integrations
 
-### What the package can and cannot provide
+Integrations are imported explicitly from package subpaths. A pages-and-posts site does not need to load commerce or forms support. WooCommerce Store API fetching is kept separate from core editorial records. Yoast support parses locations but leaves sitemap names and HTTP transport to the consumer. Form support deduplicates references through supplied detectors; provider markup, validation, submission, consent, and anti-spam behavior remain plugin-specific.
 
-| Capability | Parser package | Pipeline responsibility |
-| --- | --- | --- |
-| Recognize serialized Gutenberg block boundaries and nesting | Yes | Consume the returned tree. |
-| Return a block's name, attributes, nested blocks, and inner HTML | Yes | Define renderers for supported block names. |
-| Fetch pages, media, SEO data, or taxonomy | No | WordPress REST or plugin-specific source adapter. |
-| Select which public records become Eleventy routes | No | Configurable route policy and route inventory checks. |
-| Render dynamic/plugin blocks or shortcodes | No | Preserve server-rendered output or add an explicit renderer adapter. |
-| Map block appearance to a site's theme and components | No | Site profile, tokens, and presentation renderers. |
+SEO fields can differ between plugins, and a sitemap adapter alone does not normalize every SEO contract. Each consumer should provide an SEO adapter for its active plugin and preserve metadata such as title, description, canonical URL, social preview, and index policy. Likewise, the optional WooCommerce client only fetches Store API collections; cart, checkout, payment, accounts, and customer-specific data remain runtime integrations.
 
-## Proposed package boundaries
+## Connecting a WordPress site
 
-Keep the core independent of CD2027's CSS and templates. A site should opt into only the adapters it uses.
+There is no package-wide site registration or lookup. Each consuming project creates a small adapter that supplies the connection details and calls the same public APIs:
 
-1. **WordPress source adapters** fetch REST records, media, taxonomies, menus, sitemaps, and optional WooCommerce data. Pagination, retries, authentication, and endpoint field selection belong here.
-2. **Content model and route policy** normalize source records while retaining identifiers and source provenance. Sitemap inclusion, linked-record discovery, required routes, aliases, exclusions, and collision detection are configurable policies.
-3. **Content transform pipeline** runs ordered steps over each record: Word cleanup where provenance is known, Gutenberg parsing when raw content exists, supported core and plugin block renderers, local-link/media normalization, and rendered-HTML fallback handling. Each step returns its content and any generated assets or diagnostics through an explicit per-build context.
-4. **Eleventy adapter** exposes normalized records, collections, route metadata, and generated style rules through Eleventy's data cascade. Eleventy remains an optional integration around the content model so another static-site generator could reuse the source and transform layers.
-5. **Site profile** supplies origins, content types, route policy, taxonomies, aliases, identity lookups, theme-token mappings, navigation rules, custom block renderers, and approved media fallbacks.
+1. Set the WordPress REST root from that site's build environment, such as `https://cms.example/wp-json/`.
+2. Map each consumer-facing type to its REST endpoint. Core pages and posts use `wp/v2/pages` and `wp/v2/posts`; a custom type uses its configured `rest_base` under `wp/v2/`.
+3. Provide an optional authentication callback. Build secrets stay in the build environment and never enter Eleventy output.
+4. Define route templates, content policies, and an allowlist of public custom fields for each type.
+5. Write a small loader that fetches the selected records, normalizes them, checks route collisions, and returns the data model expected by that site's templates.
+6. Register that loader with `createWordPressEleventyPlugin()` and import only the optional integrations the project uses.
 
-WooCommerce, Yoast, Forminator, MailPoet, and Gutenberg block families should be opt-in adapters. A site that only publishes pages and posts should not inherit commerce assumptions. The shared contracts should not expose CD2027 selectors or `--cd2027--*` variables.
+This boundary lets multiple projects use the package without sharing a WordPress account, route scheme, theme, cache format, or plugin stack. Site-specific navigation extraction, URL rewriting, presentation, and record selection remain in the consumer adapter until a stable, independently useful contract justifies adding them to the package.
 
-## Migration sequence
+The parser path must be checked against the consumer's actual WordPress responses. A build log should report `serialized-blocks` for the intended record types and useful per-record block diagnostics before claiming that authenticated raw Gutenberg parsing works. A public build may correctly report `rendered-html` when edit-context credentials are unavailable or raw content is not exposed.
 
-1. Record the current data contract and representative outputs for every affected route family. Use the route inventory as the coverage checklist; include core blocks, extension blocks, classic HTML, shortcodes, forms, product content, and unsupported markup.
-2. Add the Gutenberg parser as an alternate input path for a small fixture set. Compare its block tree and generated result with the existing rendered-HTML path. Keep current production output on the existing path until coverage is known.
-3. Extract transport, entity normalization, route-policy helpers, and the Eleventy boundary in small steps. Keep `src/_data/wordpress.js` as the CD2027 composition layer while the generic package takes over neutral behavior.
-4. Move CD2027 aliases, token mapping, custom renderers, and source-specific fallbacks into the site profile. Confirm route selection, links, metadata, media, and whole-site page families still satisfy the [project rules](../PROJECT_RULES.md).
-5. Exercise the package from a second site configuration before publishing it as a stable shared package. That second consumer will reveal which options are true reusable contracts and which are accidental assumptions from CD2027.
+## Standalone package and installation
 
-## Decisions to resolve before implementation
+The package repository now owns its manifest, Bun lockfile, MIT license, changelog, shared/project rules, local skills, Vite/Vitest/Eleventy toolchain, plugin ZIP builder, CI, GitHub Pages documentation, and version-tag npm/GitHub publication workflows. It exposes the same CommonJS functions under the unscoped `wp-awesome` name. Consumers keep site profiles, presentation and routing policy in their own projects.
 
-- How should the build obtain serialized `content.raw`? An authenticated REST request uses the edit context and requires a server-side credential. Options include a narrowly permissioned WordPress account or a purpose-built read-only export endpoint that returns only approved public records. The current public-fetch build does not require this credential; adding it changes the data-access boundary.
-- Which block families should be rendered from parsed source, and which should continue to use WordPress-rendered HTML? Inventory the live content before choosing the first renderer set.
-- Should WooCommerce and form providers ship as separate optional packages, or as adapters in one package with optional dependencies?
-- Should initial reuse use a local workspace/Git dependency, with package publication after a second consumer validates the API?
-- Confirm the parser package's runtime/module compatibility with the repository's Bun and CommonJS Eleventy setup before adopting it.
+CD2027 uses `"wp-awesome": "file:vendor/wp-awesome-0.1.0-bf019719637c.tgz"`. Run `bun run package:wordpress:refresh` after an approved package change: it verifies the sibling checkout, regenerates the archive, and updates the site dependency and lockfile. Then run `bun run check`. Include the archive, manifest and lockfile together when committing the integration.
 
-## Acceptance conditions
+After the remote and release exist, replace that local archive with either:
 
-- The library has no CD2027 brand tokens, route aliases, IDs, or content-specific assumptions in its core.
-- Each build receives isolated configuration and transform state.
-- The generated route set and canonical metadata remain traceable to WordPress source records and the configured inclusion policy.
-- Supported blocks render explicitly; dynamic or unknown content uses a documented fallback or fails visibly.
-- WordPress credentials stay in the build environment and never enter browser bundles, generated output, or public caches.
-- The current site's generated content preserves its public routes and functional families, and a second site can opt into a different set of source and rendering adapters.
+```sh
+npm install wp-awesome@0.1.0
+npm install github:lgs1920/wp-awesome#v0.1.0
+```
+
+Choose one installation method. Both use `require('wp-awesome')`, with optional `wp-awesome/integrations/*` subpaths. The first requires an npm release; the second requires the GitHub repository and version tag. The package has not been published by this extraction. See the standalone `README.md` and `docs-site/src/package-releases.md` for Bun equivalents and full release setup.
+
+Staging verification remains necessary for the live WordPress plugin, hosting, token permissions, commerce and form flows. Local package tests do not establish that those external systems are configured.
+
+## Acceptance conditions for a published product
+
+- The published package contains no site brand, domain, route alias, theme token, fixed content ID, or workflow assumption.
+- Every WordPress collection is paginated, auth is configurable, credentials remain outside browser output, and public fallback is explicit.
+- Page, post, author, taxonomy, and custom-type contracts preserve source identity while excluding privileged raw content and unapproved metadata.
+- Each content type can choose Gutenberg support and fallback policy; unsupported dynamic content remains visible through rendered HTML or produces an explicit failure.
+- Route generation is configurable and collisions fail before a release can be promoted.
+- WooCommerce, SEO, and forms remain optional subpaths or separately installable adapters.
+- A second unrelated consumer can install the package without copying application code from its first consumer.
 
 ## Official WordPress references
 
 - [Block Serialization Default Parser package](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-block-serialization-default-parser/)
 - [Parser filters and serialized block content](https://developer.wordpress.org/block-editor/reference-guides/filters/parser-filters/)
 - [WordPress REST post response fields](https://developer.wordpress.org/reference/classes/wp_rest_posts_controller/prepare_item_for_response/)
-- [Raw and rendered content in an edited entity](https://developer.wordpress.org/block-editor/how-to-guides/data-basics/3-building-an-edit-form/)
-- [Rendered Block REST API](https://developer.wordpress.org/rest-api/reference/rendered-blocks/)
+- [Embedding related REST resources](https://developer.wordpress.org/rest-api/using-the-rest-api/global-parameters/)
+- [WordPress posts endpoint](https://developer.wordpress.org/rest-api/reference/posts/)
+- [WordPress users endpoint](https://developer.wordpress.org/rest-api/reference/users/)
+- [Custom post type REST API support](https://developer.wordpress.org/rest-api/extending-the-rest-api/adding-rest-api-support-for-custom-content-types/)
+- [WordPress REST API authentication](https://developer.wordpress.org/rest-api/using-the-rest-api/authentication/)
+- [WordPress REST API pagination](https://developer.wordpress.org/rest-api/using-the-rest-api/pagination/)

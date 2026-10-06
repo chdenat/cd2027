@@ -1,4 +1,18 @@
 <?php
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: wordpress/mu-plugins/cd2027-eleventy-webhook.php
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-10-02
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
 /**
  * Plugin Name: CD2027 GitHub publishing webhook
  * Description: Queues public WordPress content changes for the Eleventy build workflow.
@@ -31,6 +45,7 @@ add_action(CD2027_ELEVENTY_SEND_HOOK, 'cd2027_send_eleventy_webhook');
 add_action('init', 'cd2027_resume_eleventy_webhook_outbox');
 
 function cd2027_queue_eleventy_post_change($post_id, $post, $update, $post_before) {
+    // Ignore revisions and never dispatch drafts unless this event removes a previously public record.
     if (!$post instanceof WP_Post || wp_is_post_revision($post_id) || wp_is_post_autosave($post_id)) {
         return;
     }
@@ -148,6 +163,10 @@ function cd2027_queue_eleventy_menu_change($menu_id) {
     cd2027_queue_eleventy_event('menu', $menu_id, 'publish', array('menu'), gmdate('c'));
 }
 
+/**
+ * Stores a sanitized content-change notification in the durable outbox and schedules delivery.
+ * The notification contains identifiers and change labels; the build fetches canonical records.
+ */
 function cd2027_queue_eleventy_event($record_type, $record_id, $status, $changed_fields, $modified_gmt) {
     $event = array(
         'event_id' => wp_generate_uuid4(),
@@ -158,10 +177,13 @@ function cd2027_queue_eleventy_event($record_type, $record_id, $status, $changed
         'modified_gmt' => gmdate('c', strtotime($modified_gmt . ' UTC') ?: time()),
     );
 
+    // Store the notification before scheduling delivery so a transient WP-Cron/network failure is recoverable.
     $outbox = get_option(CD2027_ELEVENTY_OUTBOX_OPTION, array());
     $outbox[$event['event_id']] = array('event' => $event, 'attempts' => 0, 'queued_at' => time());
     update_option(CD2027_ELEVENTY_OUTBOX_OPTION, $outbox, false);
     cd2027_schedule_eleventy_webhook(5);
+    // The optional package dashboard records metadata only; dispatch remains owned by this durable outbox.
+    do_action('wordpress_eleventy_content_event_queued', $event);
 }
 
 function cd2027_resume_eleventy_webhook_outbox() {
@@ -176,12 +198,14 @@ function cd2027_schedule_eleventy_webhook($delay) {
     }
 }
 
+/** Sends one bounded outbox batch to GitHub and acknowledges it only after HTTP 204. */
 function cd2027_send_eleventy_webhook() {
     if (!defined('CD2027_GITHUB_DISPATCH_TOKEN') || !defined('CD2027_GITHUB_REPOSITORY')) {
         error_log('CD2027 publish queue is waiting for its GitHub dispatch configuration.');
         return;
     }
 
+    // Dispatch credentials are server-side constants; never include them in event payloads or logs.
     $repository = (string) CD2027_GITHUB_REPOSITORY;
     if (!preg_match('/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/', $repository) || !CD2027_GITHUB_DISPATCH_TOKEN) {
         error_log('CD2027 publish queue has an invalid GitHub dispatch configuration.');
@@ -219,6 +243,7 @@ function cd2027_send_eleventy_webhook() {
         'body' => $body,
     ));
 
+    // Remove queued events only after GitHub confirms repository_dispatch acceptance (HTTP 204).
     if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 204) {
         $outbox = get_option(CD2027_ELEVENTY_OUTBOX_OPTION, array());
         foreach ($event_ids as $event_id) {
@@ -234,6 +259,7 @@ function cd2027_send_eleventy_webhook() {
     cd2027_retry_eleventy_webhook($event_ids[0]);
 }
 
+/** Increments the queued event's retry count and schedules capped exponential backoff. */
 function cd2027_retry_eleventy_webhook($event_id) {
     $outbox = get_option(CD2027_ELEVENTY_OUTBOX_OPTION, array());
     if (!isset($outbox[$event_id])) {

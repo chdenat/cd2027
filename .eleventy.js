@@ -1,4 +1,28 @@
+/******************************************************************************
+ * This file is part of the CD2027 project.
+ *
+ * File: .eleventy.js
+ *
+ * Author: Christian Denat
+ * Email: christian.denat@orange.fr
+ *
+ * Created on: 2026-08-19
+ * Last modified: 2026-10-06
+ *
+ * Copyright © 2026 Christian Denat
+ ******************************************************************************/
+
+const { createWordPressEleventyPlugin } = require('wp-awesome')
+const loadWordPressData = require('./src/_lib/wordpress-data.js')
+
+/**
+ * Configures Eleventy output, shared filters, the generic WordPress data adapter, and post-build handling.
+ * @param {import('@11ty/eleventy').UserConfig} eleventyConfig Eleventy configuration API.
+ * @returns {{dir: object, templateFormats: string[], htmlTemplateEngine: string, markdownTemplateEngine: string}}
+ */
 module.exports = function (eleventyConfig) {
+  eleventyConfig.addPlugin(createWordPressEleventyPlugin({ loadData: loadWordPressData }))
+
   eleventyConfig.setServerOptions({
     port: 4555,
   })
@@ -24,6 +48,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addFilter('json', (value) => JSON.stringify(value))
   eleventyConfig.addWatchTarget('.data/wordpress-revision.json')
   if (process.env.CD2027_WP_AUTH === '1') {
+    // The gate filename changes per build to keep hosting caches from retaining stale auth code.
     eleventyConfig.on('eleventy.after', () => {
       const path = require('node:path')
       const versionCd2027Gate = require('./scripts/version-cd2027-gate.js')
@@ -32,6 +57,7 @@ module.exports = function (eleventyConfig) {
     })
   } else {
     eleventyConfig.on('eleventy.after', () => {
+      // Public builds must not retain gate files left by an earlier private build.
       const fs = require('node:fs')
       const path = require('node:path')
       for (const file of ['.htaccess', 'cd2027-gate.php', 'cd2027-login.css']) {
