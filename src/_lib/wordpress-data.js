@@ -6,7 +6,7 @@
  * Author: Christian Denat
  * Email: christian.denat@orange.fr
  *
- * Created on: 2026-10-06
+ * Created on: 2026-10-02
  * Last modified: 2026-10-06
  *
  * Copyright © 2026 Christian Denat
@@ -1683,7 +1683,7 @@ async function loadWordPressData() {
     }
   }
   blogPage.archiveIntroHtml = latestPostsBlock ? blogPage.contentHtml.slice(0, latestPostsBlock.index) : blogPage.contentHtml
-  blogPage.archiveOutroHtml = latestPostsBlock ? blogPage.contentHtml.slice(latestPostsBlock.index + latestPostsBlock[0].length) : '' 
+  blogPage.archiveOutroHtml = latestPostsBlock ? blogPage.contentHtml.slice(latestPostsBlock.index + latestPostsBlock[0].length) : ''
   const blogArchives = paginatedArchives({
     base: blogPage,
     records: posts,
