@@ -7,7 +7,7 @@
 # Email: christian.denat@orange.fr
 #
 # Created on: 2026-10-02
-# Last modified: 2026-10-06
+# Last modified: 2026-10-07
 #
 # Copyright © 2026 Christian Denat
 # ******************************************************************************
@@ -15,6 +15,9 @@
 name: Deploy cd2027.christinedeloupy.fr
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
   # WordPress dispatches after it has safely queued a public content change.
   repository_dispatch:

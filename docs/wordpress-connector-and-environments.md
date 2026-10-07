@@ -7,14 +7,14 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
 -->
 
 # WP Awesome and separate deployment environments
 
-The WP Awesome guide in the standalone checkout (`../wp-awesome/docs-site/src/wp-awesome.md`) documents the reusable plugin. This file records the CD2027-specific targets and the production readiness boundary.
+The [WP Awesome guide](https://github.com/chdenat/wp-awesome) documents the reusable plugin. This file records the CD2027-specific targets and the production readiness boundary.
 
 ## Current deployment targets
 
@@ -22,7 +22,7 @@ WordPress at `https://christinedeloupy.fr` remains the content source. The CD202
 
 | Target | Workflow | GitHub environment | Site origin | Trigger policy |
 | --- | --- | --- | --- | --- |
-| Staging | `.github/workflows/deploy-cd2027.yml` | `cd2027` | `https://cd2027.christinedeloupy.fr` | Published WordPress changes, manual build, daily reconciliation |
+| Staging | `.github/workflows/deploy-cd2027.yml` | `cd2027` | `https://cd2027.christinedeloupy.fr` | Push to `main`, published WordPress changes, manual build, daily reconciliation |
 | Production | `.github/workflows/deploy-cd2027-production.yml` | `cd2027-production` | `https://christinedeloupy.fr` | Explicit request only; GitHub environment approval required |
 
 The same WordPress content source may feed both builds, but each GitHub environment has independent site-origin and deployment values. Production must use a separate release root; never set it to the WordPress installation directory or its public document root.

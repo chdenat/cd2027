@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -68,14 +68,14 @@ The root `index.js` is the `main` placeholder declared by the private root packa
 
 ## GitHub deployment workflow
 
-`.github/workflows/deploy-cd2027.yml` builds and deploys `https://cd2027.christinedeloupy.fr` from `main`. It starts on a manual `workflow_dispatch`, the authenticated WordPress `repository_dispatch` event `cd2027_deploy`, or the daily cron `17 6 * * *` (06:17 UTC). The job installs the locked Bun dependencies, runs `bun run check`, then invokes `scripts/upload-cd2027.sh`. It requires the `cd2027` GitHub environment, Font Awesome Pro access, the WordPress API credentials when edit-context content is configured, and the SSH values listed above. Deployments are serialized and are not cancelled once started. A failed build or transfer leaves the previous remote `current` release active.
+`.github/workflows/deploy-cd2027.yml` builds and deploys `https://cd2027.christinedeloupy.fr` from `main`. It starts on every push to `main`, a manual `workflow_dispatch`, the authenticated WordPress `repository_dispatch` event `cd2027_deploy`, or the daily cron `17 6 * * *` (06:17 UTC). The job installs the locked Bun dependencies, runs `bun run check`, then invokes `scripts/upload-cd2027.sh`. It requires the `cd2027` GitHub environment, Font Awesome Pro access, the WordPress API credentials when edit-context content is configured, and the SSH values listed above. Deployments are serialized and are not cancelled once started. A failed build or transfer leaves the previous remote `current` release active.
 
 `.github/workflows/deploy-cd2027-production.yml` builds the production origin from `main` on manual `workflow_dispatch` or the explicit `cd2027_production_deploy` repository-dispatch event. It uses only the separate `cd2027-production` GitHub environment and the same-named secrets and variables stored there. It requires `SITE_URL=https://christinedeloupy.fr`, an HTTPS `WORDPRESS_ORIGIN`, a dedicated production `CD2027_REMOTE_ROOT`, and `CD2027_PRODUCTION_READY=true`; otherwise it exits before checkout and transfer. Configure required reviewers on the production environment. Routine WordPress edits and the daily reconciliation workflow trigger staging only.
 
 ## WordPress data and reusable package
 
 - `src/_lib/wordpress-data.js` is the Eleventy server-side adapter. It fetches canonical WordPress records and sitemaps, selects routes from sitemap membership and public internal references, normalizes records and HTML, then exposes the route manifest used by `check-routes.js`. Credentials remain in the build process.
-- `wp-awesome` is maintained in the standalone sibling checkout. CD2027 consumes `vendor/wp-awesome-0.1.0-d610ea573912.tgz`; `bun run test:wordpress-package` checks installed exports and the real site adapter without the sibling's development tools. `bun run package:wordpress:refresh` verifies that checkout, regenerates an archive whose filename includes its content digest, updates the dependency and lockfile, and installs it. It writes the vendor archive, `package.json`, and `bun.lock`; it does not stage, commit or publish. Supply an alternative checkout path as `bun run package:wordpress:refresh -- /absolute/path/to/wp-awesome` if needed.
+- `wp-awesome` is maintained in the standalone [`chdenat/wp-awesome`](https://github.com/chdenat/wp-awesome) repository. Run `bun add chdenat/wp-awesome` to update the dependency; Bun records the resolved commit in `bun.lock`. Verify a clean locked install with `bun install --frozen-lockfile`, then run `bun run test:wordpress-package` to check the public exports and site adapter without fetching WordPress content.
 - The standalone package owns REST pagination/authentication, normalization, Gutenberg parsing, route helpers and optional WooCommerce/Yoast/forms subpaths. The PHP plugin is installed from `node_modules/wp-awesome/wordpress-plugin/wp-awesome.php`; it has its own durable SQL outbox and dispatches through WordPress cron. Keep only one publisher active for a given workflow.
 - The site header updater retains a package-neutral header for `docs/reusable-wordpress-eleventy-content-pipeline.md`; the standalone repository owns its own headers and skills.
 

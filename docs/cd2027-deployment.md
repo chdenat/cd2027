@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -88,7 +88,7 @@ Ne colle aucun secret dans le dépôt, une variable GitHub non secrète, le code
 
 ## 3. Lancer et vérifier un premier déploiement
 
-Le workflow `.github/workflows/deploy-cd2027.yml` doit d’abord être présent sur la branche par défaut `main` de GitHub. Tant qu’il ne l’est pas, GitHub ne peut pas proposer le bouton **Run workflow**. Les lancements manuels nécessitent aussi `workflow_dispatch` dans le fichier et un accès en écriture au dépôt ([conditions GitHub](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow)).
+Le workflow `.github/workflows/deploy-cd2027.yml` doit d’abord être présent sur la branche par défaut `main` de GitHub. Chaque push sur `main` déclenche le build et le déploiement staging; les pushes sur les autres branches ne le font pas. Tant que le workflow n’est pas présent sur `main`, GitHub ne peut pas proposer le bouton **Run workflow**. Les lancements manuels nécessitent aussi `workflow_dispatch` dans le fichier et un accès en écriture au dépôt ([conditions GitHub](https://docs.github.com/actions/managing-workflow-runs/manually-running-a-workflow)).
 
 Ouvre directement [la page Actions du dépôt](https://github.com/chdenat/cd2027/actions) si l’onglet est masqué dans le menu **More**. Quand le workflow CD2027 est publié sur `main`, sélectionne **Deploy cd2027.christinedeloupy.fr**, puis **Run workflow**.
 
