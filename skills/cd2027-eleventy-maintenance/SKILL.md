@@ -11,7 +11,7 @@ description: Maintain CD2027 Eleventy data, Nunjucks templates, Web Awesome styl
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -28,7 +28,7 @@ Use this skill for page generation, WordPress data adapters, template and layout
 - `src/_includes/` contains reusable templates.
 - `src/assets/` contains the browser entry point and styles.
 - `_site/` is generated output and must never be edited directly.
-- Check `package.json` and `bun.lock` before relying on an install or build command; the current working copy is not yet consistent.
+- Check `package.json` and `bun.lock` before relying on an install or build command. Keep them in sync with Bun and verify clean installs with `bun install --frozen-lockfile`.
 
 ## Workflow
 

@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-08-19
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -50,6 +50,6 @@ The checked-in GitHub workflow deploys only to `https://cd2027.christinedeloupy.
 
 ## Standalone WP Awesome dependency
 
-The reusable WordPress library and optional PHP publisher are maintained in `../wp-awesome/`, under the unscoped package name `wp-awesome`. This site installs the verified `vendor/wp-awesome-0.1.0-d610ea573912.tgz` archive, so a frozen CI install works before npm/GitHub publication.
+The reusable WordPress library and optional PHP publisher are maintained in [`chdenat/wp-awesome`](https://github.com/chdenat/wp-awesome), under the unscoped package name `wp-awesome`. This site uses Bun's GitHub dependency; `bun.lock` pins the resolved commit for reproducible CI installs.
 
-After changing the package, run `bun run package:wordpress:refresh` and `bun run check`. The refresh command verifies and repacks the standalone source, updates the dependency and Bun lockfile, and installs it; it does not publish or commit. See [the integration guide](docs/reusable-wordpress-eleventy-content-pipeline.md) for npm and GitHub installation after the first release.
+Run `bun add chdenat/wp-awesome` to update the package and lockfile, then run `bun install --frozen-lockfile` and `bun run check`. See [the integration guide](docs/reusable-wordpress-eleventy-content-pipeline.md) for package boundaries and release setup.

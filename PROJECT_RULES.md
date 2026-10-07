@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -82,7 +82,7 @@ These rules adapt the relevant LGS1920 site conventions to the Christine Deloupy
 ### Source file headers
 
 - Put the canonical CD2027 project header at the beginning of every maintained first-party text source, template, script, and documentation file whose syntax supports comments. Use the identity `Christian Denat`, `christian.denat@orange.fr`, and `Copyright © YYYY Christian Denat`.
-- Use the neutral `wp-awesome` package header for `docs/reusable-wordpress-eleventy-content-pipeline.md`. The standalone package lives in its own `wp-awesome` repository with its own rules and skills; it must not inherit the CD2027 identity, domains, or personal email. CD2027 consumes a verified archive until a remote release exists.
+- Use the neutral `wp-awesome` package header for `docs/reusable-wordpress-eleventy-content-pipeline.md`. The standalone package lives in its own `wp-awesome` repository with its own rules and skills; it must not inherit the CD2027 identity, domains, or personal email. CD2027 consumes `wp-awesome` from `chdenat/wp-awesome`; Bun's lockfile pins the resolved commit until a versioned package release is adopted.
 - Match the comment delimiters to the language: block comments for JavaScript, TypeScript, CSS, and PHP; Nunjucks comments for `.njk`; HTML comments for HTML, Markdown, SVG, and XML; and `#` comments for shell, YAML, and similar configuration files.
 - Preserve shebangs, XML declarations, HTML doctypes, and Eleventy front matter before the header. Strict JSON, generated output, caches, dependencies, vendored files, IDE-local files, and binary assets cannot or must not receive this header.
 - `Created on` is the date of the first Git commit that introduced the file, falling back to today's date in `Europe/Paris` for a new file. `Last modified` is today's date in `Europe/Paris` when the file has a current change, or the latest commit date otherwise. Do not put a commit hash in the header.

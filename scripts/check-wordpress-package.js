@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -19,7 +19,7 @@ const { existsSync } = require('node:fs')
 const { dirname, join } = require('node:path')
 const api = require('wp-awesome')
 
-// Check the installed archive through its public names, independently of the package checkout.
+// Check the installed dependency through its public names, independently of the package checkout.
 for (const subpath of ['content', 'rest-client', 'records', 'routes', 'styles', 'policies', 'eleventy']) {
   const entry = require(`wp-awesome/${subpath}`)
   for (const [name, implementation] of Object.entries(entry)) assert.equal(api[name], implementation)

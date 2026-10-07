@@ -7,7 +7,7 @@
 # Email: christian.denat@orange.fr
 #
 # Created on: 2026-08-19
-# Last modified: 2026-10-06
+# Last modified: 2026-10-07
 #
 # Copyright © 2026 Christian Denat
 # ******************************************************************************
@@ -19,3 +19,4 @@ node_modules/
 .env
 .DS_Store
 /.idea/workspace.xml
+vendor/wp-awesome-*.tgz

@@ -6,7 +6,7 @@
  * Author: Christian Denat
  *
  * Created on: 2026-10-04
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -24,7 +24,7 @@ The package core now contains a paginated REST client, renderer-neutral record c
 
 ## Implemented package surface
 
-The reusable library is the standalone `wp-awesome` package, maintained in the sibling `../wp-awesome/` checkout. CD2027 installs the verified `vendor/wp-awesome-0.1.0-bf019719637c.tgz` archive so a clean CI runner does not require that sibling checkout or an unpublished registry release. Its public entry points are exposed from the package root or optional subpaths:
+The reusable library is the standalone `wp-awesome` package in [`chdenat/wp-awesome`](https://github.com/chdenat/wp-awesome). CD2027 depends on that GitHub repository; `bun.lock` records the exact resolved commit so a clean CI runner installs the same package snapshot. Its public entry points are exposed from the package root or optional subpaths:
 
 | Package API | Responsibility |
 | --- | --- |
@@ -140,16 +140,15 @@ The parser path must be checked against the consumer's actual WordPress response
 
 The package repository now owns its manifest, Bun lockfile, MIT license, changelog, shared/project rules, local skills, Vite/Vitest/Eleventy toolchain, plugin ZIP builder, CI, GitHub Pages documentation, and version-tag npm/GitHub publication workflows. It exposes the same CommonJS functions under the unscoped `wp-awesome` name. Consumers keep site profiles, presentation and routing policy in their own projects.
 
-CD2027 uses `"wp-awesome": "file:vendor/wp-awesome-0.1.0-bf019719637c.tgz"`. Run `bun run package:wordpress:refresh` after an approved package change: it verifies the sibling checkout, regenerates the archive, and updates the site dependency and lockfile. Then run `bun run check`. Include the archive, manifest and lockfile together when committing the integration.
+CD2027 declares `"wp-awesome": "chdenat/wp-awesome"`. Run `bun add chdenat/wp-awesome` to update the package manifest and lockfile, review the resolved commit in `bun.lock`, then run `bun install --frozen-lockfile` and `bun run check`. Commit the manifest and lockfile together.
 
-After the remote and release exist, replace that local archive with either:
+For another Bun consumer that needs a fixed release tag or commit, use:
 
 ```sh
-npm install wp-awesome@0.1.0
-npm install github:lgs1920/wp-awesome#v0.1.0
+bun add github:chdenat/wp-awesome#<tag-or-commit>
 ```
 
-Choose one installation method. Both use `require('wp-awesome')`, with optional `wp-awesome/integrations/*` subpaths. The first requires an npm release; the second requires the GitHub repository and version tag. The package has not been published by this extraction. See the standalone `README.md` and `docs-site/src/package-releases.md` for Bun equivalents and full release setup.
+The GitHub dependency uses `require('wp-awesome')`, with optional `wp-awesome/integrations/*` subpaths. The package has not been published to npm; after a versioned release is published, consumers may use that registry version instead. See the standalone `README.md` and `docs-site/src/package-releases.md` for package release setup.
 
 Staging verification remains necessary for the live WordPress plugin, hosting, token permissions, commerce and form flows. Local package tests do not establish that those external systems are configured.
 

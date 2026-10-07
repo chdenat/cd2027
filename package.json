@@ -16,8 +16,7 @@
     "test:wordpress-colors": "bun scripts/check-wordpress-colors.js",
     "test:wordpress-package": "node scripts/check-wordpress-package.js",
     "test:security": "node --test test/security.test.js",
-    "build:icons": "bun scripts/build-fontawesome-icons.js",
-    "package:wordpress:refresh": "bun scripts/update-wordpress-package.mjs"
+    "build:icons": "bun scripts/build-fontawesome-icons.js"
   },
   "private": true,
   "dependencies": {
@@ -27,7 +26,7 @@
     "@fortawesome/pro-solid-svg-icons": "7.3.1",
     "@lgs1920/timeline": "1.4.0",
     "entities": "^6.0.1",
-    "wp-awesome": "file:vendor/wp-awesome-0.1.0-bf019719637c.tgz"
+    "wp-awesome": "chdenat/wp-awesome"
   },
   "devDependencies": {
     "jsdom": "26.1.0"

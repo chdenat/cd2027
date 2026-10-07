@@ -11,7 +11,7 @@
         "@fortawesome/pro-solid-svg-icons": "7.3.1",
         "@lgs1920/timeline": "1.4.0",
         "entities": "^6.0.1",
-        "wp-awesome": "file:vendor/wp-awesome-0.1.0-bf019719637c.tgz",
+        "wp-awesome": "chdenat/wp-awesome",
       },
       "devDependencies": {
         "jsdom": "26.1.0",
@@ -415,7 +415,7 @@
 
     "whatwg-url": ["whatwg-url@14.2.0", "", { "dependencies": { "tr46": "^5.1.0", "webidl-conversions": "^7.0.0" } }, "sha512-De72GdQZzNTUBBChsXueQUnPKDkg/5A5zp7pFDuQAj5UFoENpiACU0wlCvzpAGnTkj++ihpKwKyYewn/XNUbKw=="],
 
-    "wp-awesome": ["wp-awesome@vendor/wp-awesome-0.1.0-bf019719637c.tgz", { "dependencies": { "@wordpress/block-serialization-default-parser": "^5.56.0", "entities": "^6.0.1", "sanitize-html": "2.18.0" } }, "sha512-2p/YGWUg7dz+lEcZGK0aV1dX0//x1RYEN2YMuHGRPf6n/tBnwU4jp2O1EJxUoFst6GsFPMHrY78f5fUGkxGJ/A=="],
+    "wp-awesome": ["wp-awesome@github:chdenat/wp-awesome#4aae7c4", { "dependencies": { "@wordpress/block-serialization-default-parser": "^5.56.0", "entities": "^6.0.1", "sanitize-html": "2.18.0" } }, "chdenat-wp-awesome-4aae7c4", "sha512-Jfx7w5ypU5EtcIGgF1ZDRSf9TL+9IweSJDT1RiSYA7vtVAwSXjezgSzJB/aNAt112k/OfD2ZtVy4qyH8T4CHPg=="],
 
     "ws": ["ws@8.21.3", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-201TZ/kPWxoPr/OKWjquZR1SWKXcvxdH+e1xrx89b3YbmzLMFCLfnaG1HFIgWzJOEWZ7MvpK++odZufgYR50Rw=="],
 
