@@ -22,15 +22,18 @@ This page documents the repository's local commands, build checks, deployment en
 | --- | --- | --- |
 | `bun run dev` | Starts the local Eleventy site at `http://localhost:4555`. | Stops only an existing CD2027 dev server, builds the local Font Awesome bundle, then starts the server. Uses `PORT` when set. The server reads generated `_site/` files and proxies the documented form and WooCommerce requests to WordPress. |
 | `bun run build` | Builds all Eleventy routes into `_site/`. | Builds Font Awesome icons, removes and recreates `_site/`, then fetches WordPress data. Do not use while another process is writing this output. |
-| `bun run check` | Runs callout conversion, reusable package, and file-header tests, then a clean full build and generated-route/link checks. | Requires WordPress network access or `CD2027_ALLOW_PUBLIC_CACHE=1` with an existing snapshot. Leaves the checked build in `_site/` and a private WordPress route manifest in `.data/`. |
+| `bun run check` | Runs callout conversion, reusable package, WordPress retry, security, and file-header tests, then a clean full build and generated-route/link checks. | Requires WordPress network access or `CD2027_ALLOW_PUBLIC_CACHE=1` with an existing snapshot. Leaves the checked build in `_site/` and a private WordPress route manifest in `.data/`. |
 | `bun run test:callouts` | Runs focused assertions for callout conversion in the WordPress adapter. | No network access. Does not build the site. |
 | `bun run test:wordpress-package` | Runs deterministic package API checks for REST pagination/auth fallback, Gutenberg policies, normalized relations, custom fields, route generation, and collision detection. | Uses Node's built-in test runner and mock responses; no WordPress credentials or network access. |
+| `bun run test:wordpress-retries` | Checks transient WordPress failures, bounded backoff, `Retry-After`, and permanent-error handling. | Uses Node's built-in test runner and mocked responses; no WordPress network access. |
 | `bun run test:file-headers` | Checks the header updater's syntax wrappers, date fields, and front matter handling. | No network access; does not modify repository files. |
 | `bun run headers:update` | Updates and stages headers for supported files already staged for commit. | Requires Git and Bun. Refuses to continue when a staged file has unstaged edits. |
 | `bun run headers:update:all` | Adds or refreshes headers in supported first-party files currently present in the working tree. | Does not stage changes. Uses the package-neutral header for the reusable WordPress package and its architecture note. Skips strict JSON, generated output, caches, dependencies, IDE-local files, and binary assets. |
 | `bun run headers:check` | Verifies headers across supported first-party files currently present in the working tree. | No network access; exits non-zero when a header is missing or outdated. |
 | `bun run git:hooks:install` | Sets this repository's local Git hooks path to `.githooks`. | Run once per clone; requires Git and Bun when committing. The pre-commit hook refreshes staged source headers. |
 | `bun run build:icons` | Bundles the explicitly registered Font Awesome icons for browser use. | Requires Bun and installed Font Awesome packages; writes `.build/fontawesome-icons.js`. |
+
+Yoast sitemap requests use `wp-awesome`'s retrying sitemap transport with up to six attempts. The build applies exponential backoff from a five-second base, adds jitter within a 30-second cap to spread simultaneous retries, and honors `Retry-After` up to two minutes. If all attempts fail, the build still stops so an incomplete route inventory is never deployed. The local retry helper remains for the separate homepage and color-style requests.
 
 Relevant build-time environment variables:
 

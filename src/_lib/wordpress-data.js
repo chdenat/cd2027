@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-10-07
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -16,6 +16,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { createHash, randomBytes } = require('node:crypto')
 const { decodeHTML } = require('entities')
+const { fetchWithRetry } = require('./wordpress-fetch.js')
 const {
   assertNoWordPressRouteCollisions,
   collectWordPressAuthors,
@@ -32,7 +33,7 @@ const {
   toOutputPath,
 } = require('wp-awesome')
 const { createWooCommerceStoreApi } = require('wp-awesome/integrations/woocommerce')
-const { createYoastSitemapIntegration } = require('wp-awesome/integrations/yoast')
+const { createRetryingFetchText, createYoastSitemapIntegration } = require('wp-awesome/integrations/yoast')
 const { collectFormReferences } = require('wp-awesome/integrations/forms')
 const SITE_PROFILE = require('./wordpress-site-profile.js')
 const SITE_HTML_SANITIZER_OPTIONS = SITE_PROFILE.content.default.sanitizerOptions
@@ -41,6 +42,18 @@ const SITE_ORIGIN = SITE_PROFILE.siteOrigin
 const API_ORIGIN = SITE_PROFILE.apiOrigin
 const PER_PAGE = SITE_PROFILE.perPage
 const CACHE_FILE = path.resolve(__dirname, '../..', '.data', 'wordpress-public-cache.json')
+const sitemapFetchText = createRetryingFetchText({
+  retries: 5,
+  retryDelayMs: 5000,
+  maxRetryDelayMs: 30000,
+  maxRetryAfterMs: 120000,
+  jitterRatio: 0.2,
+  timeoutMs: 20000,
+  onRetry: ({ status, nextAttempt, retries, delayMs, name }) => {
+    const reason = status ? `HTTP ${status}` : 'a network error'
+    console.warn(`[wordpress] Yoast ${name} sitemap returned ${reason}; retry ${nextAttempt}/${retries + 1} after ${delayMs}ms.`)
+  },
+})
 const wordpressRoutes = createWordPressRouteResolver({ siteUrl: SITE_ORIGIN, routes: SITE_PROFILE.routes })
 const wordpressRestClient = createWordPressRestClient({
   baseUrl: `${API_ORIGIN}/`,
@@ -57,41 +70,8 @@ const wooCommerceStoreApi = createWooCommerceStoreApi({ restClient: wordpressRes
 const yoastSitemaps = createYoastSitemapIntegration({
   siteUrl: WORDPRESS_ORIGIN,
   sitemapNames: SITE_PROFILE.sitemapNames,
-  fetchText: async (url, { name }) => {
-    const response = await fetchWithRetry(url, `Yoast ${name} sitemap`, {
-      headers: { Accept: 'application/xml,text/xml' },
-    })
-    return response.text()
-  },
+  fetchText: sitemapFetchText,
 })
-
-/**
- * Fetches a WordPress resource with bounded exponential retries for transient failures.
- * @param {string|URL} url WordPress resource URL.
- * @param {string} label Resource description used in errors.
- * @param {RequestInit} [options] Request headers and other Fetch options.
- * @returns {Promise<Response>} Successful HTTP response.
- * @throws {Error} For permanent HTTP errors or exhausted retries.
- */
-async function fetchWithRetry(url, label, options = {}) {
-  let lastError
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    try {
-      const response = await fetch(url, { ...options, signal: AbortSignal.timeout(20000) })
-      if (response.ok) return response
-      const error = new Error(`WordPress ${label} failed: ${response.status} ${response.statusText} (${url})`)
-      error.status = response.status
-      if (response.status < 500 && response.status !== 429) throw error
-      lastError = error
-    } catch (error) {
-      lastError = error
-      if (error.status && error.status < 500 && error.status !== 429) break
-      if (attempt === 3) break
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** attempt))
-  }
-  throw lastError
-}
 
 /**
  * Fetches a WordPress collection through the shared REST client with a type-specific context policy.
