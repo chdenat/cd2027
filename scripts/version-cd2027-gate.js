@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-04
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -20,7 +20,7 @@ const path = require('node:path')
  * @param {string} outputDir Eleventy output directory containing the gate and `.htaccess` template.
  * @param {string} [buildId] Identifier sanitized and truncated for the versioned gate filename.
  * @returns {string} Versioned gate filename written into `outputDir`.
- * @throws {Error} When either input file is missing, placeholders are absent, or the target exists.
+ * @throws {Error} When either input file is missing, the gate PHP header is invalid, placeholders are absent, or the target exists.
  * @sideEffects Renames the gate file and rewrites the generated `.htaccess` file.
  */
 module.exports = function versionCd2027Gate(outputDir, buildId = process.env.GITHUB_SHA || process.env.CD2027_BUILD_ID || 'local') {
@@ -34,6 +34,10 @@ module.exports = function versionCd2027Gate(outputDir, buildId = process.env.GIT
 
   if (!gateExists || !htaccessExists) {
     throw new Error('The private CD2027 gate or its Apache rules are missing from the build output.')
+  }
+  const gateSource = fs.readFileSync(gatePath, 'utf8')
+  if (!/^<\?php\s*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/.test(gateSource)) {
+    throw new Error('The CD2027 gate must start with its PHP opening tag and strict_types declaration.')
   }
   if (fs.existsSync(versionedGatePath)) {
     throw new Error(`The versioned CD2027 gate already exists: ${gateFile}`)

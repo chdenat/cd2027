@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -38,6 +38,13 @@ assert.match(template, /^---\nlayout: layouts\/base\.njk\n---\n\{#/)
 assert.match(template, /\{#\n \* This file is part of the CD2027 project\./)
 const frontMatterOnly = updateHeader('---\npermalink: /example/\n---\n', 'src/example.njk', date, date)
 assert.equal(frontMatterOnly.endsWith('#}\n'), true)
+
+const standardGateTemplate = updateHeader('---\npermalink: /cd2027-gate.php\n---\n<?php\ndeclare(strict_types=1);\n', 'src/cd2027-gate.php.njk', date, date)
+const trimmedGateTemplate = standardGateTemplate.replace('\n{#\n', '\n{#-\n').replace('\n#}\n', '\n-#}\n')
+const refreshedGateTemplate = updateHeader(trimmedGateTemplate, 'src/cd2027-gate.php.njk', date, date)
+assert.match(refreshedGateTemplate, /^---\npermalink: \/cd2027-gate\.php\n---\n\{#-/)
+assert.match(refreshedGateTemplate, /\n-#}\n\n<\?php\ndeclare\(strict_types=1\);/)
+assert.equal(updateHeader(refreshedGateTemplate, 'src/cd2027-gate.php.njk', date, date), refreshedGateTemplate)
 
 const markdown = updateHeader('---\ntitle: Guide\n---\n# Guide\n', 'docs/guide.md', date, date)
 assert.match(markdown, /^---\ntitle: Guide\n---\n<!--/)

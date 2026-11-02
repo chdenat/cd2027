@@ -8,7 +8,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -192,13 +192,14 @@ export const getLastCommittedDate = (filePath, fallbackDate = getCurrentDate()) 
  * Return the delimiters used by the file's comment syntax.
  *
  * @param {'block'|'html'|'nunjucks'|'line'} kind Header comment syntax.
+ * @param {boolean} [trimNunjucksWhitespace=false] Preserve whitespace-control delimiters for a Nunjucks header.
  * @returns {{start: string, end: string}} Opening and closing header markers.
  */
-const getHeaderMarkers = (kind) => {
+const getHeaderMarkers = (kind, trimNunjucksWhitespace = false) => {
   const border = '*'.repeat(77)
   if (kind === 'block') return { start: `/${border}*`, end: ` ${border}*/` }
   if (kind === 'html') return { start: '<!--', end: '-->' }
-  if (kind === 'nunjucks') return { start: '{#', end: '#}' }
+  if (kind === 'nunjucks') return trimNunjucksWhitespace ? { start: '{#-', end: '-#}' } : { start: '{#', end: '#}' }
   return { start: `# ${border}*`, end: `# ${border}*` }
 }
 
@@ -280,23 +281,28 @@ const getPreservedPrefix = (content, filePath) => {
  * @returns {{content: string, found: boolean}} Remaining content and whether a known header was removed.
  */
 const removeExistingHeader = (content, kind, newline) => {
-  const markers = getHeaderMarkers(kind)
-  const startToken = `${markers.start}${newline}`
-  if (!content.startsWith(startToken)) return { content, found: false }
+  const markersList = kind === 'nunjucks'
+    ? [getHeaderMarkers(kind, true), getHeaderMarkers(kind)]
+    : [getHeaderMarkers(kind)]
 
-  const endToken = `${newline}${markers.end}`
-  const closingIndex = content.indexOf(endToken, startToken.length)
-  if (closingIndex < 0) return { content, found: false }
+  for (const markers of markersList) {
+    const startToken = `${markers.start}${newline}`
+    if (!content.startsWith(startToken)) continue
 
-  const headerText = content.slice(startToken.length, closingIndex)
-  if (!/This file is part of (?:the CD2027 project|the wp-awesome package|the wordpress-eleventy-content package)\./.test(headerText)) {
-    return { content, found: false }
+    const endToken = `${newline}${markers.end}`
+    const closingIndex = content.indexOf(endToken, startToken.length)
+    if (closingIndex < 0) continue
+
+    const headerText = content.slice(startToken.length, closingIndex)
+    if (!/This file is part of (?:the CD2027 project|the wp-awesome package|the wordpress-eleventy-content package)\./.test(headerText)) continue
+
+    let remainingContent = content.slice(closingIndex + endToken.length)
+    if (remainingContent.startsWith(newline.repeat(2))) remainingContent = remainingContent.slice(newline.length * 2)
+    else if (remainingContent.startsWith(newline)) remainingContent = remainingContent.slice(newline.length)
+    return { content: remainingContent, found: true }
   }
 
-  let remainingContent = content.slice(closingIndex + endToken.length)
-  if (remainingContent.startsWith(newline.repeat(2))) remainingContent = remainingContent.slice(newline.length * 2)
-  else if (remainingContent.startsWith(newline)) remainingContent = remainingContent.slice(newline.length)
-  return { content: remainingContent, found: true }
+  return { content, found: false }
 }
 
 /**
@@ -304,14 +310,17 @@ const removeExistingHeader = (content, kind, newline) => {
  *
  * @param {string} content Complete file content.
  * @param {string} filePath Repository-relative file path.
- * @returns {string} Content with the generated header and its separator removed.
+ * @returns {string} Content with the generated header removed and its Nunjucks trim behavior retained for comparison.
  */
 const removeProjectHeader = (content, filePath) => {
   const kind = getHeaderKind(filePath)
   const newline = content.includes('\r\n') ? '\r\n' : '\n'
   const prefix = getPreservedPrefix(content, filePath)
-  const remainder = removeExistingHeader(content.slice(prefix.length), kind, newline)
-  return `${prefix}${remainder.content}`
+  const contentAfterPrefix = content.slice(prefix.length)
+  const trimmedNunjucksHeader = kind === 'nunjucks' && contentAfterPrefix.startsWith(`{#-${newline}`)
+  const remainder = removeExistingHeader(contentAfterPrefix, kind, newline)
+  const trimBehaviorMarker = trimmedNunjucksHeader ? '{#-trimmed-project-header-#}' : ''
+  return `${prefix}${trimBehaviorMarker}${remainder.content}`
 }
 
 /**
@@ -347,9 +356,12 @@ export const updateHeader = (content, filePath, createdDate, modifiedDate) => {
 
   const newline = content.includes('\r\n') ? '\r\n' : '\n'
   const prefix = getPreservedPrefix(content, filePath)
-  const bodyWithoutHeader = removeExistingHeader(content.slice(prefix.length), kind, newline)
+  const contentAfterPrefix = content.slice(prefix.length)
+  const preserveNunjucksTrim = kind === 'nunjucks' && contentAfterPrefix.startsWith(`{#-${newline}`)
+  const bodyWithoutHeader = removeExistingHeader(contentAfterPrefix, kind, newline)
   const body = bodyWithoutHeader.content
-  const header = buildHeader(filePath, createdDate, modifiedDate).replaceAll('\n', newline)
+  let header = buildHeader(filePath, createdDate, modifiedDate).replaceAll('\n', newline)
+  if (preserveNunjucksTrim) header = header.replace(/^\{#/, '{#-').replace(/#}$/, '-#}')
   const prefixSeparator = prefix && !prefix.endsWith('\n') ? newline : ''
 
   return body

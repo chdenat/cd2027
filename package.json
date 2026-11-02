@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun scripts/stop-dev-server.js && bun run build:icons && bun scripts/dev-server.js",
     "build": "bun run build:icons && bun scripts/clean-output.js && eleventy",
-    "check": "bun run test:callouts && bun run test:wordpress-colors && bun run test:wordpress-package && bun run test:wordpress-retries && bun run test:security && bun run test:file-headers && bun run build && bun scripts/check-routes.js",
+    "check": "bun run test:callouts && bun run test:wordpress-colors && bun run test:wordpress-package && bun run test:wordpress-retries && bun run test:versioned-gate && bun run test:security && bun run test:file-headers && bun run build && bun scripts/check-routes.js",
     "test:file-headers": "bun scripts/check-file-headers.js",
     "headers:update": "bun scripts/update-file-headers.mjs --staged --stage",
     "headers:update:all": "bun scripts/update-file-headers.mjs --all",
@@ -16,6 +16,7 @@
     "test:wordpress-colors": "bun scripts/check-wordpress-colors.js",
     "test:wordpress-package": "node scripts/check-wordpress-package.js",
     "test:wordpress-retries": "node --test test/wordpress-retries.test.js",
+    "test:versioned-gate": "node --test test/version-cd2027-gate.test.js",
     "test:security": "node --test test/security.test.js",
     "build:icons": "bun scripts/build-fontawesome-icons.js"
   },
