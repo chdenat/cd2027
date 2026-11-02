@@ -13,7 +13,7 @@
  * Copyright © 2026 Christian Denat
 #}
 
-<html lang="fr" class="wa-theme-cd2027 wa-palette-cd2027 cd2027-heading-purple wa-light">
+<html lang="fr" class="wa-theme-cd2027 wa-palette-cd2027 cd2027-button-purple wa-light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -26,22 +26,22 @@
             blue: 'wa-palette-cd2027-blue',
             orange: 'wa-palette-cd2027-orange'
           }
-          const headingPalettes = {
-            purple: 'cd2027-heading-purple',
-            rose: 'cd2027-heading-rose',
-            green: 'cd2027-heading-green',
-            blue: 'cd2027-heading-blue',
-            orange: 'cd2027-heading-orange'
+          const buttonPalettes = {
+            purple: 'cd2027-button-purple',
+            rose: 'cd2027-button-rose',
+            green: 'cd2027-button-green',
+            blue: 'cd2027-button-blue',
+            orange: 'cd2027-button-orange'
           }
           const oldBackground = localStorage.getItem('cd2027-color-palette')
           const selectedBackground = localStorage.getItem('cd2027-background-palette') || oldBackground
-          const selectedHeading = localStorage.getItem('cd2027-heading-palette')
+          const selectedButton = localStorage.getItem('cd2027-button-palette') || localStorage.getItem('cd2027-heading-palette')
           const background = Object.hasOwn(backgroundPalettes, selectedBackground) ? selectedBackground : 'rose'
-          const heading = Object.hasOwn(headingPalettes, selectedHeading) ? selectedHeading : 'purple'
+          const button = Object.hasOwn(buttonPalettes, selectedButton) ? selectedButton : 'purple'
           const scheme = localStorage.getItem('cd2027-color-scheme')
           const dark = scheme === 'dark' || (scheme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
-          document.documentElement.classList.remove(...Object.values(backgroundPalettes), ...Object.values(headingPalettes))
-          document.documentElement.classList.add(backgroundPalettes[background], headingPalettes[heading])
+          document.documentElement.classList.remove(...Object.values(backgroundPalettes), ...Object.values(buttonPalettes))
+          document.documentElement.classList.add(backgroundPalettes[background], buttonPalettes[button])
           document.documentElement.classList.toggle('wa-dark', dark)
           document.documentElement.classList.toggle('wa-light', !dark)
         } catch {}
@@ -101,27 +101,30 @@
               <wa-badge slot="end" data-cart-badge hidden variant="brand" pill><span data-cart-count aria-live="polite">0</span></wa-badge>
             </wa-button>
           {% endif %}
-          <wa-button id="cd2027-background-selector-trigger" data-background-palette-trigger appearance="plain" size="s" aria-label="Choisir les couleurs de fond" aria-haspopup="true">
-            <wa-icon library="pro" name="splotch" variant="solid" aria-hidden="true"></wa-icon>
+          <wa-button id="cd2027-palette-selector-trigger" data-palette-selector-trigger appearance="plain" size="s" aria-label="Choisir les couleurs du site" aria-haspopup="true">
+            <wa-icon library="pro" name="palette" variant="solid" aria-hidden="true"></wa-icon>
           </wa-button>
-          <wa-popover class="theme-selector theme-selector--palette" for="cd2027-background-selector-trigger" placement="bottom-end" distance="8">
-            <div class="theme-selector__palette-choices" role="group" aria-label="Choisir une couleur de fond">
-              <wa-button data-background-palette="rose" data-popover="close" appearance="plain" size="s" aria-label="Rose" aria-pressed="true"></wa-button>
-              <wa-button data-background-palette="green" data-popover="close" appearance="plain" size="s" aria-label="Vert" aria-pressed="false"></wa-button>
-              <wa-button data-background-palette="blue" data-popover="close" appearance="plain" size="s" aria-label="Bleu" aria-pressed="false"></wa-button>
-              <wa-button data-background-palette="orange" data-popover="close" appearance="plain" size="s" aria-label="Orange" aria-pressed="false"></wa-button>
-            </div>
-          </wa-popover>
-          <wa-button id="cd2027-heading-selector-trigger" data-heading-palette-trigger appearance="plain" size="s" aria-label="Choisir la couleur des titres" aria-haspopup="true">
-            <wa-icon library="pro" name="pen-fancy" variant="solid" aria-hidden="true"></wa-icon>
-          </wa-button>
-          <wa-popover class="theme-selector theme-selector--palette" for="cd2027-heading-selector-trigger" placement="bottom-end" distance="8">
-            <div class="theme-selector__palette-choices" role="group" aria-label="Choisir la couleur des titres">
-              <wa-button data-heading-palette="purple" data-popover="close" appearance="plain" size="s" aria-label="Violet" aria-pressed="true"></wa-button>
-              <wa-button data-heading-palette="rose" data-popover="close" appearance="plain" size="s" aria-label="Rose" aria-pressed="false"></wa-button>
-              <wa-button data-heading-palette="green" data-popover="close" appearance="plain" size="s" aria-label="Vert" aria-pressed="false"></wa-button>
-              <wa-button data-heading-palette="blue" data-popover="close" appearance="plain" size="s" aria-label="Bleu" aria-pressed="false"></wa-button>
-              <wa-button data-heading-palette="orange" data-popover="close" appearance="plain" size="s" aria-label="Orange" aria-pressed="false"></wa-button>
+          <wa-popover class="theme-selector theme-selector--palette" for="cd2027-palette-selector-trigger" placement="bottom-end" distance="8">
+            <div class="theme-selector__palette-rows wa-stack wa-gap-s">
+              <div class="theme-selector__palette-row wa-cluster wa-align-items-center wa-gap-s" role="group" aria-label="Palette des fonds">
+                <wa-icon library="pro" name="star" variant="solid" aria-hidden="true"></wa-icon>
+                <div class="theme-selector__palette-choices wa-cluster wa-align-items-center wa-gap-xs">
+                  <wa-button data-background-palette="rose" data-popover="close" appearance="plain" size="s" aria-label="Fond rose" aria-pressed="true"></wa-button>
+                  <wa-button data-background-palette="green" data-popover="close" appearance="plain" size="s" aria-label="Fond vert" aria-pressed="false"></wa-button>
+                  <wa-button data-background-palette="blue" data-popover="close" appearance="plain" size="s" aria-label="Fond bleu" aria-pressed="false"></wa-button>
+                  <wa-button data-background-palette="orange" data-popover="close" appearance="plain" size="s" aria-label="Fond orange" aria-pressed="false"></wa-button>
+                </div>
+              </div>
+              <div class="theme-selector__palette-row wa-cluster wa-align-items-center wa-gap-s" role="group" aria-label="Palette des boutons, du logo, des titres et du survol">
+                <wa-icon library="pro" name="pen-fancy" variant="solid" aria-hidden="true"></wa-icon>
+                <div class="theme-selector__palette-choices wa-cluster wa-align-items-center wa-gap-xs">
+                  <wa-button data-button-palette="purple" data-popover="close" appearance="plain" size="s" aria-label="Boutons violets" aria-pressed="true"></wa-button>
+                  <wa-button data-button-palette="rose" data-popover="close" appearance="plain" size="s" aria-label="Boutons roses" aria-pressed="false"></wa-button>
+                  <wa-button data-button-palette="green" data-popover="close" appearance="plain" size="s" aria-label="Boutons verts" aria-pressed="false"></wa-button>
+                  <wa-button data-button-palette="blue" data-popover="close" appearance="plain" size="s" aria-label="Boutons bleus" aria-pressed="false"></wa-button>
+                  <wa-button data-button-palette="orange" data-popover="close" appearance="plain" size="s" aria-label="Boutons orange" aria-pressed="false"></wa-button>
+                </div>
+              </div>
             </div>
           </wa-popover>
           <wa-button id="cd2027-theme-selector-trigger" data-theme-selector-trigger appearance="plain" size="s" aria-label="Choisir le mode d’affichage" aria-haspopup="true">

@@ -1091,9 +1091,57 @@ function markPetalImagesInCachedMarkup(cached) {
   return cached
 }
 
-// Preserve block-specific geometry and imagery in a deterministic external stylesheet.
+/**
+ * Removes selected CSS properties while preserving declarations with nested function values.
+ * @param {string} declarations CSS declaration list from imported WordPress markup.
+ * @param {Set<string>} properties Lowercase property names to omit.
+ * @returns {string} The remaining declarations in their original order.
+ */
+function removeCssDeclarations(declarations, properties) {
+  const retained = []
+  let start = 0
+  let depth = 0
+  let quote = ''
+  let escaped = false
+  const keepDeclaration = (end) => {
+    const declaration = declarations.slice(start, end).trim()
+    const colon = declaration.indexOf(':')
+    const property = colon < 0 ? '' : declaration.slice(0, colon).trim().toLowerCase()
+    if (declaration && !properties.has(property)) retained.push(declaration)
+  }
+
+  for (let index = 0; index < declarations.length; index += 1) {
+    const character = declarations[index]
+    if (escaped) {
+      escaped = false
+      continue
+    }
+    if (character === '\\') {
+      escaped = true
+      continue
+    }
+    if (quote) {
+      if (character === quote) quote = ''
+      continue
+    }
+    if (character === '"' || character === "'") {
+      quote = character
+      continue
+    }
+    if (character === '(') depth += 1
+    else if (character === ')') depth = Math.max(0, depth - 1)
+    else if (character === ';' && depth === 0) {
+      keepDeclaration(index)
+      start = index + 1
+    }
+  }
+  keepDeclaration(declarations.length)
+  return retained.join(';')
+}
+
 /**
  * Moves imported inline declarations into deterministic page-scoped external CSS rules.
+ * Control colors on buttons and H1–H4 come from the user's selected control palette.
  * The build context owns the rule map so templates can emit a stylesheet without inline styles.
  * @param {string} html Normalized WordPress HTML.
  * @param {object} [record] Record identity used to scope page-specific styles.
@@ -1106,6 +1154,8 @@ function externalizeContentStyles(html, record = {}, contentContext) {
   const pageClass = markPageClass(record)
   return html.replace(/<[a-z][\w:-]*(?:"[^"]*"|'[^']*'|[^'">])*>/gi, (tag) => {
     const isMark = /^<mark\b/i.test(tag) || /\sdata-cd-preserved-mark=(['"])cd-mark-[a-f\d]{32}\1/i.test(tag)
+    const isButton = /^<wa-button\b/i.test(tag)
+    const isButtonPaletteHeading = /^<h[1-4]\b/i.test(tag)
     const attribute = /\sstyle\s*=\s*(['"])(.*?)\1/i.exec(tag)
     const textColorAttribute = /\sdata-cd-text-color=(['"])(.*?)\1/i.exec(tag)
     const backgroundColorAttribute = /\sdata-cd-background-color=(['"])(.*?)\1/i.exec(tag)
@@ -1142,9 +1192,17 @@ function externalizeContentStyles(html, record = {}, contentContext) {
         return palette[hex.toLowerCase()] ? `var(--cd2027--color-${palette[hex.toLowerCase()]})` : `var(--cd2027--editorial-color-${hex.toLowerCase()})`
       })
     }
-    const textColor = textColorAttribute && colorForToken(textColorAttribute[2])
-    const backgroundColor = backgroundColorAttribute && colorForToken(backgroundColorAttribute[2])
-    const borderColor = borderColorAttribute && colorForToken(borderColorAttribute[2])
+    if (isButton) {
+      declarations = removeCssDeclarations(declarations, new Set(['color', 'background', 'background-color', 'border-color']))
+      if (/(?:^|;)\s*border(?:-(?:top|right|bottom|left))?\s*:/i.test(declarations)) {
+        declarations += `${declarations ? ';' : ''}border-color:var(--cd2027--color-button) !important`
+      }
+    } else if (isButtonPaletteHeading) {
+      declarations = removeCssDeclarations(declarations, new Set(['color']))
+    }
+    const textColor = !isButton && !isButtonPaletteHeading && textColorAttribute && colorForToken(textColorAttribute[2])
+    const backgroundColor = !isButton && backgroundColorAttribute && colorForToken(backgroundColorAttribute[2])
+    const borderColor = !isButton && borderColorAttribute && colorForToken(borderColorAttribute[2])
     if (textColor) declarations += `${declarations ? ';' : ''}color:${textColor} !important`
     if (backgroundColor) declarations += `${declarations ? ';' : ''}background-color:${backgroundColor} !important`
     if (borderColor) declarations += `${declarations ? ';' : ''}border-color:${borderColor} !important`
@@ -1157,7 +1215,7 @@ function externalizeContentStyles(html, record = {}, contentContext) {
     const className = `cd-content-style-${createHash('sha256').update(pageScopedDeclarations).digest('hex').slice(0, 12)}`
     const markSelector = isMark ? `mark.${pageClass}.${className}[class]` : null
     const isPetalImage = /^<img\b/i.test(tag) && hasThreeHalfRoundedCorners(declarations)
-    const selector = /^<wa-button\b/i.test(tag)
+    const selector = isButton
       ? `:root .${className}[class], :root wa-button.${className}[class]::part(button)`
       : markSelector || `:root .${className}[class]`
     if (declarations) contentContext.contentStyleRules.set(className, { selector, declarations })
@@ -1169,6 +1227,8 @@ function externalizeContentStyles(html, record = {}, contentContext) {
     }
     const hasExternalStyles = Boolean(declarations || linkDeclarations)
     let cleaned = attribute ? tag.replace(attribute[0], '') : tag
+    if (isButton) cleaned = cleaned.replace(/\sdata-cd-(?:text|background|border)-color=(['"])[^'"]*\1/gi, '')
+    if (isButtonPaletteHeading) cleaned = cleaned.replace(/\sdata-cd-text-color=(['"])[^'"]*\1/gi, '')
     if (linkColorAttribute) cleaned = cleaned.replace(linkColorAttribute[0], '')
     if (linkColorValueAttribute) cleaned = cleaned.replace(linkColorValueAttribute[0], '')
     if (isPetalImage && !/\sdata-cd-image-shape=/i.test(cleaned)) {

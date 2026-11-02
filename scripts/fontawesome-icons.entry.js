@@ -29,6 +29,7 @@ import {
   faDesktop,
   faMessages,
   faMoon,
+  faPalette,
   faPaperPlane,
   faPenClip,
   faPenFancy,
@@ -36,7 +37,7 @@ import {
   faRightFromBracket,
   faRightToBracket,
   faSquarePhoneFlip,
-  faSplotch,
+  faStar,
   faSunBright,
 } from '@fortawesome/pro-solid-svg-icons'
 import {
@@ -61,6 +62,7 @@ export const fontAwesomeIconDefinitions = {
     desktop: faDesktop,
     messages: faMessages,
     moon: faMoon,
+    palette: faPalette,
     'paper-plane': faPaperPlane,
     'pen-clip': faPenClip,
     'pen-fancy': faPenFancy,
@@ -68,7 +70,7 @@ export const fontAwesomeIconDefinitions = {
     'right-from-bracket': faRightFromBracket,
     'right-to-bracket': faRightToBracket,
     'square-phone-flip': faSquarePhoneFlip,
-    splotch: faSplotch,
+    star: faStar,
     'sun-bright': faSunBright,
   },
   brands: {

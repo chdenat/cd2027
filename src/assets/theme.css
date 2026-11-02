@@ -443,26 +443,40 @@ html.wa-palette-cd2027-orange.wa-light {
 }
 
 :root {
-  --cd2027--heading-swatch-purple: var(--cd2027--editorial-color-800080);
-  --cd2027--heading-swatch-rose: var(--cd2027--palette-swatch-rose);
-  --cd2027--heading-swatch-green: var(--wa-color-green-40);
-  --cd2027--heading-swatch-blue: var(--wa-color-blue-40);
-  --cd2027--heading-swatch-orange: var(--wa-color-orange-40);
-  --cd2027--color-heading: var(--cd2027--heading-swatch-purple);
+  --cd2027--background-swatch-rose: #ecc8c8;
+  --cd2027--background-swatch-green: var(--wa-color-green-90);
+  --cd2027--background-swatch-blue: var(--wa-color-blue-90);
+  --cd2027--background-swatch-orange: var(--wa-color-orange-90);
+
+  --cd2027--button-swatch-purple: #800080;
+  --cd2027--button-swatch-rose: var(--cd2027--palette-swatch-rose);
+  --cd2027--button-swatch-green: var(--wa-color-green-40);
+  --cd2027--button-swatch-blue: var(--wa-color-blue-40);
+  --cd2027--button-swatch-orange: var(--wa-color-orange-40);
+
+  --cd2027--color-button: var(--cd2027--button-swatch-purple);
+  --cd2027--color-button-on: var(--cd2027--color-base);
+  --cd2027--color-button-hover: color-mix(in srgb, var(--cd2027--color-button) 84%, black);
+  --cd2027--color-button-on-hover: var(--cd2027--color-base);
 }
 
 :root.wa-dark {
-  --cd2027--heading-swatch-rose: color-mix(in srgb, var(--cd2027--palette-swatch-rose) 50%, white);
-  --cd2027--heading-swatch-green: color-mix(in srgb, var(--wa-color-green-40) 50%, white);
-  --cd2027--heading-swatch-blue: color-mix(in srgb, var(--wa-color-blue-40) 50%, white);
-  --cd2027--heading-swatch-orange: color-mix(in srgb, var(--wa-color-orange-40) 50%, white);
+  --cd2027--button-swatch-purple: color-mix(in srgb, #800080 56%, white);
+  --cd2027--button-swatch-rose: color-mix(in srgb, var(--cd2027--palette-swatch-rose) 50%, white);
+  --cd2027--button-swatch-green: var(--wa-color-green-70);
+  --cd2027--button-swatch-blue: var(--wa-color-blue-70);
+  --cd2027--button-swatch-orange: var(--wa-color-orange-70);
+
+  --cd2027--color-button-on: var(--cd2027--palette-neutral-05);
+  --cd2027--color-button-hover: color-mix(in srgb, var(--cd2027--color-button) 84%, white);
+  --cd2027--color-button-on-hover: var(--cd2027--palette-neutral-05);
 }
 
-html.cd2027-heading-purple { --cd2027--color-heading: var(--cd2027--heading-swatch-purple); }
-html.cd2027-heading-rose { --cd2027--color-heading: var(--cd2027--heading-swatch-rose); }
-html.cd2027-heading-green { --cd2027--color-heading: var(--cd2027--heading-swatch-green); }
-html.cd2027-heading-blue { --cd2027--color-heading: var(--cd2027--heading-swatch-blue); }
-html.cd2027-heading-orange { --cd2027--color-heading: var(--cd2027--heading-swatch-orange); }
+html.cd2027-button-purple { --cd2027--color-button: var(--cd2027--button-swatch-purple); }
+html.cd2027-button-rose { --cd2027--color-button: var(--cd2027--button-swatch-rose); }
+html.cd2027-button-green { --cd2027--color-button: var(--cd2027--button-swatch-green); }
+html.cd2027-button-blue { --cd2027--color-button: var(--cd2027--button-swatch-blue); }
+html.cd2027-button-orange { --cd2027--color-button: var(--cd2027--button-swatch-orange); }
 
 :root { --cd2027--hero-font-size: var(--cd2027--font-size-xxl); }
 
