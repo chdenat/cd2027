@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -71,7 +71,8 @@ const defaultColorHtml = normalizeRenderedHtml(
 const defaultColorRules = [...defaultColorContext.contentStyleRules.values()]
   .map(({ selector, declarations }) => `${selector}{${declarations}}`)
   .join('\n')
-assert.match(defaultColorHtml, /<h2[^>]*data-cd-text-color="text"/)
+assert.match(defaultColorHtml, /<h2>Bienvenue<\/h2>/)
+assert.doesNotMatch(defaultColorHtml, /<h2[^>]*data-cd-text-color=/)
 assert.match(defaultColorHtml, /<p[^>]*data-cd-text-color="base"/)
 assert.match(defaultColorRules, /color:var\(--cd2027--color-text\) !important/)
 assert.match(defaultColorRules, /color:var\(--cd2027--editorial-color-123456\)/)
