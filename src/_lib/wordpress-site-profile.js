@@ -100,7 +100,7 @@ const sharedContentPolicy = {
         'data-cd-link-color-value', 'data-cd-media-id', 'data-cd-media-provider', 'data-cd-media-type',
         'data-cd-mobile-align-items', 'data-cd-mobile-text-align', 'data-cd-mobile-stack', 'data-cd-multiple-rows',
         'data-cd-overlay-opacity', 'data-cd-resized', 'data-cd-role', 'data-cd-style',
-        'data-cd-text-align', 'data-cd-text-color', 'data-cd-wrap', 'data-form-id',
+        'data-cd-text-align', 'data-cd-text-color', 'data-cd-preserved-mark', 'data-cd-wrap', 'data-form-id',
       ],
       'wa-button': ['href', 'target', 'rel', 'appearance', 'variant', 'size', 'type', 'name', 'value', 'disabled', 'data-add-to-cart'],
       'wa-callout': ['appearance', 'variant'],

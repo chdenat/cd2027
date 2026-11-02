@@ -103,6 +103,60 @@ function escapeAttributeValue(value) {
     .replace(/>/g, '&gt;')
 }
 
+/**
+ * Converts semantic marks into sanitizer-safe spans while retaining their content and attributes.
+ * @param {string} [html] WordPress HTML fragment that may contain semantic marks.
+ * @returns {string} Fragment with unpredictable marker attributes on spans replacing mark tags.
+ */
+function prepareWordPressMarkElements(html = '') {
+  const marker = `cd-mark-${randomBytes(16).toString('hex')}`
+  return String(html || '')
+    .replace(/<mark\b([^>]*)>/gi, (_match, attributes) => `<span data-cd-preserved-mark="${marker}"${attributes}>`)
+    .replace(/<\/mark\s*>/gi, '</span>')
+}
+
+/**
+ * Restores only adapter-marked spans to semantic marks after the package sanitizer has run.
+ * @param {string} [html] Sanitized HTML fragment whose marked spans are balanced.
+ * @returns {string} HTML with the adapter's marked spans restored to mark tags.
+ */
+function restoreWordPressMarkElements(html = '') {
+  const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
+  const stack = []
+  return String(html || '').replace(/<\/?([a-z][\w:-]*)(?:"[^"]*"|'[^']*'|[^'">])*>/gi, (tag) => {
+    const closing = /^<\//.test(tag)
+    const name = /^<\/?([a-z][\w:-]*)/i.exec(tag)?.[1]?.toLowerCase()
+    if (!name) return tag
+    if (closing) {
+      let matchingIndex = stack.length - 1
+      while (matchingIndex >= 0 && stack[matchingIndex].name !== name) matchingIndex -= 1
+      if (matchingIndex < 0) return tag
+      const matched = stack[matchingIndex]
+      stack.length = matchingIndex
+      return matched.preservedMark ? '</mark>' : tag
+    }
+
+    const marker = name === 'span' && /\sdata-cd-preserved-mark=(['"])cd-mark-[a-f\d]{32}\1/i.test(tag)
+    const selfClosing = /\/\s*>$/.test(tag)
+    if (!voidElements.has(name) && !selfClosing) stack.push({ name, preservedMark: marker })
+    if (!marker) return tag
+
+    return tag
+      .replace(/^<span\b/i, '<mark')
+      .replace(/\sdata-cd-preserved-mark=(['"])cd-mark-[a-f\d]{32}\1/i, '')
+  })
+}
+
+/**
+ * Sanitizes WordPress HTML but restores authored mark semantics removed by the package's safe-tag list.
+ * @param {string} [html] WordPress HTML fragment.
+ * @param {object} [options] Consumer-safe options forwarded to the package sanitizer.
+ * @returns {string} Sanitized HTML that retains semantic mark tags.
+ */
+function sanitizeWordPressHtmlPreservingMarks(html = '', options = {}) {
+  return restoreWordPressMarkElements(sanitizeWordPressHtml(prepareWordPressMarkElements(html), options))
+}
+
 /** Keeps public attribute URLs on HTTP(S), resolving source-relative URLs against WordPress. */
 function safePublicHttpUrl(value) {
   if (typeof value !== 'string' || !value.trim() || /[\u0000-\u001f\u007f\\]/.test(value)) return null
@@ -1003,7 +1057,7 @@ function markPetalImagesInCachedMarkup(cached) {
     if (!classAttribute || !classAttribute[2].split(/\s+/).some((className) => petalClasses.has(className))) return tag
     return tag.replace(/\s*\/?\s*>$/, (closing) => ` data-cd-image-shape="petal"${closing}`)
   })
-  const normalizeHtml = (html = '') => sanitizeWordPressHtml(
+  const normalizeHtml = (html = '') => sanitizeWordPressHtmlPreservingMarks(
     convertClassedElementsToCallouts(markHtml(html)),
     SITE_HTML_SANITIZER_OPTIONS,
   )
@@ -1051,7 +1105,7 @@ function externalizeContentStyles(html, record = {}, contentContext) {
   contentContext.contentStyleRules ||= new Map()
   const pageClass = markPageClass(record)
   return html.replace(/<[a-z][\w:-]*(?:"[^"]*"|'[^']*'|[^'">])*>/gi, (tag) => {
-    const isMark = /^<mark\b/i.test(tag)
+    const isMark = /^<mark\b/i.test(tag) || /\sdata-cd-preserved-mark=(['"])cd-mark-[a-f\d]{32}\1/i.test(tag)
     const attribute = /\sstyle\s*=\s*(['"])(.*?)\1/i.exec(tag)
     const textColorAttribute = /\sdata-cd-text-color=(['"])(.*?)\1/i.exec(tag)
     const backgroundColorAttribute = /\sdata-cd-background-color=(['"])(.*?)\1/i.exec(tag)
@@ -1139,14 +1193,14 @@ function externalizeContentStyles(html, record = {}, contentContext) {
  * @param {{contentStyleRules: Map}} [contentContext] Build-scoped stylesheet accumulator.
  * @returns {string} Normalized HTML ready for Eleventy templates.
  */
-function normalizeRenderedHtml(html = '', record = {}, contentContext = { contentStyleRules: new Map(), wordpressColorPalette: new Map() }, recordStyleContext = {}) {
+function normalizeRenderedHtml(html = '', record = {}, contentContext = { contentStyleRules: new Map(), wordpressColorPalette: new Map() }, recordStyleContext = {}, { preserveMarkPlaceholders = false } = {}) {
   const formMounts = []
   const createFormMountMarker = (provider, id) => {
     const marker = `CD2027FORMPLACEHOLDER${randomBytes(16).toString('hex')}`
     formMounts.push({ marker, provider, id })
     return marker
   }
-  let normalized = activateLazyImages(String(html || ''))
+  let normalized = activateLazyImages(prepareWordPressMarkElements(html))
   normalized = normalized.replace(
     /<form\b[^>]*id=(['"])forminator-module-(\d+)\1[^>]*>[\s\S]*?<\/form>/gi,
     (_match, _quote, formId) => createFormMountMarker('forminator', formId),
@@ -1165,7 +1219,7 @@ function normalizeRenderedHtml(html = '', record = {}, contentContext = { conten
     additionalFontFamilies: SITE_HTML_SANITIZER_OPTIONS.additionalFontFamilies,
     allowedBackgroundImagePrefixes: SITE_HTML_SANITIZER_OPTIONS.allowedBackgroundImagePrefixes,
     allowedCssVariables: SITE_HTML_SANITIZER_OPTIONS.allowedCssVariables,
-    additionalAttributes: { a: ['data-add-to-cart'] },
+    additionalAttributes: { '*': ['data-cd-preserved-mark'], a: ['data-add-to-cart'] },
   })
   for (const [missingUrl, availableUrl] of SITE_PROFILE.mediaUrlFallbacks) {
     normalized = normalized.replaceAll(missingUrl, availableUrl)
@@ -1182,7 +1236,8 @@ function normalizeRenderedHtml(html = '', record = {}, contentContext = { conten
   for (const { marker, provider, id } of formMounts) {
     normalized = normalized.replaceAll(marker, `<div class="cd-form-mount" data-cd-form="${provider}" data-form-id="${id}"></div>`)
   }
-  return sanitizeWordPressHtml(normalized, SITE_HTML_SANITIZER_OPTIONS)
+  const safeHtml = sanitizeWordPressHtml(normalized, SITE_HTML_SANITIZER_OPTIONS)
+  return preserveMarkPlaceholders ? safeHtml : restoreWordPressMarkElements(safeHtml)
 }
 
 /** Adds the testimonials section marker only to the configured testimonial page's matching section. */
@@ -1360,8 +1415,9 @@ function normalizeWpRecord(record, kind, contentContext) {
     routeResolver: resolveSiteRecordRoute,
     customFields: SITE_PROFILE.publicCustomFields?.[kind] || [],
     transformBlock: transformGutenbergBlockColors,
-    transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext),
+    transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext, { preserveMarkPlaceholders: true }),
   })
+  wordpressRecord.content.html = restoreWordPressMarkElements(wordpressRecord.content.html)
   const publicContent = record.content && typeof record.content === 'object'
     ? { ...record.content }
     : record.content
@@ -1382,16 +1438,16 @@ function normalizeWpRecord(record, kind, contentContext) {
     kind,
     titleText: textFromHtml(rawTitle),
     descriptionText: textFromHtml(description),
-    descriptionHtml: convertWordPressContent({
+    descriptionHtml: restoreWordPressMarkElements(convertWordPressContent({
       renderedHtml: description,
       mode: 'rendered',
-      transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext),
-    }).html,
-    shortDescriptionHtml: convertWordPressContent({
+      transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext, { preserveMarkPlaceholders: true }),
+    }).html),
+    shortDescriptionHtml: restoreWordPressMarkElements(convertWordPressContent({
       renderedHtml: record.short_description || '',
       mode: 'rendered',
-      transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext),
-    }).html,
+      transformHtml: (html) => normalizeRenderedHtml(html, { ...record, kind }, contentContext, recordStyleContext, { preserveMarkPlaceholders: true }),
+    }).html),
     author: wordpressRecord.author,
     taxonomies: wordpressRecord.taxonomies,
     customFields: wordpressRecord.customFields,
