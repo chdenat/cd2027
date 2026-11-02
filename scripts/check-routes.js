@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -76,8 +76,9 @@ if (staleExcludedRoutes.length) {
 }
 
 const home = generatedPages.get('/') || ''
-if (!home.includes('Bienvenue') || !home.includes('Accompagnement des femmes 50+')) {
-  throw new Error('The Eleventy homepage is missing the current WordPress hero content.')
+const currentHomepageContent = wordpress.homepageHtml
+if (typeof currentHomepageContent !== 'string' || !currentHomepageContent.trim() || !home.includes(currentHomepageContent)) {
+  throw new Error('The Eleventy homepage is missing the current WordPress homepage content.')
 }
 
 const footer = home.match(/<footer\b[^>]*>[\s\S]*?<\/footer>/i)?.[0] || ''
