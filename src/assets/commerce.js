@@ -108,11 +108,68 @@ function cartItemMarkup(item) {
       <div class="cart-row__details"><h3>${escapeHtml(item.name)}</h3><p>${money(subtotal, prices.currency_code, prices.currency_minor_unit)}</p></div>
       <div class="cart-row__actions">
       <wa-input label="Quantité de ${escapeHtml(item.name)}" type="number" min="1" step="1" value="${Number(item.quantity) || 1}" data-cart-quantity></wa-input>
-      <wa-button appearance="plain" variant="danger" data-cart-remove>Retirer</wa-button>
+      <wa-button appearance="plain" variant="danger" data-cart-remove>
+        <wa-icon library="pro" name="basket-shopping-minus" variant="solid" label="Retirer ${escapeHtml(item.name)} du panier"></wa-icon>
+      </wa-button>
       </div>
     </div>
   </wa-card>`
 }
+
+/**
+ * Creates a decorative icon in the site's bundled Font Awesome Pro Web Awesome library.
+ * @param {string} name Allowlisted icon name from `scripts/fontawesome-icons.entry.js`.
+ * @param {string} [slot='start'] Button slot for the icon.
+ * @returns {HTMLElement} Unattached Web Awesome icon element.
+ */
+function commerceIcon(name, slot = 'start') {
+  const icon = document.createElement('wa-icon')
+  icon.setAttribute('library', 'pro')
+  icon.setAttribute('name', name)
+  icon.setAttribute('variant', 'solid')
+  icon.setAttribute('slot', slot)
+  icon.setAttribute('aria-hidden', 'true')
+  return icon
+}
+
+/**
+ * Adds the basket-plus icon to imported WooCommerce controls while keeping templates idempotent.
+ * @param {HTMLElement} button Imported or template-owned add-to-cart control.
+ * @returns {HTMLElement} Basket-plus icon used for the pending animation.
+ */
+function prepareAddToCartButton(button) {
+  button.classList.add('commerce-add-to-cart')
+  let icon = button.querySelector(':scope > wa-icon[data-commerce-add-icon]')
+  if (!icon) {
+    icon = commerceIcon('basket-shopping-plus')
+    icon.classList.add('commerce-add-to-cart__icon')
+    icon.dataset.commerceAddIcon = ''
+    button.prepend(icon)
+  }
+  return icon
+}
+
+/**
+ * Reveals one cart link beside the successful add action, without duplicating it on repeat adds.
+ * @param {HTMLElement} addButton Successfully activated add-to-cart control.
+ * @returns {void}
+ */
+function revealViewCartButton(addButton) {
+  const existing = addButton.parentElement?.querySelector(':scope > [data-view-cart]')
+  if (existing) return
+
+  const button = document.createElement('wa-button')
+  button.className = 'commerce-view-cart-button'
+  button.setAttribute('href', '/panier/')
+  button.setAttribute('variant', 'brand')
+  button.setAttribute('appearance', 'outlined')
+  if (addButton.getAttribute('slot') === 'footer') button.setAttribute('slot', 'footer')
+  button.dataset.viewCart = ''
+  button.append(commerceIcon('basket-shopping'), document.createTextNode('Voir le panier'))
+  addButton.after(button)
+}
+
+document.querySelectorAll('[data-add-to-cart], .ajax_add_to_cart[data-product_id]').forEach(prepareAddToCartButton)
 
 /** Renders the live cart contents and totals returned by WooCommerce. */
 function renderCart(cart) {
@@ -313,20 +370,26 @@ document.addEventListener('click', async (event) => {
   const addButton = event.target.closest('[data-add-to-cart], .ajax_add_to_cart[data-product_id]')
   if (!addButton) return
   event.preventDefault()
+  const icon = prepareAddToCartButton(addButton)
   const productId = Number(addButton.getAttribute('data-add-to-cart') || addButton.getAttribute('data-product_id'))
   const quantity = Number(addButton.closest('[data-product]')?.querySelector('[name="quantity"]')?.value || 1)
   addButton.setAttribute('disabled', '')
+  addButton.setAttribute('aria-busy', 'true')
+  icon.setAttribute('animation', 'swing')
   showStatus('Ajout au panier…')
   try {
     const cart = await storeApi(`/cart/add-item?id=${encodeURIComponent(productId)}&quantity=${encodeURIComponent(quantity)}`, {
       method: 'POST', body: JSON.stringify({ id: productId, quantity }),
     })
     updateCartCount(cart)
+    revealViewCartButton(addButton)
     showStatus('Le produit a été ajouté à votre panier.')
   } catch (error) {
     showStatus(error.message, true)
   } finally {
     addButton.removeAttribute('disabled')
+    addButton.removeAttribute('aria-busy')
+    icon.removeAttribute('animation')
   }
 })
 

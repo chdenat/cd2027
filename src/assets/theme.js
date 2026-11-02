@@ -7,23 +7,33 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
 
 const STORAGE_KEY = 'cd2027-color-scheme'
-const PALETTE_STORAGE_KEY = 'cd2027-color-palette'
+const BACKGROUND_PALETTE_STORAGE_KEY = 'cd2027-background-palette'
+const LEGACY_PALETTE_STORAGE_KEY = 'cd2027-color-palette'
+const HEADING_PALETTE_STORAGE_KEY = 'cd2027-heading-palette'
 const root = document.documentElement
 const preference = window.matchMedia('(prefers-color-scheme: dark)')
 const validChoices = new Set(['system', 'light', 'dark'])
-const paletteClasses = {
+const backgroundPaletteClasses = {
   rose: 'wa-palette-cd2027',
   green: 'wa-palette-cd2027-green',
   blue: 'wa-palette-cd2027-blue',
   orange: 'wa-palette-cd2027-orange',
 }
-const validPalettes = new Set(Object.keys(paletteClasses))
+const validBackgroundPalettes = new Set(Object.keys(backgroundPaletteClasses))
+const headingPaletteClasses = {
+  purple: 'cd2027-heading-purple',
+  rose: 'cd2027-heading-rose',
+  green: 'cd2027-heading-green',
+  blue: 'cd2027-heading-blue',
+  orange: 'cd2027-heading-orange',
+}
+const validHeadingPalettes = new Set(Object.keys(headingPaletteClasses))
 
 /** Reads a validated color-scheme preference; storage failures fall back to the system setting. */
 function savedChoice() {
@@ -33,25 +43,47 @@ function savedChoice() {
   } catch { return null }
 }
 
-/** Reads a validated palette preference without making storage availability a page requirement. */
-function savedPalette() {
+/** Reads a validated background palette, migrating an older theme-color preference when present. */
+function savedBackgroundPalette() {
   try {
-    const saved = localStorage.getItem(PALETTE_STORAGE_KEY)
-    return validPalettes.has(saved) ? saved : null
+    const saved = localStorage.getItem(BACKGROUND_PALETTE_STORAGE_KEY) || localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY)
+    return validBackgroundPalettes.has(saved) ? saved : null
+  } catch { return null }
+}
+
+/** Reads a validated heading palette without making storage availability a page requirement. */
+function savedHeadingPalette() {
+  try {
+    const saved = localStorage.getItem(HEADING_PALETTE_STORAGE_KEY)
+    return validHeadingPalettes.has(saved) ? saved : null
   } catch { return null }
 }
 
 /**
- * Applies one known project palette and synchronizes selector accessibility state.
- * @param {string} palette Palette key from `validPalettes`.
+ * Applies one known background palette and synchronizes its selector accessibility state.
+ * @param {string} palette Palette key from `validBackgroundPalettes`.
  * @returns {void}
  */
-function applyPalette(palette) {
-  const selectedPalette = validPalettes.has(palette) ? palette : 'rose'
-  root.classList.remove(...Object.values(paletteClasses))
-  root.classList.add(paletteClasses[selectedPalette])
-  document.querySelectorAll('[data-theme-palette]').forEach((button) => {
-    button.setAttribute('aria-pressed', String(button.dataset.themePalette === selectedPalette))
+function applyBackgroundPalette(palette) {
+  const selectedPalette = validBackgroundPalettes.has(palette) ? palette : 'rose'
+  root.classList.remove(...Object.values(backgroundPaletteClasses))
+  root.classList.add(backgroundPaletteClasses[selectedPalette])
+  document.querySelectorAll('[data-background-palette]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.backgroundPalette === selectedPalette))
+  })
+}
+
+/**
+ * Applies one known heading text palette while leaving authored heading colors untouched.
+ * @param {string} palette Key from `validHeadingPalettes`.
+ * @returns {void}
+ */
+function applyHeadingPalette(palette) {
+  const selectedPalette = validHeadingPalettes.has(palette) ? palette : 'purple'
+  root.classList.remove(...Object.values(headingPaletteClasses))
+  root.classList.add(headingPaletteClasses[selectedPalette])
+  document.querySelectorAll('[data-heading-palette]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.headingPalette === selectedPalette))
   })
 }
 
@@ -78,8 +110,9 @@ function applyColorScheme(choice) {
   })
 }
 
-applyPalette(savedPalette() || 'rose')
-applyColorScheme(savedChoice() || 'system')
+applyBackgroundPalette(savedBackgroundPalette() || 'rose')
+applyHeadingPalette(savedHeadingPalette() || 'purple')
+applyColorScheme(savedChoice() || 'light')
 
 document.querySelectorAll('[data-theme-choice]').forEach((button) => {
   button.addEventListener('click', () => {
@@ -91,21 +124,34 @@ document.querySelectorAll('[data-theme-choice]').forEach((button) => {
   })
 })
 
-document.querySelectorAll('[data-theme-palette]').forEach((button) => {
+document.querySelectorAll('[data-background-palette]').forEach((button) => {
   button.addEventListener('click', () => {
-    const palette = button.dataset.themePalette
-    if (!validPalettes.has(palette)) return
+    const palette = button.dataset.backgroundPalette
+    if (!validBackgroundPalettes.has(palette)) return
 
-    try { localStorage.setItem(PALETTE_STORAGE_KEY, palette) } catch { /* Keep the current page usable without storage. */ }
-    applyPalette(palette)
+    try { localStorage.setItem(BACKGROUND_PALETTE_STORAGE_KEY, palette) } catch { /* Keep the current page usable without storage. */ }
+    applyBackgroundPalette(palette)
+  })
+})
+
+document.querySelectorAll('[data-heading-palette]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const palette = button.dataset.headingPalette
+    if (!validHeadingPalettes.has(palette)) return
+
+    try { localStorage.setItem(HEADING_PALETTE_STORAGE_KEY, palette) } catch { /* Keep the current page usable without storage. */ }
+    applyHeadingPalette(palette)
   })
 })
 
 preference.addEventListener?.('change', () => {
-  if (!savedChoice() || savedChoice() === 'system') applyColorScheme('system')
+  if (savedChoice() === 'system') applyColorScheme('system')
 })
 
 window.addEventListener('storage', (event) => {
-  if (event.key === STORAGE_KEY || event.key === null) applyColorScheme(savedChoice() || 'system')
-  if (event.key === PALETTE_STORAGE_KEY || event.key === null) applyPalette(savedPalette() || 'rose')
+  if (event.key === STORAGE_KEY || event.key === null) applyColorScheme(savedChoice() || 'light')
+  if ([BACKGROUND_PALETTE_STORAGE_KEY, LEGACY_PALETTE_STORAGE_KEY, null].includes(event.key)) {
+    applyBackgroundPalette(savedBackgroundPalette() || 'rose')
+  }
+  if ([HEADING_PALETTE_STORAGE_KEY, null].includes(event.key)) applyHeadingPalette(savedHeadingPalette() || 'purple')
 })

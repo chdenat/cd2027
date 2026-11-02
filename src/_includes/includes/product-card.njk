@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-02
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 #}
@@ -19,7 +19,10 @@
     {% if product.price %}<p class="product-price">{{ product.price | price }}</p>{% endif %}
   </div>
   {% if product.purchasable and product.inStock %}
-    <wa-button slot="footer" class="product-card__action" variant="brand" appearance="outlined" data-add-to-cart="{{ product.id }}">Ajouter au panier</wa-button>
+    <wa-button slot="footer" class="product-card__action commerce-add-to-cart" variant="brand" appearance="outlined" data-add-to-cart="{{ product.id }}">
+      <wa-icon class="commerce-add-to-cart__icon" data-commerce-add-icon library="pro" slot="start" name="basket-shopping-plus" variant="solid" aria-hidden="true"></wa-icon>
+      Ajouter au panier
+    </wa-button>
   {% else %}
     <wa-button slot="footer" class="product-card__action" href="{{ product.path }}" variant="brand" appearance="outlined">Découvrir</wa-button>
   {% endif %}

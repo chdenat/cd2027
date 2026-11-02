@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-04
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -441,6 +441,28 @@ html.wa-palette-cd2027-orange.wa-light {
   --cd2027--editorial-text-lightgray: color-mix(in srgb, var(--cd2027--palette-brand-70) 62%, var(--cd2027--palette-neutral-95) 38%);
   --cd2027--editorial-text-contrast: var(--cd2027--palette-neutral-95);
 }
+
+:root {
+  --cd2027--heading-swatch-purple: var(--cd2027--editorial-color-800080);
+  --cd2027--heading-swatch-rose: var(--cd2027--palette-swatch-rose);
+  --cd2027--heading-swatch-green: var(--wa-color-green-40);
+  --cd2027--heading-swatch-blue: var(--wa-color-blue-40);
+  --cd2027--heading-swatch-orange: var(--wa-color-orange-40);
+  --cd2027--color-heading: var(--cd2027--heading-swatch-purple);
+}
+
+:root.wa-dark {
+  --cd2027--heading-swatch-rose: color-mix(in srgb, var(--cd2027--palette-swatch-rose) 50%, white);
+  --cd2027--heading-swatch-green: color-mix(in srgb, var(--wa-color-green-40) 50%, white);
+  --cd2027--heading-swatch-blue: color-mix(in srgb, var(--wa-color-blue-40) 50%, white);
+  --cd2027--heading-swatch-orange: color-mix(in srgb, var(--wa-color-orange-40) 50%, white);
+}
+
+html.cd2027-heading-purple { --cd2027--color-heading: var(--cd2027--heading-swatch-purple); }
+html.cd2027-heading-rose { --cd2027--color-heading: var(--cd2027--heading-swatch-rose); }
+html.cd2027-heading-green { --cd2027--color-heading: var(--cd2027--heading-swatch-green); }
+html.cd2027-heading-blue { --cd2027--color-heading: var(--cd2027--heading-swatch-blue); }
+html.cd2027-heading-orange { --cd2027--color-heading: var(--cd2027--heading-swatch-orange); }
 
 :root { --cd2027--hero-font-size: var(--cd2027--font-size-xxl); }
 

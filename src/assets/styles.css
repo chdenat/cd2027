@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-08-19
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -70,7 +70,7 @@ h3,
 h4,
 h5,
 h6 {
-  color: var(--cd2027--color-tertiary);
+  color: var(--cd2027--color-heading);
   font-family: var(--cd2027--font-heading);
   font-style: normal;
   font-weight: 600;
@@ -231,10 +231,13 @@ wa-button[variant='brand'][appearance='outlined']::part(button):hover {
 }
 .nav-toggle::part(button) { min-inline-size: 2.4rem; padding-inline: 0.25rem; color: var(--cd2027--color-tertiary); }
 [data-theme-selector-trigger]::part(button),
-[data-palette-selector-trigger]::part(button) { box-sizing: border-box; inline-size: 2.4rem; min-inline-size: 2.4rem; block-size: 2.8rem; min-block-size: 2.8rem; padding: 0; border-radius: 0.5rem; color: var(--cd2027--color-tertiary); }
+[data-background-palette-trigger]::part(button),
+[data-heading-palette-trigger]::part(button) { box-sizing: border-box; inline-size: 2.4rem; min-inline-size: 2.4rem; block-size: 2.8rem; min-block-size: 2.8rem; padding: 0; border-radius: 0.5rem; color: var(--cd2027--color-tertiary); }
+[data-heading-palette-trigger]::part(button) { color: var(--cd2027--color-heading); }
 .header-cart-link::part(button):hover,
 [data-theme-selector-trigger]::part(button):hover,
-[data-palette-selector-trigger]::part(button):hover { background: var(--cd2027--color-surface-lowered); color: var(--cd2027--color-tertiary); }
+[data-background-palette-trigger]::part(button):hover { background: var(--cd2027--color-surface-lowered); color: var(--cd2027--color-tertiary); }
+[data-heading-palette-trigger]::part(button):hover { background: var(--cd2027--color-surface-lowered); color: var(--cd2027--color-heading); }
 .theme-selector::part(body) {
   padding: var(--wa-space-xs);
   border-color: var(--cd2027--color-border);
@@ -258,10 +261,15 @@ wa-button[variant='brand'][appearance='outlined']::part(button):hover {
 .theme-selector__palette-choices { display: flex; justify-content: center; gap: var(--wa-space-xs); }
 .theme-selector__palette-choices wa-button { inline-size: calc(var(--wa-space-l) - var(--wa-space-2xs)); block-size: calc(var(--wa-space-l) - var(--wa-space-2xs)); }
 .theme-selector__palette-choices wa-button::part(button) { box-sizing: border-box; inline-size: 100%; block-size: 100%; min-inline-size: calc(var(--wa-space-l) - var(--wa-space-2xs)); min-block-size: calc(var(--wa-space-l) - var(--wa-space-2xs)); padding: 0; border: 1px solid var(--cd2027--color-surface-raised); border-radius: 50%; }
-.theme-selector__palette-choices wa-button[data-theme-palette='rose']::part(button) { background: var(--cd2027--palette-swatch-rose); }
-.theme-selector__palette-choices wa-button[data-theme-palette='green']::part(button) { background: var(--wa-color-green-40); }
-.theme-selector__palette-choices wa-button[data-theme-palette='blue']::part(button) { background: var(--wa-color-blue-40); }
-.theme-selector__palette-choices wa-button[data-theme-palette='orange']::part(button) { background: var(--wa-color-orange-40); }
+.theme-selector__palette-choices wa-button[data-background-palette='rose']::part(button) { background: var(--cd2027--palette-swatch-rose); }
+.theme-selector__palette-choices wa-button[data-heading-palette='purple']::part(button) { background: var(--cd2027--heading-swatch-purple); }
+.theme-selector__palette-choices wa-button[data-heading-palette='rose']::part(button) { background: var(--cd2027--heading-swatch-rose); }
+.theme-selector__palette-choices wa-button[data-background-palette='green']::part(button) { background: var(--wa-color-green-40); }
+.theme-selector__palette-choices wa-button[data-background-palette='blue']::part(button) { background: var(--wa-color-blue-40); }
+.theme-selector__palette-choices wa-button[data-background-palette='orange']::part(button) { background: var(--wa-color-orange-40); }
+.theme-selector__palette-choices wa-button[data-heading-palette='green']::part(button) { background: var(--cd2027--heading-swatch-green); }
+.theme-selector__palette-choices wa-button[data-heading-palette='blue']::part(button) { background: var(--cd2027--heading-swatch-blue); }
+.theme-selector__palette-choices wa-button[data-heading-palette='orange']::part(button) { background: var(--cd2027--heading-swatch-orange); }
 .theme-selector__palette-choices wa-button[aria-pressed='true']::part(button) { outline: 2px solid var(--cd2027--color-tertiary); outline-offset: 1px; }
 .mobile-navigation { padding: 1.5rem; font-family: var(--cd2027--font-menu); }
 .mobile-navigation wa-button { color: var(--cd2027--color-tertiary); text-decoration: none; }
@@ -733,10 +741,16 @@ wa-card.product-summary::part(base) { background: var(--cd2027--gradient-surface
 .cd-content [data-cd-role='product-title'] { inline-size: 100%; margin: 0; color: var(--cd2027--color-tertiary); font-family: var(--cd2027--font-heading); font-size: var(--cd2027--font-size-medium); line-height: 1.2; }
 .cd-content [data-cd-role='product-price'] { margin: 1rem 0; color: var(--cd2027--color-price); font-family: var(--cd2027--font-menu); font-size: var(--cd2027--font-size-large); font-weight: 700; }
 .cd-content .entry-content [data-cd-role='product-price'] { color: var(--cd2027--color-price); font-family: var(--cd2027--font-menu); font-size: var(--cd2027--font-size-large) !important; font-weight: 700; }
-.cd-content [data-cd-role='product-actions'] { display: flex; justify-content: center; margin-block-start: auto; }
+.cd-content [data-cd-role='product-actions'] { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: var(--wa-space-xs); margin-block-start: auto; }
 .cd-content [data-cd-role='product-actions'] wa-button { display: flex; inline-size: fit-content; }
 .cd-content [data-cd-role='product-actions'] wa-button::part(button) { min-inline-size: 10rem; block-size: auto; padding: 0.5rem 2rem; border: 2px solid var(--cd2027--color-tertiary); border-radius: var(--cd2027--radius-pill); background: var(--cd2027--color-base); box-shadow: var(--cd2027--shadow); color: var(--cd2027--color-tertiary); font-family: var(--cd2027--font-button); font-size: var(--cd2027--font-size-small); font-weight: 700; line-height: 1.5; text-transform: capitalize; }
 .cd-content [data-cd-role='product-actions'] wa-button::part(button):hover { background: var(--cd2027--color-tertiary); color: var(--cd2027--color-base); }
+
+wa-button.commerce-add-to-cart,
+wa-button.commerce-view-cart-button { inline-size: fit-content; max-inline-size: 100%; }
+wa-button.commerce-add-to-cart::part(button),
+wa-button.commerce-view-cart-button::part(button) { inline-size: auto; max-inline-size: 100%; }
+.commerce-add-to-cart__icon[animation='swing'] { --animation-iteration-count: infinite; }
 
 .content-card,
 .product-card,
@@ -1150,7 +1164,7 @@ h5, h6 { font-weight: 400; }
 .content-card[with-footer]::part(footer) { position: absolute; inset-block-end: var(--spacing); inset-inline-end: var(--spacing); margin: 0; padding: 0; }
 .product-card::part(body) { display: flex; flex: 1; flex-direction: column; }
 .product-card__body { flex: 1; text-align: center; }
-.product-card::part(footer) { justify-content: center; border: 0; }
+.product-card::part(footer) { flex-wrap: wrap; justify-content: center; gap: var(--wa-space-xs); border: 0; }
 .product-card__action { inline-size: 100%; }
 .product-card__action::part(button) { inline-size: 100%; justify-content: center; text-align: center; }
 .content-card wa-button.article-read-more { block-size: var(--cd2027--article-action-height); }

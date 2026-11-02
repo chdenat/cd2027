@@ -21,7 +21,7 @@ eleventyComputed:
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-03
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 #}
@@ -46,14 +46,14 @@ eleventyComputed:
         {% if wp.shortDescriptionHtml %}<div class="product-short-description cd-content">{{ wp.shortDescriptionHtml | safe }}</div>{% endif %}
         {% if wp.purchasable and wp.inStock %}
           <wa-number-input class="product-summary__quantity" label="Quantité" name="quantity" min="0" max="100" step="1" value="1"></wa-number-input>
-          <wa-button variant="brand" appearance="outlined" data-add-to-cart="{{ wp.id }}">
-            Ajouter au panier <wa-icon library="pro" slot="end" name="basket-shopping" variant="solid" aria-hidden="true"></wa-icon>
+          <wa-button class="commerce-add-to-cart" variant="brand" appearance="outlined" data-add-to-cart="{{ wp.id }}">
+            <wa-icon class="commerce-add-to-cart__icon" data-commerce-add-icon library="pro" slot="start" name="basket-shopping-plus" variant="solid" aria-hidden="true"></wa-icon>
+            Ajouter au panier
           </wa-button>
           <p class="form-message" data-commerce-status role="status" aria-live="polite"></p>
         {% else %}
           <p class="stock-status">{{ 'Indisponible pour le moment' if not wp.inStock else 'Contactez-moi pour en savoir plus.' }}</p>
         {% endif %}
-        <wa-button class="text-link" href="/panier/" appearance="plain" size="s">Voir le panier</wa-button>
       </div>
     </wa-card>
   </div>

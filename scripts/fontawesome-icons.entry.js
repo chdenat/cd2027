@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -21,19 +21,22 @@ import {
   faArrowRight,
   faBars,
   faBasketShopping,
+  faBasketShoppingMinus,
+  faBasketShoppingPlus,
   faBookOpen,
   faCalendarCircleExclamation,
   faCircleHalfStroke,
   faDesktop,
   faMessages,
   faMoon,
-  faPalette,
   faPaperPlane,
   faPenClip,
+  faPenFancy,
   faPlay,
   faRightFromBracket,
   faRightToBracket,
   faSquarePhoneFlip,
+  faSplotch,
   faSunBright,
 } from '@fortawesome/pro-solid-svg-icons'
 import {
@@ -50,19 +53,22 @@ export const fontAwesomeIconDefinitions = {
     'arrow-right': faArrowRight,
     bars: faBars,
     'basket-shopping': faBasketShopping,
+    'basket-shopping-minus': faBasketShoppingMinus,
+    'basket-shopping-plus': faBasketShoppingPlus,
     'book-open': faBookOpen,
     'calendar-circle-exclamation': faCalendarCircleExclamation,
     'circle-half-stroke': faCircleHalfStroke,
     desktop: faDesktop,
     messages: faMessages,
     moon: faMoon,
-    palette: faPalette,
     'paper-plane': faPaperPlane,
     'pen-clip': faPenClip,
+    'pen-fancy': faPenFancy,
     play: faPlay,
     'right-from-bracket': faRightFromBracket,
     'right-to-bracket': faRightToBracket,
     'square-phone-flip': faSquarePhoneFlip,
+    splotch: faSplotch,
     'sun-bright': faSunBright,
   },
   brands: {
