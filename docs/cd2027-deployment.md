@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-07
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -81,6 +81,8 @@ Ajoute ces variables d'environnement :
 | `WORDPRESS_ORIGIN` | `https://christinedeloupy.fr` tant que CD2020 reste la source WordPress |
 | `CD2027_REMOTE_ROOT` | Chemin absolu du dossier de déploiement Nuxit, parent de `incoming`, `releases` et `current` |
 | `PRIVATE_VIEW` | `true` pendant la validation privée ; `false` rend le site public |
+
+Si l'environnement `cd2027` contient déjà les anciens noms `STAGING_SSH_HOST`, `STAGING_SSH_USER`, `STAGING_SSH_PASSWORD`, `STAGING_SSH_PORT` ou `STAGING_REMOTE_ROOT`, le workflow staging les accepte aussi. Les noms `CD2027_*` ci-dessus restent les noms recommandés.
 
 Les identifiants SSH restent enregistrés dans les secrets GitHub. Le workflow installe `sshpass` sur son runner GitHub temporaire ; cette commande ne s'exécute pas sur Nuxit. Il accepte automatiquement la clé présentée par l'hôte SSH, sans demander de variable `known_hosts`.
 

@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-07
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -67,7 +67,7 @@ Relevant build-time environment variables:
 
 The root `index.js` is the `main` placeholder declared by the private root package manifest. Running `bun index.js` only prints a starter message; the site build and runtime use the commands and entry points documented above.
 
-`upload-cd2027.sh` requires `CD2027_SSH_HOST`, `CD2027_SSH_USER`, `CD2027_SSH_PASSWORD`, and `CD2027_REMOTE_ROOT`. `CD2027_SSH_PORT` is optional and defaults to `22`. The staging workflow reads these values only from its `cd2027` GitHub environment; the production workflow reads same-named values only from `cd2027-production`. There are no repository-level `STAGING_*` credential fallbacks. The password is consumed by `sshpass` and removed from the script environment before the archive transfer. The script accepts a new SSH host key on first connection into a runner-temporary known-hosts file, then checks it for the remainder of that invocation.
+`upload-cd2027.sh` requires `CD2027_SSH_HOST`, `CD2027_SSH_USER`, `CD2027_SSH_PASSWORD`, and `CD2027_REMOTE_ROOT`. `CD2027_SSH_PORT` is optional and defaults to `22`. The staging workflow reads canonical values from its `cd2027` GitHub environment and accepts the existing `STAGING_SSH_*` secrets and `STAGING_REMOTE_ROOT` variable there as aliases. Production reads only same-named `CD2027_*` values from `cd2027-production`; there are no repository-level credential fallbacks. The password is consumed by `sshpass` and removed from the script environment before the archive transfer. The script accepts a new SSH host key on first connection into a runner-temporary known-hosts file, then checks it for the remainder of that invocation.
 
 ## GitHub deployment workflow
 
