@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -69,6 +69,10 @@ Validate the homepage, editorial pages, articles, archives, products, commerce/a
 
 Use Web Awesome buttons and dropdowns for the shared desktop header and mobile navigation. Preserve the source menu's Montserrat font weight of 400 and its 0.25em gap before submenu carets. Render an item with no child choices as a regular navigation link, not as an empty dropdown. Apply the same typography and caret spacing in both views; validate a standard route and a shop route at desktop and mobile widths.
 
+### G-06 — Keep background and heading palettes independent
+
+Use the `splotch` selector for the background palette and the `pen-fancy` selector for heading text colors. Default to the rose background palette and the original WordPress violet (`#800080`) for H1–H6. Offer rose, green, blue, and orange background choices; offer violet plus those existing colors for headings. Save each choice independently. A heading palette supplies only the default H1–H6 color: source-authored Gutenberg colors, inline colors externalized from WordPress, and deliberate component or route colors take precedence. Default the display mode to light when no preference is saved, while honoring a saved system, light, or dark choice.
+
 ## Block and element rules
 
 ### B-01 — WordPress controls
@@ -89,6 +93,10 @@ Keep three-corner petal artwork as images. Preserve its source corner geometry, 
 
 Keep safe `flex-direction`, `flex-wrap`, `align-items`, `justify-content`, and gap declarations from simple WordPress container rules in public block-support CSS. Extract them into the external content stylesheet before removing WordPress implementation classes; inline declarations retain precedence. Default vertical groups stretch; explicit left, center, and right justification applies to the horizontal axis of a vertical group. Flex children do not inherit flow margins; image alignment inside a flex group follows the group, while flow figures retain their own alignment. Stack Gutenberg columns below 782px, preserving the explicit `is-not-stacked-on-mobile` exception. Centering markers and the 90% petal treatment apply through 768px. Preserve mobile markers through stable data attributes. Do not copy arbitrary source selectors, nested at-rules, or positioning declarations into project CSS.
 
+### B-05 — Preserve semantic highlights
+
+Keep source `<mark>` tags and their text through WordPress sanitization. Preserve safe authored attributes, externalize inline and WordPress palette colors to CSS scoped to the individual page, and restore the semantic tag after sanitization. Leave browser highlight styling visible when no source color is authored; do not hide marks or add a global mark rule. Validate an authored highlight with and without color declarations on two distinct routes.
+
 ## Page-family rules
 
 ### F-01 — Homepage
@@ -101,11 +109,11 @@ Keep semantic article/page content in its source order. Preserve authored headin
 
 ### F-03 — Archives and product catalogs
 
-Preserve category and archive content, pagination, route metadata, and links. Use Web Awesome cards and controls where the matching component preserves the content and action. Validate blog, category, and product archive routes separately from homepage layout.
+Preserve category and archive content, pagination, route metadata, and links. Use Web Awesome cards and controls where the matching component preserves the content and action. Product add buttons keep their content width, show the `basket-shopping-plus` icon, and animate it with Font Awesome `swing` while an add request is pending. After a successful add, show a `Voir le panier` button with `basket-shopping`. Validate blog, category, and product archive routes separately from homepage layout.
 
 ### F-04 — Commerce and account flows
 
-Use Web Awesome for matching public controls while keeping cart, checkout, payment, account, subscription, and course state connected to the WordPress/WooCommerce backend. Never replace a working transaction with a static visual copy.
+Use Web Awesome for matching public controls while keeping cart, checkout, payment, account, subscription, and course state connected to the WordPress/WooCommerce backend. In cart rows, use an icon-only `basket-shopping-minus` remove control with an accessible product-specific name. Never replace a working transaction with a static visual copy.
 
 ### F-05 — Contact and forms
 
