@@ -107,7 +107,7 @@
   --cd2027--color-border: #ecc8c8;
   --cd2027--color-control-border: #ecc8c8;
   --cd2027--color-social: #d698a6;
-  --cd2027--color-price: var(--cd2027--color-secondary);
+  --cd2027--color-price: var(--cd2027--color-button);
   --cd2027--color-shadow: rgb(0 0 0 / 10%);
   --cd2027--shadow: 3px 3px 9px rgb(0 0 0 / 10%);
   --cd2027--shadow-hover: 0 0.9rem 1.5rem rgb(80 50 50 / 23%);
@@ -270,8 +270,8 @@
   --wa-color-surface-border: var(--cd2027--color-border);
   --wa-color-text-normal: var(--cd2027--color-body);
   --wa-color-text-quiet: var(--cd2027--color-text);
-  --wa-color-text-link: var(--cd2027--color-tertiary);
-  --wa-color-focus: var(--cd2027--color-tertiary);
+  --wa-color-text-link: var(--cd2027--color-button);
+  --wa-color-focus: var(--cd2027--color-button);
   --wa-color-shadow: var(--cd2027--color-shadow);
   --wa-color-overlay-modal: rgb(55 52 52 / 50%);
   --wa-color-overlay-inline: rgb(80 78 78 / 14%);
@@ -302,7 +302,7 @@
   --wa-form-control-border-radius: 0.5rem;
   --wa-form-control-font-family: var(--cd2027--font-menu);
   --wa-form-control-height: 2.8rem;
-  --wa-form-control-activated-color: var(--cd2027--color-tertiary);
+  --wa-form-control-activated-color: var(--cd2027--color-button);
   --wa-button-transform-hover: none;
   --wa-button-transform-active: none;
 }
@@ -333,7 +333,7 @@ html.wa-theme-cd2027.wa-dark,
   --cd2027--color-border: color-mix(in srgb, var(--cd2027--palette-brand-30) 42%, var(--cd2027--palette-neutral-30) 58%);
   --cd2027--color-control-border: color-mix(in srgb, var(--cd2027--palette-brand-30) 58%, var(--cd2027--palette-neutral-30) 42%);
   --cd2027--color-social: color-mix(in srgb, var(--cd2027--palette-brand-70) 70%, var(--cd2027--palette-neutral-95) 30%);
-  --cd2027--color-price: var(--cd2027--color-tertiary);
+  --cd2027--color-price: var(--cd2027--color-button);
   --cd2027--color-shadow: rgb(0 0 0 / 32%);
   --cd2027--shadow: 0 0.5rem 2rem rgb(0 0 0 / 32%);
   --cd2027--shadow-hover: 0 0.85rem 1.5rem rgb(0 0 0 / 50%);
@@ -346,8 +346,8 @@ html.wa-theme-cd2027.wa-dark,
   --wa-color-surface-border: var(--cd2027--color-border);
   --wa-color-text-normal: var(--cd2027--color-body);
   --wa-color-text-quiet: var(--cd2027--color-text);
-  --wa-color-text-link: var(--cd2027--color-tertiary);
-  --wa-color-focus: var(--cd2027--color-tertiary);
+  --wa-color-text-link: var(--cd2027--color-button);
+  --wa-color-focus: var(--cd2027--color-button);
   --wa-color-shadow: var(--cd2027--color-shadow);
   --wa-color-overlay-modal: rgb(0 0 0 / 64%);
   --wa-color-overlay-inline: rgb(255 250 250 / 10%);
@@ -374,7 +374,7 @@ html.wa-theme-cd2027.wa-dark,
 
   --wa-form-control-background-color: var(--cd2027--color-surface);
   --wa-form-control-border-color: var(--cd2027--color-control-border);
-  --wa-form-control-activated-color: var(--cd2027--color-tertiary);
+  --wa-form-control-activated-color: var(--cd2027--color-button);
 }
 
 html.wa-palette-cd2027-green.wa-light,
@@ -393,7 +393,7 @@ html.wa-palette-cd2027-orange.wa-light {
   --cd2027--color-border: color-mix(in srgb, var(--cd2027--palette-brand-80) 60%, var(--cd2027--color-base));
   --cd2027--color-control-border: color-mix(in srgb, var(--cd2027--palette-brand-70) 68%, var(--cd2027--color-base));
   --cd2027--color-social: color-mix(in srgb, var(--cd2027--palette-brand-60) 64%, var(--cd2027--palette-brand-95) 36%);
-  --cd2027--color-price: var(--cd2027--color-tertiary);
+  --cd2027--color-price: var(--cd2027--color-button);
 }
 
 :root { --cd2027--page-padding-inline: clamp(1rem, 4vw, 2rem); }
@@ -413,11 +413,11 @@ html.wa-palette-cd2027-orange.wa-light {
   --cd2027--editorial-color-f05c8d: #f05c8d;
   --cd2027--editorial-color-fc758e: #fc758e;
   --cd2027--editorial-color-ff99cc: #ff99cc;
-  --cd2027--editorial-text-primary: color-mix(in srgb, var(--cd2027--palette-brand-40) 68%, var(--cd2027--palette-neutral-20) 32%);
-  --cd2027--editorial-text-secondary: color-mix(in srgb, var(--cd2027--palette-brand-40) 58%, var(--cd2027--palette-neutral-20) 42%);
-  --cd2027--editorial-text-tertiary: color-mix(in srgb, var(--cd2027--palette-brand-40) 76%, var(--cd2027--palette-neutral-20) 24%);
-  --cd2027--editorial-text-quaternary: color-mix(in srgb, var(--cd2027--palette-brand-40) 62%, var(--cd2027--palette-neutral-20) 38%);
-  --cd2027--editorial-text-lightgray: color-mix(in srgb, var(--cd2027--color-lightgray) 52%, var(--cd2027--palette-neutral-20) 48%);
+  --cd2027--editorial-text-primary: var(--cd2027--color-button);
+  --cd2027--editorial-text-secondary: var(--cd2027--color-button);
+  --cd2027--editorial-text-tertiary: var(--cd2027--color-button);
+  --cd2027--editorial-text-quaternary: var(--cd2027--color-button);
+  --cd2027--editorial-text-lightgray: var(--cd2027--color-text);
   --cd2027--editorial-text-contrast: var(--cd2027--palette-neutral-10);
 }
 :root.wa-dark {
@@ -434,11 +434,11 @@ html.wa-palette-cd2027-orange.wa-light {
   --cd2027--editorial-color-f05c8d: color-mix(in srgb, #f05c8d 50%, white);
   --cd2027--editorial-color-fc758e: color-mix(in srgb, #fc758e 50%, white);
   --cd2027--editorial-color-ff99cc: color-mix(in srgb, #ff99cc 50%, white);
-  --cd2027--editorial-text-primary: color-mix(in srgb, var(--cd2027--palette-brand-80) 78%, var(--cd2027--palette-neutral-95) 22%);
-  --cd2027--editorial-text-secondary: color-mix(in srgb, var(--cd2027--palette-brand-70) 74%, var(--cd2027--palette-neutral-95) 26%);
-  --cd2027--editorial-text-tertiary: color-mix(in srgb, var(--cd2027--palette-brand-80) 58%, var(--cd2027--palette-neutral-95) 42%);
-  --cd2027--editorial-text-quaternary: color-mix(in srgb, var(--cd2027--palette-brand-60) 74%, var(--cd2027--palette-neutral-95) 26%);
-  --cd2027--editorial-text-lightgray: color-mix(in srgb, var(--cd2027--palette-brand-70) 62%, var(--cd2027--palette-neutral-95) 38%);
+  --cd2027--editorial-text-primary: var(--cd2027--color-button);
+  --cd2027--editorial-text-secondary: var(--cd2027--color-button);
+  --cd2027--editorial-text-tertiary: var(--cd2027--color-button);
+  --cd2027--editorial-text-quaternary: var(--cd2027--color-button);
+  --cd2027--editorial-text-lightgray: var(--cd2027--color-text);
   --cd2027--editorial-text-contrast: var(--cd2027--palette-neutral-95);
 }
 

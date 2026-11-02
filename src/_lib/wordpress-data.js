@@ -976,7 +976,7 @@ function isSafeCachedStyleSelector(selector) {
 /** Allows only stable theme tokens that the content normalizer can generate. */
 function isSafeCachedStyleVariable(name, palette) {
   if (/^--cd2027--(?:color-[a-z\d-]+|font-[a-z\d-]+|space-[a-z\d-]+|page-padding-inline|editorial-color-[a-f\d]{3,8})$/i.test(name)) return true
-  const wordpressColor = /^--cd2027--wordpress-color-([a-z\d-]+)$/i.exec(name)
+  const wordpressColor = /^--cd2027--wordpress-(?:color|text-color|background-color)-([a-z\d-]+)$/i.exec(name)
   return Boolean(wordpressColor && palette[wordpressColor[1]] && isSafeCssColorValue(palette[wordpressColor[1]]))
 }
 
@@ -991,10 +991,11 @@ function sanitizeCachedContentStyleRules(cached) {
   for (const rule of Array.isArray(cached.contentStyleRules) ? cached.contentStyleRules : []) {
     if (!rule || typeof rule.selector !== 'string' || rule.selector === ':root' || !isSafeCachedStyleSelector(rule.selector)) continue
     if (typeof rule.declarations !== 'string' || rule.declarations.length > 10000) continue
-    const cssVariables = [...new Set([...rule.declarations.matchAll(/var\(\s*(--[a-z][a-z\d-]*)/gi)]
+    const normalizedDeclarations = rewriteWordPressPaletteDeclarations(rule.declarations, palette)
+    const cssVariables = [...new Set([...normalizedDeclarations.matchAll(/var\(\s*(--[a-z][a-z\d-]*)/gi)]
       .map((match) => match[1])
       .filter((name) => isSafeCachedStyleVariable(name, palette))) ]
-    const safeHtml = sanitizeWordPressHtml(`<i style="${escapeAttributeValue(rule.declarations)}"></i>`, {
+    const safeHtml = sanitizeWordPressHtml(`<i style="${escapeAttributeValue(normalizedDeclarations)}"></i>`, {
       additionalFontFamilies: SITE_HTML_SANITIZER_OPTIONS.additionalFontFamilies,
       allowedBackgroundImagePrefixes: SITE_HTML_SANITIZER_OPTIONS.allowedBackgroundImagePrefixes,
       allowedCssVariables: cssVariables,
@@ -1020,6 +1021,137 @@ function sanitizeCachedNavigation(items) {
     if (children.length) normalizedItem.items = children
     else delete normalizedItem.items
     return [normalizedItem]
+  })
+}
+
+const WORDPRESS_PALETTE_SEMANTIC_ROLES = Object.freeze({
+  primary: 'primary',
+  secondary: 'secondary',
+  tertiary: 'tertiary',
+  quaternary: 'quaternary',
+  text: 'text',
+  lightgray: 'lightgray',
+  'couleur-1': 'primary',
+  'couleur-2': 'secondary',
+  'couleur-3': 'tertiary',
+  'couleur-4': 'quaternary',
+  'couleur-5': 'text',
+  'couleur-texte': 'text',
+})
+
+const ORIGINAL_BRAND_SHADE_LIGHTNESS = Object.freeze([
+  ['95', 97.5], ['90', 94.1], ['80', 85.5], ['70', 78.8], ['60', 69.0],
+  ['50', 59.2], ['40', 49.0], ['30', 39.6], ['20', 31.6], ['10', 22.0], ['05', 15.9],
+])
+
+/** Parses the hex and rgb color formats used by WordPress palette declarations. */
+function parseCssColorChannels(color) {
+  const value = String(color || '').trim().toLowerCase()
+  const hex = /^#([\da-f]{3}|[\da-f]{4}|[\da-f]{6}|[\da-f]{8})$/i.exec(value)
+  if (hex) {
+    let digits = hex[1]
+    if (digits.length === 3 || digits.length === 4) digits = [...digits.slice(0, 3)].map((part) => part + part).join('')
+    else digits = digits.slice(0, 6)
+    return [0, 2, 4].map((index) => Number.parseInt(digits.slice(index, index + 2), 16))
+  }
+
+  const rgb = /^rgba?\(([^)]+)\)$/i.exec(value)
+  if (!rgb) return null
+  const channels = rgb[1].split(/[\s,\/]+/).filter(Boolean).slice(0, 3).map((channel) => {
+    const amount = Number.parseFloat(channel)
+    return channel.endsWith('%') ? amount * 2.55 : amount
+  })
+  return channels.length === 3 && channels.every(Number.isFinite) ? channels : null
+}
+
+/** Leaves neutral palette colors alone and identifies the nearest original brand tint. */
+function wordPressPaletteColorProfile(color) {
+  const channels = parseCssColorChannels(color)
+  if (!channels) {
+    const neutralNames = new Set(['black', 'white', 'gray', 'grey', 'silver', 'gainsboro', 'lightgray', 'darkgray', 'dimgray', 'transparent'])
+    return { neutral: neutralNames.has(String(color || '').trim().toLowerCase()), shade: '40' }
+  }
+
+  const normalized = channels.map((channel) => Math.max(0, Math.min(255, channel)) / 255)
+  const maximum = Math.max(...normalized)
+  const minimum = Math.min(...normalized)
+  const lightness = (maximum + minimum) / 2
+  const saturation = maximum === minimum ? 0 : (maximum - minimum) / (1 - Math.abs((2 * lightness) - 1))
+  const neutral = saturation <= 0.08
+  const shade = ORIGINAL_BRAND_SHADE_LIGHTNESS.reduce((nearest, candidate) =>
+    Math.abs(candidate[1] - lightness * 100) < Math.abs(nearest[1] - lightness * 100) ? candidate : nearest,
+  ORIGINAL_BRAND_SHADE_LIGHTNESS[0])[0]
+  return { neutral, shade }
+}
+
+/** Treats only fully opaque RGB colors as exact palette matches. */
+function isOpaquePaletteColor(color) {
+  const value = String(color || '').trim().toLowerCase()
+  const functionColor = /^rgba?\(([^)]+)\)$/i.exec(value)
+  if (!functionColor) return true
+  const channels = functionColor[1].split(/[\s,\/]+/).filter(Boolean)
+  if (channels.length < 4) return true
+  const alpha = channels[3].endsWith('%') ? Number.parseFloat(channels[3]) / 100 : Number.parseFloat(channels[3])
+  return Number.isFinite(alpha) && alpha >= 0.999
+}
+
+/** Finds a source palette slug for an authored value so only source-palette colors are adapted. */
+function findWordPressPaletteSlug(color, palette) {
+  if (!isOpaquePaletteColor(color)) return null
+  const sourceChannels = parseCssColorChannels(color)
+  for (const [slug, sourceColor] of palette instanceof Map ? palette : Object.entries(palette || {})) {
+    if (String(sourceColor).trim().toLowerCase().replace(/\s+/g, '') === String(color).trim().toLowerCase().replace(/\s+/g, '')) return slug
+    const paletteChannels = parseCssColorChannels(sourceColor)
+    if (sourceChannels && paletteChannels && sourceChannels.every((channel, index) => Math.abs(channel - paletteChannels[index]) < 1)) return slug
+  }
+  return null
+}
+
+/** Returns the runtime text or background equivalent for a source WordPress palette color. */
+function wordPressPaletteColorValue(slug, purpose, palette) {
+  const normalizedSlug = String(slug || '').toLowerCase()
+  const paletteColor = palette instanceof Map ? palette.get(normalizedSlug) : palette?.[normalizedSlug]
+  if (!paletteColor || !isSafeCssColorValue(paletteColor)) return null
+  if (wordPressPaletteColorProfile(paletteColor).neutral) return `var(--cd2027--wordpress-color-${normalizedSlug})`
+  if (purpose === 'text') return 'var(--cd2027--color-button)'
+
+  const semanticRole = WORDPRESS_PALETTE_SEMANTIC_ROLES[normalizedSlug]
+  if (semanticRole && !['text', 'lightgray'].includes(semanticRole)) return `var(--cd2027--color-${semanticRole})`
+  return `var(--cd2027--palette-brand-${wordPressPaletteColorProfile(paletteColor).shade})`
+}
+
+/** References the generated alias that changes with the selected theme palettes. */
+function wordPressPaletteColorAlias(slug, purpose, palette) {
+  const normalizedSlug = String(slug || '').toLowerCase()
+  const paletteColor = palette instanceof Map ? palette.get(normalizedSlug) : palette?.[normalizedSlug]
+  if (!paletteColor || !isSafeCssColorValue(paletteColor)) return null
+  return `var(--cd2027--wordpress-${purpose}-color-${normalizedSlug})`
+}
+
+/** Rewrites only CSS color properties, keeping source palette text and surfaces independently selectable. */
+function rewriteWordPressPaletteDeclarations(declarations, palette) {
+  return transformCssDeclarations(declarations, (property, value) => {
+    const purpose = property === 'color'
+      ? 'text'
+      : /^(?:background(?:-color)?|border(?:-[a-z]+)*(?:-color)?)$/.test(property)
+        ? 'background'
+        : null
+    if (!purpose) return `${property}:${value}`
+
+    const transformedValue = value
+      .replace(/var\(\s*--cd2027--wordpress-color-([a-z\d][a-z\d-]*)\s*\)/gi, (match, slug) =>
+        wordPressPaletteColorAlias(slug, purpose, palette) || match)
+      .replace(/var\(\s*--cd2027--editorial-color-([a-f\d]{3,8})\s*\)/gi, (match, hex) => {
+        const slug = findWordPressPaletteSlug(`#${hex}`, palette)
+        return slug ? wordPressPaletteColorAlias(slug, purpose, palette) || match : match
+      })
+      .replace(/#[\da-f]{3,8}\b|rgba?\([^)]+\)/gi, (match) => {
+        const slug = findWordPressPaletteSlug(match, palette)
+        return slug ? wordPressPaletteColorAlias(slug, purpose, palette) || match : match
+      })
+      .replace(/var\(\s*--cd2027--color-(primary|secondary|tertiary|quaternary|lightgray)\s*\)/gi, (match) =>
+        purpose === 'text' ? 'var(--cd2027--color-button)' : match)
+    return `${property}:${transformedValue}`
   })
 }
 
@@ -1091,23 +1223,20 @@ function markPetalImagesInCachedMarkup(cached) {
   return cached
 }
 
-/**
- * Removes selected CSS properties while preserving declarations with nested function values.
- * @param {string} declarations CSS declaration list from imported WordPress markup.
- * @param {Set<string>} properties Lowercase property names to omit.
- * @returns {string} The remaining declarations in their original order.
- */
-function removeCssDeclarations(declarations, properties) {
+/** Applies a value transform to CSS declarations without splitting nested function arguments. */
+function transformCssDeclarations(declarations, transform) {
   const retained = []
   let start = 0
   let depth = 0
   let quote = ''
   let escaped = false
-  const keepDeclaration = (end) => {
+  const transformDeclaration = (end) => {
     const declaration = declarations.slice(start, end).trim()
     const colon = declaration.indexOf(':')
     const property = colon < 0 ? '' : declaration.slice(0, colon).trim().toLowerCase()
-    if (declaration && !properties.has(property)) retained.push(declaration)
+    const value = colon < 0 ? '' : declaration.slice(colon + 1)
+    const transformed = declaration && colon >= 0 ? transform(property, value) : declaration
+    if (transformed) retained.push(transformed)
   }
 
   for (let index = 0; index < declarations.length; index += 1) {
@@ -1131,17 +1260,24 @@ function removeCssDeclarations(declarations, properties) {
     if (character === '(') depth += 1
     else if (character === ')') depth = Math.max(0, depth - 1)
     else if (character === ';' && depth === 0) {
-      keepDeclaration(index)
+      transformDeclaration(index)
       start = index + 1
     }
   }
-  keepDeclaration(declarations.length)
+  transformDeclaration(declarations.length)
   return retained.join(';')
+}
+
+/** Removes selected CSS properties while preserving declarations with nested function values. */
+function removeCssDeclarations(declarations, properties) {
+  return transformCssDeclarations(declarations, (property, value) =>
+    properties.has(property) ? '' : `${property}:${value}`)
 }
 
 /**
  * Moves imported inline declarations into deterministic page-scoped external CSS rules.
- * Control colors on buttons and H1–H4 come from the user's selected control palette.
+ * Palette colors in text, buttons, and H1–H4 come from the selected text palette;
+ * source palette surfaces use the corresponding tint from the selected background palette.
  * The build context owns the rule map so templates can emit a stylesheet without inline styles.
  * @param {string} html Normalized WordPress HTML.
  * @param {object} [record] Record identity used to scope page-specific styles.
@@ -1164,13 +1300,21 @@ function externalizeContentStyles(html, record = {}, contentContext) {
     const linkColorValueAttribute = /\sdata-cd-link-color-value=(['"])(.*?)\1/i.exec(tag)
     const colorToken = (token) => ({ primary: 'primary', secondary: 'secondary', tertiary: 'tertiary', quaternary: 'quaternary', text: 'text', lightgray: 'lightgray', contrast: 'contrast-foreground', base: 'base-foreground', 'couleur-1': 'primary', 'couleur-2': 'secondary', 'couleur-3': 'tertiary', 'couleur-4': 'quaternary', 'couleur-5': 'text', 'couleur-texte': 'text', white: 'base-foreground', blanc: 'base-foreground', black: 'contrast-foreground', noir: 'contrast-foreground', foreground: 'contrast-foreground', background: 'base' })[token]
     const palette = contentContext.wordpressColorPalette || new Map()
-    const colorForToken = (rawToken) => {
+    const colorForToken = (rawToken, purpose = 'background') => {
       const token = String(rawToken || '').toLowerCase()
       if (!/^[a-z0-9][a-z0-9-]*$/.test(token)) return null
       const hasPaletteValue = palette instanceof Map ? palette.has(token) : Boolean(palette?.[token])
-      if (hasPaletteValue) return `var(--cd2027--wordpress-color-${token})`
+      if (hasPaletteValue) return wordPressPaletteColorAlias(token, purpose, palette)
       const fallbackToken = colorToken(token)
+      if (purpose === 'text' && ['primary', 'secondary', 'tertiary', 'quaternary'].includes(fallbackToken)) {
+        return 'var(--cd2027--color-button)'
+      }
+      if (purpose === 'text' && fallbackToken === 'lightgray') return 'var(--cd2027--color-text)'
       return fallbackToken ? `var(--cd2027--color-${fallbackToken})` : null
+    }
+    const textColorForValue = (value) => {
+      const slug = findWordPressPaletteSlug(value, palette)
+      return slug ? wordPressPaletteColorAlias(slug, 'text', palette) || value : value
     }
     let declarations = attribute ? decodeHTML(attribute[2]).trim() : ''
     if (attribute) {
@@ -1200,17 +1344,18 @@ function externalizeContentStyles(html, record = {}, contentContext) {
     } else if (isButtonPaletteHeading) {
       declarations = removeCssDeclarations(declarations, new Set(['color']))
     }
-    const textColor = !isButton && !isButtonPaletteHeading && textColorAttribute && colorForToken(textColorAttribute[2])
-    const backgroundColor = !isButton && backgroundColorAttribute && colorForToken(backgroundColorAttribute[2])
-    const borderColor = !isButton && borderColorAttribute && colorForToken(borderColorAttribute[2])
+    const textColor = !isButton && !isButtonPaletteHeading && textColorAttribute && colorForToken(textColorAttribute[2], 'text')
+    const backgroundColor = !isButton && backgroundColorAttribute && colorForToken(backgroundColorAttribute[2], 'background')
+    const borderColor = !isButton && borderColorAttribute && colorForToken(borderColorAttribute[2], 'background')
     if (textColor) declarations += `${declarations ? ';' : ''}color:${textColor} !important`
     if (backgroundColor) declarations += `${declarations ? ';' : ''}background-color:${backgroundColor} !important`
     if (borderColor) declarations += `${declarations ? ';' : ''}border-color:${borderColor} !important`
-    const linkColor = linkColorAttribute && colorForToken(linkColorAttribute[2])
+    declarations = rewriteWordPressPaletteDeclarations(declarations, palette)
+    const linkColor = linkColorAttribute && colorForToken(linkColorAttribute[2], 'text')
     const linkColorValue = linkColorValueAttribute ? decodeHTML(linkColorValueAttribute[2]).trim() : ''
     const linkDeclarations = linkColor
       ? `color:${linkColor} !important`
-      : isSafeCssColorValue(linkColorValue) ? `color:${linkColorValue} !important` : ''
+      : isSafeCssColorValue(linkColorValue) ? `color:${textColorForValue(linkColorValue)} !important` : ''
     const pageScopedDeclarations = isMark ? `${pageClass}|${declarations}|${linkDeclarations}` : `${declarations}|${linkDeclarations}`
     const className = `cd-content-style-${createHash('sha256').update(pageScopedDeclarations).digest('hex').slice(0, 12)}`
     const markSelector = isMark ? `mark.${pageClass}.${className}[class]` : null
@@ -1443,11 +1588,14 @@ async function fetchWordPressElementLinkColors(records, contentContext) {
 
 /** Builds the external root variables that preserve the source WordPress palette values. */
 function wordpressColorPaletteRule(palette) {
-  const declarations = [...palette]
+  const entries = [...palette]
     .filter(([slug, color]) => /^[a-z0-9][a-z0-9-]*$/i.test(slug) && isSafeCssColorValue(color))
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([slug, color]) => `--cd2027--wordpress-color-${slug}:${color}`)
-    .join(';')
+  const declarations = entries.flatMap(([slug, color]) => [
+    `--cd2027--wordpress-color-${slug}:${color}`,
+    `--cd2027--wordpress-background-color-${slug}:${wordPressPaletteColorValue(slug, 'background', palette)}`,
+    `--cd2027--wordpress-text-color-${slug}:${wordPressPaletteColorValue(slug, 'text', palette)}`,
+  ]).join(';')
   return declarations ? { selector: ':root', declarations } : null
 }
 

@@ -42,10 +42,10 @@ assert.doesNotMatch(html, /\sstyle=/i, 'WordPress inline styles should be extern
 assert.doesNotMatch(html, /wp-elements-1|wp-block-group/i, 'WordPress implementation classes should be normalized')
 assert.match(html, /data-cd-text-color="primary"/)
 assert.match(html, /data-cd-background-color="secondary"/)
-assert.match(stylesheet, /color:var\(--cd2027--wordpress-color-primary\) !important/)
-assert.match(stylesheet, /background-color:var\(--cd2027--wordpress-color-secondary\) !important/)
+assert.match(stylesheet, /color:var\(--cd2027--wordpress-text-color-primary\) !important/)
+assert.match(stylesheet, /background-color:var\(--cd2027--wordpress-background-color-secondary\) !important/)
 assert.match(stylesheet, /\.cd-content-style-[\da-f]+\[class\] :where\(a:not\(\.wp-element-button\)\)\{color:#123456 !important\}/)
-assert.match(stylesheet, /color:var\(--cd2027--wordpress-color-accent\)/)
+assert.match(stylesheet, /color:var\(--cd2027--wordpress-text-color-accent\)/)
 
 const legacyStyleContext = { contentStyleRules: new Map(), wordpressColorPalette: new Map() }
 const legacyStyleHtml = normalizeRenderedHtml(
@@ -139,7 +139,7 @@ const serializedStyles = [...serializedContext.contentStyleRules.values()]
 
 assert.doesNotMatch(serializedHtml, /\sstyle=|data-cd-(?:text|link)-color=/i)
 assert.match(serializedHtml, /class="cd-content-style-[\da-f]+"/)
-assert.match(serializedStyles, /color:var\(--cd2027--wordpress-color-primary\)/)
-assert.match(serializedStyles, /color:var\(--cd2027--wordpress-color-accent\)/)
+assert.match(serializedStyles, /color:var\(--cd2027--wordpress-text-color-primary\)/)
+assert.match(serializedStyles, /color:var\(--cd2027--wordpress-text-color-accent\)/)
 
 process.stdout.write('WordPress font, color, and block-layout normalization passed.\n')

@@ -52,7 +52,7 @@ function savedBackgroundPalette() {
   } catch { return null }
 }
 
-/** Reads a validated button palette, migrating the previous heading-color preference when present. */
+/** Reads a validated text and control palette, migrating the previous heading-color preference when present. */
 function savedButtonPalette() {
   try {
     const saved = localStorage.getItem(BUTTON_PALETTE_STORAGE_KEY) || localStorage.getItem(LEGACY_BUTTON_PALETTE_STORAGE_KEY)
@@ -75,7 +75,7 @@ function applyBackgroundPalette(palette) {
 }
 
 /**
- * Applies one known button palette and synchronizes its selector accessibility state.
+ * Applies one known text and control palette and synchronizes its selector accessibility state.
  * @param {string} palette Key from `validButtonPalettes`.
  * @returns {void}
  */
