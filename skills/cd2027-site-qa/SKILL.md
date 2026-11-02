@@ -11,7 +11,7 @@ description: Validate all CD2027 page families, routes, visual fidelity, SEO, ac
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -44,6 +44,12 @@ Use this skill when checking the public site, the WordPress migration, or a publ
 - Check heading hierarchy, keyboard use, visible focus, labels, image alt text, and readable contrast.
 - When multiple commits are requested, group changes by coherent theme and keep unrelated work out of each commit.
 - Do not include customer records, live payment data, form submissions, or API secrets in QA artifacts.
+
+## Automated regression checks
+
+- Treat WordPress copy and rendered content as mutable editorial data. Do not assert exact live titles, headings, labels, descriptions, page text, or full HTML fragments, and do not compare current WordPress content byte-for-byte with Eleventy output.
+- Derive route and pagination expectations from the current build manifest, then verify generated files, semantic landmarks, navigation regions, link targets, metadata fields, and other stable behavior rather than editorial wording or fixed taxonomy names.
+- Use small synthetic fixtures when a test must exercise a content transformation. Assert the transformation contract (such as sanitized markup, preserved semantic elements, or externalized styles) without using production copy as the expected value.
 
 ## Reporting
 

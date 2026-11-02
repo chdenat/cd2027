@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-07
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -98,6 +98,7 @@ These rules adapt the relevant LGS1920 site conventions to the Christine Deloupy
 - Keep new source and documentation files focused. Never hand-edit generated pages to make a check pass.
 - Use only commands that exist in the current package scripts. Before handoff, inspect the diff, check routes and links affected by the change, and report checks, warnings, and blockers accurately.
 - For content changes, verify copy, metadata, media alt text, localized internal links if another locale is added, and route preservation. For visual changes, compare all affected page families at desktop and mobile sizes.
+- Automated tests must not pin mutable WordPress editorial copy, including exact titles, headings, labels, descriptions, page fragments, or comparisons between current source HTML and generated HTML. Test stable contracts such as route coverage, semantic structure, metadata presence, safe transformations, and link resolution instead. Use small synthetic fixtures for transformation behavior; do not make production content itself a regression expectation.
 
 ## 7. Handoff
 

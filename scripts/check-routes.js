@@ -76,19 +76,28 @@ if (staleExcludedRoutes.length) {
 }
 
 const home = generatedPages.get('/') || ''
-const currentHomepageContent = wordpress.homepageHtml
-if (typeof currentHomepageContent !== 'string' || !currentHomepageContent.trim() || !home.includes(currentHomepageContent)) {
-  throw new Error('The Eleventy homepage is missing the current WordPress homepage content.')
+if (!/<main\b[^>]*id="contenu"/i.test(home) || !/<div\b[^>]*class="[^"]*\bwordpress-home\b/i.test(home)) {
+  throw new Error('The generated homepage is missing its main landmark or WordPress content container.')
 }
 
 const footer = home.match(/<footer\b[^>]*>[\s\S]*?<\/footer>/i)?.[0] || ''
-if (!/<img\b[^>]*\bsrc="[^"]+"/.test(footer) || !footer.includes('Réseaux sociaux') || !footer.includes('Informations légales')) {
-  throw new Error('The shared footer is missing its logo, social links, or legal navigation.')
+if (
+  !/<img\b[^>]*\bsrc="[^"]+"/i.test(footer) ||
+  !/<nav\b[^>]*class="[^"]*\bfooter-social\b/i.test(footer) ||
+  !/<nav\b[^>]*class="[^"]*\bfooter-links\b/i.test(footer)
+) {
+  throw new Error('The shared footer is missing its logo or expected navigation regions.')
 }
 
-const blog = generatedPages.get('/mon-blog/') || ''
-if (!generatedPages.has('/mon-blog/page/2/') || !['/categorie/developpement-personnel/', '/categorie/spiritualite/', '/categorie/rituel/'].every((href) => blog.includes(href))) {
-  throw new Error('The paginated blog archive or its category navigation is missing.')
+// Check pagination only where the build data says multiple archive pages should exist.
+for (const archive of (wordpress.blogArchives || []).filter((record) => Number(record.totalPages) > 1 && Number(record.pageNumber) > 1)) {
+  const html = fs.readFileSync(path.join(root, archive.outputPath), 'utf8')
+  const pagination = html.match(/<nav\b[^>]*class="[^"]*\barchive-pagination\b[^>]*>[\s\S]*?<\/nav>/i)?.[0] || ''
+  const expectsPrevious = Number(archive.pageNumber) > 1
+  const expectsNext = Number(archive.pageNumber) < Number(archive.totalPages)
+  if (!pagination || expectsPrevious !== /<wa-button\b[^>]*\brel="prev"/i.test(pagination) || expectsNext !== /<wa-button\b[^>]*\brel="next"/i.test(pagination)) {
+    throw new Error(`Generated blog pagination does not match archive route structure for ${archive.path}.`)
+  }
 }
 
 const embeddedStyles = [...generatedPages].filter(([, html]) => /<style\b|\sstyle\s*=/i.test(html)).map(([pathname]) => pathname)
