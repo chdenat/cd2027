@@ -154,6 +154,329 @@ function cd2027_serve_static(string $siteRoot, string $requestPath, string $meth
     exit;
 }
 
+/** Writes a private, non-cacheable JSON response and ends the request. */
+function cd2027_form_json(mixed $payload, int $status = 200): never
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    header('X-Content-Type-Options: nosniff');
+    echo wp_json_encode($payload);
+    exit;
+}
+
+/** Returns a JSON error using a message safe to display to a visitor. */
+function cd2027_form_error(int $status, string $message): never
+{
+    cd2027_form_json(['message' => $message], $status);
+}
+
+/** Requires browser requests to originate from this staging site. */
+function cd2027_check_form_origin(string $stagingOrigin): void
+{
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if (!is_string($origin) || !hash_equals($stagingOrigin, $origin)) {
+        cd2027_form_error(403, 'The form request origin could not be verified. Reload the page and try again.');
+    }
+}
+
+/** Reads a bounded request body so the form routes cannot consume unbounded memory. */
+function cd2027_form_request_body(): string
+{
+    $body = file_get_contents('php://input', false, null, 0, 1048577);
+    if (!is_string($body) || strlen($body) > 1048576) {
+        cd2027_form_error(413, 'The form request is too large.');
+    }
+    return $body;
+}
+
+/** Resolves a same-site WordPress page path without accepting caller-controlled hosts. */
+function cd2027_form_source_url(mixed $path): string
+{
+    if (
+        !is_string($path)
+        || $path === ''
+        || $path[0] !== '/'
+        || str_starts_with($path, '//')
+        || str_contains($path, '\\')
+        || preg_match('/[\x00-\x20\x7f]/', $path)
+        || preg_match('~(^|/)\.{1,2}(/|$)~', rawurldecode($path))
+    ) {
+        cd2027_form_error(400, 'The form source page is invalid.');
+    }
+
+    $parts = parse_url($path);
+    if ($parts === false || isset($parts['scheme']) || isset($parts['host']) || isset($parts['query']) || isset($parts['fragment'])) {
+        cd2027_form_error(400, 'The form source page is invalid.');
+    }
+
+    return home_url($path);
+}
+
+/** Fetches a public WordPress page through the configured WordPress installation. */
+function cd2027_form_source_html(string $sourceUrl): string
+{
+    $response = wp_remote_get($sourceUrl, [
+        'timeout' => 20,
+        'redirection' => 2,
+        'limit_response_size' => 2097152,
+        'headers' => [
+            'Accept' => 'text/html',
+            'User-Agent' => 'CD2027 form adapter',
+        ],
+    ]);
+    if (is_wp_error($response) || wp_remote_retrieve_response_code($response) >= 400) {
+        cd2027_form_error(502, 'WordPress could not load the form source page.');
+    }
+    return (string) wp_remote_retrieve_body($response);
+}
+
+/** Returns the origin of the configured WordPress homepage for upstream request headers. */
+function cd2027_wordpress_origin(): string
+{
+    $parts = wp_parse_url(home_url('/'));
+    if (!is_array($parts) || empty($parts['scheme']) || empty($parts['host'])) {
+        cd2027_form_error(503, 'The WordPress origin is not configured.');
+    }
+    $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+    return $parts['scheme'] . '://' . $parts['host'] . $port;
+}
+
+/** Finds and decodes the JSON object passed to Forminator's public render bootstrap. */
+function cd2027_forminator_config(string $html, int $formId): array
+{
+    $pattern = '/renderForminatorAjax\s*\(\s*' . preg_quote((string) $formId, '/') . '\s*,\s*/';
+    if (!preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE)) {
+        cd2027_form_error(404, 'This Forminator form is not present on the requested page.');
+    }
+
+    $start = strpos($html, '{', $match[0][1] + strlen($match[0][0]));
+    if ($start === false) {
+        cd2027_form_error(502, 'WordPress returned an incomplete Forminator configuration.');
+    }
+
+    $depth = 0;
+    $inString = false;
+    $escaped = false;
+    $end = null;
+    $length = strlen($html);
+    for ($index = $start; $index < $length; $index++) {
+        $character = $html[$index];
+        if ($inString) {
+            if ($escaped) {
+                $escaped = false;
+            } elseif ($character === '\\') {
+                $escaped = true;
+            } elseif ($character === '"') {
+                $inString = false;
+            }
+            continue;
+        }
+        if ($character === '"') {
+            $inString = true;
+        } elseif ($character === '{') {
+            $depth++;
+        } elseif ($character === '}' && --$depth === 0) {
+            $end = $index;
+            break;
+        }
+    }
+
+    if ($end === null) {
+        cd2027_form_error(502, 'WordPress returned an incomplete Forminator configuration.');
+    }
+    $config = json_decode(substr($html, $start, $end - $start + 1), true);
+    if (!is_array($config) || (int) ($config['id'] ?? 0) !== $formId || ($config['action'] ?? '') !== 'forminator_load_form') {
+        cd2027_form_error(502, 'The WordPress form configuration did not match the requested form.');
+    }
+    return $config;
+}
+
+/** Encodes Forminator bootstrap values with the bracketed keys expected by admin-ajax.php. */
+function cd2027_forminator_body(array $config): string
+{
+    $pairs = [];
+    foreach ($config as $key => $value) {
+        if (is_array($value)) {
+            foreach ($value as $nestedKey => $nestedValue) {
+                $fieldName = array_is_list($value) ? $key . '[]' : $key . '[' . $nestedKey . ']';
+                if (is_array($nestedValue)) {
+                    $nestedValue = wp_json_encode($nestedValue);
+                }
+                $pairs[] = rawurlencode((string) $fieldName) . '=' . rawurlencode((string) $nestedValue);
+            }
+            continue;
+        }
+        $pairs[] = rawurlencode((string) $key) . '=' . rawurlencode((string) $value);
+    }
+    return implode('&', $pairs);
+}
+
+/** Extracts an allowlisted MailPoet form from a public WordPress page response. */
+function cd2027_mailpoet_form_html(string $html, int $formId): string
+{
+    if (!preg_match_all('/<input\b[^>]*>/i', $html, $inputs, PREG_OFFSET_CAPTURE)) {
+        cd2027_form_error(404, 'This MailPoet form is not present on the requested page.');
+    }
+    foreach ($inputs[0] as [$tag, $inputOffset]) {
+        preg_match_all('/([\w:-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/', $tag, $attributes, PREG_SET_ORDER);
+        $parsed = [];
+        foreach ($attributes as $attribute) {
+            $value = $attribute[2] !== '' ? $attribute[2] : ($attribute[3] !== '' ? $attribute[3] : ($attribute[4] ?? ''));
+            $parsed[strtolower($attribute[1])] = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        if (($parsed['name'] ?? '') !== 'data[form_id]' || (int) ($parsed['value'] ?? 0) !== $formId) {
+            continue;
+        }
+
+        $beforeInput = substr($html, 0, $inputOffset);
+        if (!preg_match_all('/<form\b[^>]*>/i', $beforeInput, $forms, PREG_OFFSET_CAPTURE)) {
+            break;
+        }
+        $formTags = $forms[0];
+        $lastFormTag = end($formTags);
+        $formStart = $lastFormTag[1];
+        $closingForm = stripos($html, '</form>', $inputOffset);
+        if ($closingForm === false) {
+            break;
+        }
+        $formHtml = substr($html, $formStart, $closingForm + 7 - $formStart);
+        return (string) preg_replace('/\saction=("[^"]*"|\'[^\']*\')/i', ' action="#"', $formHtml, 1);
+    }
+    cd2027_form_error(404, 'This MailPoet form is not present on the requested page.');
+}
+
+/** Proxies an allowlisted form-load request to the existing WordPress plugin handler. */
+function cd2027_load_form(string $stagingOrigin): never
+{
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        header('Allow: POST');
+        cd2027_form_error(405, 'Method not allowed.');
+    }
+    cd2027_check_form_origin($stagingOrigin);
+    $payload = json_decode(cd2027_form_request_body(), true);
+    if (!is_array($payload)) {
+        cd2027_form_error(400, 'The form request is invalid.');
+    }
+    $provider = $payload['provider'] ?? '';
+    $formId = filter_var($payload['formId'] ?? null, FILTER_VALIDATE_INT);
+    if ($formId === false || !is_string($provider)) {
+        cd2027_form_error(400, 'The form request is invalid.');
+    }
+    $sourceUrl = cd2027_form_source_url($payload['path'] ?? null);
+    $html = cd2027_form_source_html($sourceUrl);
+
+    if ($provider === 'forminator' && in_array($formId, [10569, 10671], true)) {
+        $config = cd2027_forminator_config($html, $formId);
+        $config['extra'] = is_array($config['extra'] ?? null) ? $config['extra'] : [];
+        $config['extra']['referer_url'] = $sourceUrl;
+        $response = wp_remote_post(admin_url('admin-ajax.php'), [
+            'timeout' => 20,
+            'redirection' => 0,
+            'headers' => [
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/x-www-form-urlencoded;charset=UTF-8',
+                'Origin' => cd2027_wordpress_origin(),
+                'Referer' => $sourceUrl,
+            ],
+            'body' => cd2027_forminator_body($config),
+        ]);
+        if (is_wp_error($response)) {
+            cd2027_form_error(502, 'WordPress could not load this form.');
+        }
+        if (wp_remote_retrieve_response_code($response) >= 400) {
+            cd2027_form_error(502, 'WordPress could not load this form.');
+        }
+        $result = json_decode((string) wp_remote_retrieve_body($response), true);
+        $resultData = is_array($result) ? ($result['data'] ?? null) : null;
+        if (!is_array($result) || empty($result['success']) || !is_array($resultData) || !is_string($resultData['html'] ?? null)) {
+            $message = is_array($resultData) && is_string($resultData['message'] ?? null)
+                ? $resultData['message']
+                : 'WordPress could not load this form.';
+            cd2027_form_error(502, $message);
+        }
+        cd2027_form_json(['provider' => 'forminator', 'html' => $resultData['html']]);
+    }
+
+    if ($provider === 'mailpoet' && in_array($formId, [1, 5, 7, 9, 11, 12, 13, 15], true)) {
+        cd2027_form_json(['provider' => 'mailpoet', 'html' => cd2027_mailpoet_form_html($html, $formId)]);
+    }
+
+    cd2027_form_error(400, 'This WordPress form has not been enabled in the site adapter yet.');
+}
+
+/** Forwards an allowlisted Forminator or MailPoet submission without exposing backend credentials. */
+function cd2027_submit_form(string $stagingOrigin): never
+{
+    if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        header('Allow: POST');
+        cd2027_form_error(405, 'Method not allowed.');
+    }
+    cd2027_check_form_origin($stagingOrigin);
+    $outer = [];
+    parse_str(cd2027_form_request_body(), $outer);
+    $provider = $outer['provider'] ?? '';
+    $formId = filter_var($outer['formId'] ?? null, FILTER_VALIDATE_INT);
+    $sourceUrl = cd2027_form_source_url($outer['path'] ?? null);
+    $fieldsBody = $outer['fields'] ?? '';
+    if ($formId === false || !is_string($provider) || !is_string($fieldsBody) || $fieldsBody === '') {
+        cd2027_form_error(400, 'The form submission is invalid.');
+    }
+    $fields = [];
+    parse_str($fieldsBody, $fields);
+    $headers = [
+        'Content-Type' => 'application/x-www-form-urlencoded;charset=UTF-8',
+        'Origin' => cd2027_wordpress_origin(),
+        'Referer' => $sourceUrl,
+    ];
+
+    if ($provider === 'forminator' && in_array($formId, [10569, 10671], true)) {
+        if ((int) ($fields['form_id'] ?? 0) !== $formId || ($fields['action'] ?? '') !== 'forminator_submit_form_custom-forms') {
+            cd2027_form_error(400, 'The Forminator submission did not match the expected form.');
+        }
+        $response = wp_remote_post(admin_url('admin-ajax.php'), [
+            'timeout' => 20,
+            'redirection' => 0,
+            'headers' => ['Accept' => 'application/json'] + $headers,
+            'body' => $fieldsBody,
+        ]);
+        if (is_wp_error($response)) {
+            cd2027_form_error(502, 'WordPress could not accept this form submission.');
+        }
+        $status = (int) wp_remote_retrieve_response_code($response);
+        $result = json_decode((string) wp_remote_retrieve_body($response), true);
+        if (!is_array($result)) {
+            cd2027_form_error(502, 'WordPress returned an invalid response for this form submission.');
+        }
+        cd2027_form_json($result, $status >= 200 && $status <= 599 ? $status : 502);
+    }
+
+    if ($provider === 'mailpoet' && in_array($formId, [1, 5, 7, 9, 11, 12, 13, 15], true)) {
+        if ((int) ($fields['data']['form_id'] ?? 0) !== $formId || ($fields['mailpoet_method'] ?? '') !== 'subscribe') {
+            cd2027_form_error(400, 'The newsletter submission did not match the expected form.');
+        }
+        $response = wp_remote_post(admin_url('admin-post.php?action=mailpoet_subscription_form'), [
+            'timeout' => 20,
+            'redirection' => 0,
+            'headers' => ['Accept' => 'text/html,application/xhtml+xml'] + $headers,
+            'body' => $fieldsBody,
+        ]);
+        if (is_wp_error($response)) {
+            cd2027_form_error(502, 'MailPoet could not accept this subscription.');
+        }
+        $status = (int) wp_remote_retrieve_response_code($response);
+        if ($status >= 400 || $status < 200) {
+            cd2027_form_json(['success' => false, 'message' => 'MailPoet could not accept this subscription.'], $status >= 400 ? $status : 502);
+        }
+        cd2027_form_json([
+            'success' => true,
+            'message' => 'Votre demande a été transmise. Si une confirmation est nécessaire, vous recevrez un e-mail.',
+        ]);
+    }
+
+    cd2027_form_error(400, 'This WordPress form has not been enabled in the site adapter yet.');
+}
+
 if ($siteRoot === false) {
     cd2027_fail(503, 'CD2027 access is not configured.');
 }
@@ -329,6 +652,14 @@ if (!current_user_can('manage_options')) {
     echo '<p><a href="' . esc_url($stagingOrigin . $logoutPath . '/') . '">Déconnecter ce compte</a></p>';
     echo '</main></body></html>';
     exit;
+}
+
+// Form requests are authenticated by the staging gate and forwarded only to the known WordPress form handlers.
+if ($requestPath === '/api/forms/load') {
+    cd2027_load_form($stagingOrigin);
+}
+if ($requestPath === '/api/forms/submit') {
+    cd2027_submit_form($stagingOrigin);
 }
 
 if ($method !== 'GET' && $method !== 'HEAD') {

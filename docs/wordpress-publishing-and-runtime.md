@@ -7,16 +7,16 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
 
 # WordPress publishing, GitHub builds, and runtime routes
 
-Status: GitHub Actions staging deployment is implemented. A separate production workflow is present but remains locked until its environment and web-server route are configured. The PHP runtime proxy is not connected. Reviewed 4 October 2026.
+Status: GitHub Actions staging deployment is implemented. The staging PHP gate proxies supported Forminator and MailPoet forms after administrator authentication. A separate production workflow is present but remains locked until its environment and web-server route are configured; public form and commerce runtime routes are not connected there. Reviewed 2 November 2026.
 
-WordPress remains the content and transaction backend; Eleventy generates the public pages; GitHub Actions builds and deploys static output to `cd2027.christinedeloupy.fr`. The source WordPress site is the CD2020 origin, currently configured at `https://christinedeloupy.fr`. The WordPress PHP MU-plugin queues publishing events and dispatches GitHub builds through WP-Cron. The production workflow is defined separately but remains locked; its GitHub environment, release root, and web-server route are not configured. Runtime API routes are also still separate work. See [PROJECT_RULES.md](../PROJECT_RULES.md) and the [whole-site route inventory](current-site-inventory.md).
+WordPress remains the content and transaction backend; Eleventy generates the public pages; GitHub Actions builds and deploys static output to `cd2027.christinedeloupy.fr`. The source WordPress site is the CD2020 origin, currently configured at `https://christinedeloupy.fr`. The WordPress PHP MU-plugin queues publishing events and dispatches GitHub builds through WP-Cron. The production workflow is defined separately but remains locked; its GitHub environment, release root, and web-server route are not configured. WooCommerce runtime routing and public production form routes remain separate work. See [PROJECT_RULES.md](../PROJECT_RULES.md) and the [whole-site route inventory](current-site-inventory.md).
 
 ## What works today
 
@@ -73,7 +73,7 @@ The MU-plugin does not build the site inside a WordPress request. GitHub Actions
 
 ## PHP runtime proxy for WooCommerce and forms
 
-The static Eleventy build handles public pages. A PHP proxy handles requests that need WordPress at visitor runtime. Keep this separate from the publishing webhook, even if both are implemented in PHP on the same host.
+The static Eleventy build handles public pages. A PHP proxy handles requests that need WordPress at visitor runtime. Keep this separate from the publishing webhook, even if both are implemented in PHP on the same host. The current staging PHP gate serves its form routes after the administrator login check; the public production build has no equivalent runtime route yet.
 
 ### WooCommerce Store API
 
@@ -85,7 +85,7 @@ Restrict the PHP proxy to known routes and methods. Do not accept a caller-suppl
 
 ### Forminator and MailPoet
 
-The local adapter exposes `/api/forms/load` and `/api/forms/submit`. It currently recognizes specific Forminator and MailPoet form IDs, retrieves their current fields from WordPress, preserves provider hidden fields, and submits to the existing WordPress plugin handlers. A PHP implementation must keep an allowlist of supported provider/form pairs, validate the submitted form ID and action, preserve consent and anti-spam fields, and test each form's success and error behavior.
+The local adapter and authenticated staging gate expose `/api/forms/load` and `/api/forms/submit`. Both recognize Forminator IDs 10569 and 10671 and MailPoet IDs 1, 5, 7, 9, 11, 12, 13, and 15, retrieve current fields from WordPress, preserve provider hidden fields, and submit to the existing plugin handlers. The staging PHP routes validate the same-origin request, source path, provider/form allowlist, and provider submission markers; they return non-cacheable JSON. Production still needs a runtime route for these requests before its public Eleventy site can use the forms.
 
 Do not infer that every WordPress form is covered: the current implementation note records unsupported form types and special cases such as file uploads and CAPTCHA. Add each provider integration explicitly and verify it before relying on it in production.
 

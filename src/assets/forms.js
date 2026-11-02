@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -20,6 +20,24 @@ function formStatus(container, text, state = 'success') {
   if (!status) return
   status.textContent = text
   status.dataset.state = state
+}
+
+/** Reads a JSON form response and reports HTTP or proxy errors without exposing raw server output. */
+async function readFormResponse(response, operation) {
+  const body = await response.text()
+  let result
+  try {
+    result = JSON.parse(body)
+  } catch {
+    if (response.status === 405) {
+      throw new Error(`Le serveur refuse la méthode utilisée pour ${operation} (HTTP 405).`)
+    }
+    throw new Error(`Le service de formulaire a renvoyé une réponse invalide pendant ${operation} (HTTP ${response.status}).`)
+  }
+  if (!result || typeof result !== 'object') {
+    throw new Error(`Le service de formulaire a renvoyé une réponse invalide pendant ${operation}.`)
+  }
+  return result
 }
 
 /** Extracts label text without duplicating nested form controls or required markers. */
@@ -210,7 +228,7 @@ async function submitBackendForm(container, form) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8', Accept: 'application/json' },
       body: new URLSearchParams({ provider, formId: String(formId), path, fields: body.toString() }),
     })
-    const result = await response.json()
+    const result = await readFormResponse(response, 'l’envoi')
     if (!response.ok || result.success === false || result.data?.success === false) {
       const message = result.data?.message || result.message || 'Le formulaire n’a pas pu être transmis. Réessayez dans quelques instants.'
       throw new Error(message)
@@ -245,7 +263,7 @@ async function mountForm(container) {
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ provider, formId, path: window.location.pathname }),
     })
-    const result = await response.json()
+    const result = await readFormResponse(response, 'le chargement')
     if (!response.ok) throw new Error(result.message || 'Le formulaire est momentanément indisponible.')
     const form = sanitizeFormHtml(result.html || '', { document, DOMParser })
     if (!form) throw new Error('Le service de formulaire n’a pas fourni de champs utilisables.')

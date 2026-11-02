@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
@@ -23,7 +23,7 @@ Date: 2 October 2026.
 - The homepage and editorial routes use current WordPress content instead of the previous fictional starter copy. Product detail, shop/category archives, the article archive, cart, and checkout each have an Eleventy template.
 - WordPress theme values are copied into code-owned `--cd2027--*` tokens and mapped to Web Awesome tokens. Web Awesome is self-hosted from the installed package, and Font Awesome SVGs are copied locally. The current site’s public images and fonts are still served from `christinedeloupy.fr`.
 - On `localhost:4555`, WooCommerce’s Store API is proxied same-origin so the browser can keep its Cart-Token without WordPress CORS headers. Cart reads, add/remove/update, shipping-rate selection, checkout fields, and order submission use WooCommerce’s public customer-facing API.
-- Forminator form IDs 10671 and 10569 and MailPoet IDs 1, 5, 7, 9, 11, 12, 13, and 15 load their current fields from WordPress at runtime. Eleventy owns the page shell and theme; the local adapter preserves the provider’s hidden form tokens and forwards submissions to the existing plugin handlers.
+- Forminator form IDs 10671 and 10569 and MailPoet IDs 1, 5, 7, 9, 11, 12, 13, and 15 load their current fields from WordPress at runtime on localhost and authenticated CD2027 staging. Eleventy owns the page shell and theme; both adapters preserve provider hidden fields and forward submissions to the existing plugin handlers. The public production build still needs a runtime form route.
 - The WordPress PHP MU-plugin stores publishing events in a database outbox and uses WP-Cron to send batched GitHub Actions requests. The staging workflow fetches current public data and rebuilds all Eleventy routes. The sender covers public post types, WooCommerce products and product metadata, public taxonomies, media, and navigation. The local frontend does not poll WordPress or process this queue.
 
 ## Not yet certified
