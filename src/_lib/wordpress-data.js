@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-07
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -300,12 +300,36 @@ function rewriteInternalLinks(html = '') {
   })
 }
 
+/** Converts imported WooCommerce add-to-cart links into inert, ID-based controls before sanitization.
+ * @param {string} html WordPress-rendered markup to normalize.
+ * @returns {string} Markup with safe numeric add-to-cart controls and no legacy navigation URLs.
+ */
+function normalizeWooCommerceAddToCartLinks(html = '') {
+  // Never trust this adapter control attribute when it came from WordPress content.
+  html = html.replace(/\sdata-add-to-cart(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi, '')
+  return html.replace(/<a\b[^>]*>/gi, (tag) => {
+    const classes = tag.match(/\bclass=(['"])(.*?)\1/i)?.[2] || ''
+    if (!/(?:^|\s)(?:add_to_cart_button|ajax_add_to_cart)(?:\s|$)/.test(classes)) return tag
+
+    const productIdMatch = tag.match(/\bdata-product_id\s*=\s*(?:"(\d+)"|'(\d+)'|(\d+)(?=[\s/>]))/i)
+    const productId = productIdMatch?.[1] || productIdMatch?.[2] || productIdMatch?.[3] || ''
+    const safeProductId = Number(productId)
+    const cleaned = tag.replace(/\s+(?:href|data-product_id|data-add-to-cart)\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+
+    if (!Number.isSafeInteger(safeProductId) || safeProductId < 1) return cleaned
+    return cleaned.replace(/\s*\/?>$/, (closing) => ` data-add-to-cart="${safeProductId}"${closing}`)
+  })
+}
+
 /** Converts recognized WordPress button anchors and preserves the enclosing style variant. */
 function convertWordPressButtonLinks(html, style = 'fill') {
   const appearance = style === 'outline' ? 'outlined' : 'filled'
   return html.replace(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi, (tag, attributes, content) => {
     const classes = attributes.match(/\bclass=(['"])(.*?)\1/i)?.[2] || ''
-    if (!/(?:^|\s)(?:wp-block-button__link|wp-element-button)(?:\s|$)/.test(classes)) return tag
+    const isWordPressButton = /(?:^|\s)(?:wp-block-button__link|wp-element-button)(?:\s|$)/.test(classes)
+    const isAddToCartButton = /(?:^|\s)(?:add_to_cart_button|ajax_add_to_cart)(?:\s|$)/.test(classes)
+      && /\bdata-add-to-cart="\d+"/.test(attributes)
+    if (!isWordPressButton && !isAddToCartButton) return tag
     return `<wa-button data-cd-button-style="${style}" appearance="${appearance}" variant="brand"${attributes}>${content}</wa-button>`
   })
 }
@@ -1136,10 +1160,12 @@ function normalizeRenderedHtml(html = '', record = {}, contentContext = { conten
   }
   // Remove active markup and source-controlled adapter attributes before any transformation
   // can consume the source HTML as structured input.
+  normalized = normalizeWooCommerceAddToCartLinks(normalized)
   normalized = sanitizeWordPressHtml(normalized, {
     additionalFontFamilies: SITE_HTML_SANITIZER_OPTIONS.additionalFontFamilies,
     allowedBackgroundImagePrefixes: SITE_HTML_SANITIZER_OPTIONS.allowedBackgroundImagePrefixes,
     allowedCssVariables: SITE_HTML_SANITIZER_OPTIONS.allowedCssVariables,
+    additionalAttributes: { a: ['data-add-to-cart'] },
   })
   for (const [missingUrl, availableUrl] of SITE_PROFILE.mediaUrlFallbacks) {
     normalized = normalized.replaceAll(missingUrl, availableUrl)
@@ -1410,7 +1436,8 @@ function normalizeTerm(term, kind, contentContext) {
     kind,
     contentContext,
   )
-  const taxonomy = normalizeWordPressTaxonomy({ ...term, type: kind }, {
+  // The Store API uses `permalink` for product categories, while the taxonomy normalizer reads `link`.
+  const taxonomy = normalizeWordPressTaxonomy({ ...term, link: term.link || term.permalink, type: kind }, {
     taxonomy: kind,
     routeResolver: resolveSiteRecordRoute,
   })

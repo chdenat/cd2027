@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -102,7 +102,7 @@ const sharedContentPolicy = {
         'data-cd-overlay-opacity', 'data-cd-resized', 'data-cd-role', 'data-cd-style',
         'data-cd-text-align', 'data-cd-text-color', 'data-cd-wrap', 'data-form-id',
       ],
-      'wa-button': ['href', 'target', 'rel', 'appearance', 'variant', 'size', 'type', 'name', 'value', 'disabled'],
+      'wa-button': ['href', 'target', 'rel', 'appearance', 'variant', 'size', 'type', 'name', 'value', 'disabled', 'data-add-to-cart'],
       'wa-callout': ['appearance', 'variant'],
       'wa-icon': ['slot', 'library', 'name', 'variant', 'family'],
     },

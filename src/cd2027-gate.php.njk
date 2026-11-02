@@ -242,6 +242,121 @@ function cd2027_wordpress_origin(): string
     return $parts['scheme'] . '://' . $parts['host'] . $port;
 }
 
+/** Proxies only the storefront cart, checkout, and read-only product routes. */
+function cd2027_proxy_store_api(string $stagingOrigin, string $requestPath): never
+{
+    $storePrefix = '/wp-json/wc/store/v1';
+    $storePath = substr($requestPath, strlen($storePrefix));
+    $allowedMethods = match ($storePath) {
+        '/cart' => ['GET'],
+        '/checkout' => ['GET', 'POST'],
+        '/cart/add-item',
+        '/cart/remove-item',
+        '/cart/update-item',
+        '/cart/update-customer',
+        '/cart/select-shipping-rate' => ['POST'],
+        '/products' => ['GET'],
+        default => preg_match('~^/products/[1-9][0-9]*$~D', $storePath) ? ['GET'] : [],
+    };
+
+    if ($allowedMethods === []) {
+        cd2027_form_error(404, 'This WooCommerce Store API route is not enabled.');
+    }
+
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if (!in_array($method, $allowedMethods, true)) {
+        header('Allow: ' . implode(', ', $allowedMethods));
+        cd2027_form_error(405, 'This method is not enabled for the WooCommerce Store API route.');
+    }
+
+    if ($method !== 'GET') {
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        if (!is_string($origin) || !hash_equals($stagingOrigin, $origin)) {
+            cd2027_form_error(403, 'The WooCommerce request origin could not be verified. Reload the page and try again.');
+        }
+    }
+
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+    $uriParts = is_string($requestUri) ? parse_url($requestUri) : false;
+    $query = is_array($uriParts) && isset($uriParts['query']) ? (string) $uriParts['query'] : '';
+    if ($uriParts === false || strlen($query) > 8192 || preg_match('/[\x00-\x20\x7f]/', $query)) {
+        cd2027_form_error(400, 'The WooCommerce request URL is invalid.');
+    }
+
+    $wordpressOrigin = cd2027_wordpress_origin();
+    $headers = [
+        'Accept' => 'application/json',
+        'Origin' => $wordpressOrigin,
+        'Referer' => $wordpressOrigin . '/',
+    ];
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (!is_string($contentType) || strlen($contentType) > 256) {
+        cd2027_form_error(400, 'The WooCommerce request headers are invalid.');
+    }
+    if ($contentType !== '') {
+        if (!preg_match('/^application\/json(?:\s*;|$)/i', $contentType)) {
+            cd2027_form_error(415, 'WooCommerce requests must use JSON.');
+        }
+        $headers['Content-Type'] = $contentType;
+    }
+
+    foreach ([
+        'HTTP_CART_TOKEN' => 'Cart-Token',
+        'HTTP_NONCE' => 'Nonce',
+        'HTTP_NONCE_TIMESTAMP' => 'Nonce-Timestamp',
+    ] as $serverName => $headerName) {
+        $value = $_SERVER[$serverName] ?? '';
+        if ($value === '') {
+            continue;
+        }
+        if (!is_string($value) || strlen($value) > 4096 || preg_match('/[\r\n]/', $value)) {
+            cd2027_form_error(400, 'The WooCommerce session headers are invalid.');
+        }
+        $headers[$headerName] = $value;
+    }
+
+    $requestArgs = [
+        'method' => $method,
+        'timeout' => 30,
+        'redirection' => 0,
+        'limit_response_size' => 8388608,
+        'headers' => $headers,
+    ];
+    if ($method === 'POST') {
+        $body = file_get_contents('php://input', false, null, 0, 1048577);
+        if (!is_string($body) || strlen($body) > 1048576) {
+            cd2027_form_error(413, 'The WooCommerce request is too large.');
+        }
+        if ($body !== '') {
+            $requestArgs['body'] = $body;
+        }
+    }
+
+    // The upstream origin is fixed from WordPress configuration; callers can select only allowlisted Store API routes.
+    $upstreamUrl = $wordpressOrigin . $storePrefix . $storePath . ($query === '' ? '' : '?' . $query);
+    $response = wp_remote_request($upstreamUrl, $requestArgs);
+    if (is_wp_error($response)) {
+        cd2027_form_error(502, 'WooCommerce could not be reached. Please try again.');
+    }
+
+    $status = wp_remote_retrieve_response_code($response);
+    if (!is_int($status) || $status < 100 || $status > 599) {
+        cd2027_form_error(502, 'WooCommerce returned an invalid response. Please try again.');
+    }
+
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    foreach (['cart-token' => 'Cart-Token', 'nonce' => 'Nonce', 'nonce-timestamp' => 'Nonce-Timestamp'] as $sourceName => $headerName) {
+        $value = wp_remote_retrieve_header($response, $sourceName);
+        if (is_string($value) && $value !== '' && strlen($value) <= 4096 && !preg_match('/[\r\n]/', $value)) {
+            header($headerName . ': ' . $value, true);
+        }
+    }
+    echo (string) wp_remote_retrieve_body($response);
+    exit;
+}
+
 /** Finds and decodes the JSON object passed to Forminator's public render bootstrap. */
 function cd2027_forminator_config(string $html, int $formId): array
 {
@@ -660,6 +775,9 @@ if ($requestPath === '/api/forms/load') {
 }
 if ($requestPath === '/api/forms/submit') {
     cd2027_submit_form($stagingOrigin);
+}
+if ($requestPath === '/wp-json/wc/store/v1' || str_starts_with($requestPath, '/wp-json/wc/store/v1/')) {
+    cd2027_proxy_store_api($stagingOrigin, $requestPath);
 }
 
 if ($method !== 'GET' && $method !== 'HEAD') {

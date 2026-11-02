@@ -7,14 +7,14 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
 -->
 
 # Current WordPress route inventory
 
-Snapshot: 2026-10-03. This inventory covers the whole public site, not just the homepage.
+Snapshot: 2026-11-02. This inventory covers the whole public site, not just the homepage.
 
 Sources: public WordPress REST API and Yoast XML sitemaps on christinedeloupy.fr. This is a snapshot; repeat the inventory before migration and after large content changes. The REST API count includes published records that are not necessarily indexed or listed in the sitemaps.
 
@@ -22,22 +22,22 @@ Sources: public WordPress REST API and Yoast XML sitemaps on christinedeloupy.fr
 
 | Source type | Records or URLs |
 | --- | ---: |
-| Unique URLs across all public Yoast sitemaps | 220 |
+| Unique URLs across all public Yoast sitemaps | 221 |
 | Published WordPress pages from REST API | 59 |
 | Page URLs in the Yoast page sitemap | 58 |
-| Published WordPress posts from REST API | 142 |
-| Post URLs in the Yoast post sitemap | 142 |
-| Purchasable products from WooCommerce Store API | 7 |
-| URLs in the Yoast product sitemap | 8 |
+| Published WordPress posts from REST API | 145 |
+| Post URLs in the Yoast post sitemap | 145 |
+| Purchasable products from WooCommerce Store API | 6 |
+| URLs in the Yoast product sitemap | 7 |
 | Post categories | 5 |
-| Product categories in sitemap | 6 |
+| Product categories in sitemap | 5 |
 | Author sitemap URLs | 1 |
 
 ## Build inclusion and completeness
 
 The current build fetches only public page and post records (`status=publish`) and purchasable products from the WooCommerce Store API. A record is generated when its route is present in the matching Yoast sitemap or an internal link in public site content, navigation, or the footer references it. This keeps linked landing pages available while leaving unrelated published records out of the static site.
 
-The live API currently returns 59 pages, 142 posts, and 7 purchasable products. The build generates 58 referenced pages, all 142 post routes, and all 7 product routes. The `/std-boutique/` page is absent from the page sitemap and has empty content with `noindex` metadata. The cart's “Poursuivre vos achats” link is normalized to `/boutique/`, so `/std-boutique/` is no longer treated as a referenced page. Each full build starts with an empty `_site/`, and the staging deployment promotes a fresh release, so deleted or newly unreferenced records do not survive as stale files.
+The live API currently returns 59 pages, 145 posts, and 6 purchasable products. The build generates 58 referenced pages, all 145 post routes, all 6 product routes, and all 5 product-category routes. The `/std-boutique/` page is absent from the page sitemap and has empty content with `noindex` metadata. The cart's “Poursuivre vos achats” link is normalized to `/boutique/`, so `/std-boutique/` is no longer treated as a referenced page. Each full build starts with an empty `_site/`, and the staging deployment promotes a fresh release, so deleted or newly unreferenced records do not survive as stale files.
 
 The build check now verifies both sitemap URLs and each selected WordPress source record against the generated files. It also fails if an excluded record's old output file remains.
 
@@ -51,11 +51,11 @@ Eleventy owns the public visual interface across the site, including the complet
 
 | Sitemap | Last modified | URLs |
 | --- | --- | ---: |
-| [post-sitemap.xml](https://christinedeloupy.fr/post-sitemap.xml) | 2026-09-30T14:25:38+00:00 | 142 |
-| [page-sitemap.xml](https://christinedeloupy.fr/page-sitemap.xml) | 2026-09-23T08:42:35+00:00 | 58 |
-| [product-sitemap.xml](https://christinedeloupy.fr/product-sitemap.xml) | 2026-09-12T14:56:58+00:00 | 8 |
-| [category-sitemap.xml](https://christinedeloupy.fr/category-sitemap.xml) | 2026-09-30T14:25:38+00:00 | 5 |
-| [product_cat-sitemap.xml](https://christinedeloupy.fr/product_cat-sitemap.xml) | 2026-09-12T14:56:58+00:00 | 6 |
+| [post-sitemap.xml](https://christinedeloupy.fr/post-sitemap.xml) | 2026-11-02T14:43:36+00:00 | 145 |
+| [page-sitemap.xml](https://christinedeloupy.fr/page-sitemap.xml) | 2026-10-29T10:12:08+00:00 | 58 |
+| [product-sitemap.xml](https://christinedeloupy.fr/product-sitemap.xml) | 2026-10-13T08:13:32+00:00 | 7 |
+| [category-sitemap.xml](https://christinedeloupy.fr/category-sitemap.xml) | 2026-11-02T14:43:36+00:00 | 5 |
+| [product_cat-sitemap.xml](https://christinedeloupy.fr/product_cat-sitemap.xml) | 2026-10-13T08:13:32+00:00 | 5 |
 | [author-sitemap.xml](https://christinedeloupy.fr/author-sitemap.xml) | 2023-12-30T14:13:31+00:00 | 1 |
 
 ## Published WordPress pages
@@ -124,10 +124,13 @@ Eleventy owns the public visual interface across the site, including the complet
 
 ## Published articles
 
-WordPress reports 142 published articles. The table is the current public API inventory; article routes are generated from these records and must retain their slugs, canonical URLs, taxonomy membership, dates, media, and SEO metadata.
+WordPress reports 145 published articles. The table is the current public API inventory; article routes are generated from these records and must retain their slugs, canonical URLs, taxonomy membership, dates, media, and SEO metadata.
 
 | ID | Title | Categories | URL |
 | ---: | --- | --- | --- |
+| 16542 | Explorer son monde intérieur : et si le voyage ne faisait que commencer ? | Articles | [https://christinedeloupy.fr/explorer-son-monde-interieur-et-si-le-voyage-ne-faisait-que-commencer/](https://christinedeloupy.fr/explorer-son-monde-interieur-et-si-le-voyage-ne-faisait-que-commencer/) |
+| 16383 | J’avoue… | Articles | [https://christinedeloupy.fr/javoue/](https://christinedeloupy.fr/javoue/) |
+| 16374 | Ce que personne ne te dit sur l’après-50 : | Articles, Développement personnel, Spiritualité | [https://christinedeloupy.fr/ce-que-personne-ne-te-dit-sur-lapres-50/](https://christinedeloupy.fr/ce-que-personne-ne-te-dit-sur-lapres-50/) |
 | 16353 | Et sinon dans la vraie vie? | Articles, Développement personnel | [https://christinedeloupy.fr/et-sinon-dans-la-vraie-vie/](https://christinedeloupy.fr/et-sinon-dans-la-vraie-vie/) |
 | 16348 | Pratique de la récolte intérieure | Rituel, Spiritualité | [https://christinedeloupy.fr/rituel-femmes-50-ans-recolte-interieure/](https://christinedeloupy.fr/rituel-femmes-50-ans-recolte-interieure/) |
 | 16344 | Une pratique pour sur ton chemin | Développement personnel, Rituel, Spiritualité | [https://christinedeloupy.fr/une-pratique-pour-sur-ton-chemin/](https://christinedeloupy.fr/une-pratique-pour-sur-ton-chemin/) |
@@ -276,7 +279,6 @@ WordPress reports 142 published articles. The table is the current public API in
 | ID | Product | URL |
 | ---: | --- | --- |
 | 16116 | Renaissance Souveraine | [https://christinedeloupy.fr/boutique/accompagnements/renaissance-souveraine-copie/](https://christinedeloupy.fr/boutique/accompagnements/renaissance-souveraine-copie/) |
-| 15807 | Lecture Akashique flash Pour y voir clair | [https://christinedeloupy.fr/boutique/accompagnements/lecture-akashique-flash-pour-y-voir-clair/](https://christinedeloupy.fr/boutique/accompagnements/lecture-akashique-flash-pour-y-voir-clair/) |
 | 15030 | Formation Akashique en présentiel | [https://christinedeloupy.fr/boutique/accompagnements/transmission-akashique/](https://christinedeloupy.fr/boutique/accompagnements/transmission-akashique/) |
 | 10977 | Bracelet d’intention | [https://christinedeloupy.fr/boutique/bijoux/bijoux-magik-intentions/bracelet-dintention/](https://christinedeloupy.fr/boutique/bijoux/bijoux-magik-intentions/bracelet-dintention/) |
 | 10976 | Bracelet Chemin de vie | [https://christinedeloupy.fr/boutique/bijoux/bijoux-chemin-de-vie/bracelet-chemin-de-vie/](https://christinedeloupy.fr/boutique/bijoux/bijoux-chemin-de-vie/bracelet-chemin-de-vie/) |
@@ -298,9 +300,8 @@ WordPress reports 142 published articles. The table is the current public API in
 - [Accompagnements](https://christinedeloupy.fr/categorie-produit/accompagnements/)
 - [Ateliers](https://christinedeloupy.fr/categorie-produit/ateliers/)
 - [Bijoux](https://christinedeloupy.fr/categorie-produit/bijoux/)
-- [Bracelets chemin de vie](https://christinedeloupy.fr/categorie-produit/bijoux/bijoux-chemin-de-vie/)
-- [Boutique](https://christinedeloupy.fr/categorie-produit/boutique/)
-- [Bijoux Magik intentions](https://christinedeloupy.fr/categorie-produit/bijoux/bijoux-magik-intentions/)
+- [Bijoux Chemin de Vie](https://christinedeloupy.fr/categorie-produit/bijoux/bijoux-chemin-de-vie/)
+- [Magik Intention](https://christinedeloupy.fr/categorie-produit/bijoux/bijoux-magik-intentions/)
 
 ### Author archive
 
@@ -309,10 +310,10 @@ WordPress reports 142 published articles. The table is the current public API in
 ## Taxonomy and route-set discrepancies
 
 - The public pages endpoint returns 59 published page records, while the Yoast page sitemap lists 58 URLs.
-- The WooCommerce Store API returns 7 purchasable product permalinks, while the Yoast product sitemap lists 8 URLs.
+- The WooCommerce Store API returns 6 purchasable product permalinks, while the Yoast product sitemap lists 7 URLs.
 - Published page records absent from the page sitemap: [https://christinedeloupy.fr/std-boutique/](https://christinedeloupy.fr/std-boutique/).
 - Product sitemap URLs absent from the Store API product list: [https://christinedeloupy.fr/std-boutique/](https://christinedeloupy.fr/std-boutique/).
-- The route selector handles the discrepancy by checking both typed sitemap membership and internal references. The cart's legacy `/std-boutique/` link is rewritten to `/boutique/`, so the orphan page is excluded.
+- The route selector handles the discrepancy by checking both typed sitemap membership and internal references. The cart's legacy `/std-boutique/` link is rewritten to `/boutique/`, so the orphan page is excluded. Product-category terms use their Store API `permalink` when normalized, so all five current category sitemap routes are generated.
 
 ## Internal links to missing or redirected routes
 
@@ -331,13 +332,13 @@ These are source-content link issues, not missing WordPress records or Eleventy 
 
 Seven source URLs return 404 and have no matching published page/product record to generate. The build canonicalizes five stale destinations (`/seance-clarté/`, `/accompagnements/lecture-akashique/`, `/accompagnements/`, and the two legacy session-registration URLs) to current routes. The remaining three broken destinations are `/je-suis/`, `/breathwork-les-ateliers/`, and `/boutique/accompagnements/le-cercle-deveil/`; their replacements or retirement need clarification.
 
-The follow-up audit on 2026-10-03 reconfirmed the five previously unresolved URLs return 404 without a redirect and are absent from the 59 public pages, 142 public posts, and 7 Store API products. Page 6646 at `/seance-clarte/` returns 200 with that canonical URL and contains the current free introductory-session form. Its SEO description retains the old `inscrivez-vous-pour-une-seance-decouverte` wording. This identifies it as the destination for the discovery and clarity session links. The adapter rewrites these links while the live WordPress content remains unchanged.
+The follow-up audit on 2026-10-03 reconfirmed the five previously unresolved URLs return 404 without a redirect and are absent from the 59 public pages, 142 public posts, and 7 Store API products at that time. Page 6646 at `/seance-clarte/` returns 200 with that canonical URL and contains the current free introductory-session form. Its SEO description retains the old `inscrivez-vous-pour-une-seance-decouverte` wording. This identifies it as the destination for the discovery and clarity session links. The adapter rewrites these links while the live WordPress content remains unchanged.
 
 ## Functional route families to preserve
 
 - Editorial: article detail routes, five post-category archives, blog and video archives, podcast pages, pagination, and media embeds.
 - Services and lead capture: accompaniment/service pages, workshops, ebook delivery, newsletter signup, contact, and confirmation pages.
-- Commerce: shop and product-category routes, seven purchasable products, cart, checkout, payment confirmation/failure, and order results.
+- Commerce: shop and product-category routes, six purchasable products, cart, checkout, payment confirmation/failure, and order results.
 - Customer and subscription account: account/profile, invoices, billing details, subscription management, cancellation, and payment routes.
 - Learning and membership: courses and instructor pages, plus any authenticated or third-party flows embedded in those pages.
 - Legal: privacy policy, legal notices, terms and conditions of sale, and any related customer-facing notices.

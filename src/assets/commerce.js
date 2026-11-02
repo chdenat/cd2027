@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-02
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -215,7 +215,7 @@ async function loadCartPage() {
     renderCart(cart)
   } catch (error) {
     const root = document.querySelector('#cart-view')
-    if (root) root.innerHTML = `<wa-card class="commerce-panel commerce-error" appearance="outlined"><p>${escapeHtml(error.message)} Vérifiez que le proxy WooCommerce local est disponible.</p></wa-card>`
+    if (root) root.innerHTML = `<wa-card class="commerce-panel commerce-error" appearance="outlined"><p>${escapeHtml(error.message)} Vérifiez que la passerelle WooCommerce est disponible.</p></wa-card>`
   }
 }
 
