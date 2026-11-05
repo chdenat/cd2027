@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-06
- * Last modified: 2026-10-06
+ * Last modified: 2026-11-05
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -79,7 +79,7 @@ test('cached public HTML, CSS rules, navigation, footer assets, and product imag
       { selector: ':root', declarations: 'body{background:url(https://evil.example/x)}' },
       {
         selector: `:root .${styleClass}[class]`,
-        declarations: 'color:var(--cd2027--color-primary) !important;position:fixed;background-image:url(https://christinedeloupy.fr/wp-content/uploads/2026/cover.webp)',
+        declarations: 'color:var(--cd2027--color-button) !important;position:fixed;background-image:url(https://christinedeloupy.fr/wp-content/uploads/2026/cover.webp)',
       },
       { selector: 'body', declarations: 'color:red;background:url(https://evil.example/x)' },
     ],
@@ -95,7 +95,7 @@ test('cached public HTML, CSS rules, navigation, footer assets, and product imag
   assert.equal(result.wordpressColorPalette.injected, undefined)
   assert.equal(result.contentStyleRules.some((rule) => rule.selector === 'body'), false)
   const cachedStyle = result.contentStyleRules.find((rule) => rule.selector === `:root .${styleClass}[class]`)
-  assert.match(cachedStyle.declarations, /color:var\(--cd2027--color-primary\)/)
+  assert.match(cachedStyle.declarations, /color:var\(--cd2027--color-button\)/)
   assert.match(cachedStyle.declarations, /background-image:url\(https:\/\/christinedeloupy\.fr\/wp-content\/uploads\/2026\/cover\.webp\)/)
   assert.doesNotMatch(cachedStyle.declarations, /position:|evil\.example|url\(javascript/i)
   assert.doesNotMatch(result.homepageHtml, /onclick=|position:|<script|javascript:/i)
