@@ -7,7 +7,7 @@
  * Email: christian.denat@orange.fr
  *
  * Created on: 2026-10-02
- * Last modified: 2026-11-02
+ * Last modified: 2026-11-05
  *
  * Copyright © 2026 Christian Denat
  ******************************************************************************/
@@ -42,6 +42,17 @@ const SITE_ORIGIN = SITE_PROFILE.siteOrigin
 const API_ORIGIN = SITE_PROFILE.apiOrigin
 const PER_PAGE = SITE_PROFILE.perPage
 const CACHE_FILE = path.resolve(__dirname, '../..', '.data', 'wordpress-public-cache.json')
+const PAGE_STYLE_CACHE_FILE = path.resolve(__dirname, '../..', '.data', 'wordpress-page-style-cache.json')
+const PAGE_STYLE_CACHE_VERSION = 1
+const PAGE_STYLE_FETCH_CONCURRENCY = 2
+const PAGE_STYLE_RETRY_OPTIONS = Object.freeze({
+  maxAttempts: 7,
+  retryDelayMs: 1500,
+  maxRetryDelayMs: 15000,
+  maxRetryAfterMs: 60000,
+  jitterRatio: 0.25,
+  timeoutMs: 30000,
+})
 const sitemapFetchText = createRetryingFetchText({
   retries: 5,
   retryDelayMs: 5000,
@@ -72,6 +83,91 @@ const yoastSitemaps = createYoastSitemapIntegration({
   sitemapNames: SITE_PROFILE.sitemapNames,
   fetchText: sitemapFetchText,
 })
+
+/**
+ * Validates a page-style cache entry before it can influence generated content.
+ * @param {object} entry Untrusted cached style metadata.
+ * @returns {object|null} Sanitized cache entry, or null when the route or contents are invalid.
+ */
+function sanitizePageStyleCacheEntry(entry) {
+  if (!entry || typeof entry !== 'object' || typeof entry.route !== 'string' || typeof entry.signature !== 'string' || !/^[a-f\d]{64}$/i.test(entry.signature)) return null
+  const route = localPath(entry.route)
+  if (!route || route !== entry.route) return null
+
+  const linkColors = Object.fromEntries(Object.entries(entry.linkColors || {})
+    .filter(([className, color]) => /^wp-elements-[a-z\d][a-z\d-]*$/i.test(className) && typeof color === 'string' && isSafeCssColorValue(color)))
+  const palette = Object.fromEntries(Object.entries(entry.palette || {})
+    .filter(([slug, color]) => /^[a-z\d][a-z\d-]*$/i.test(slug) && typeof color === 'string' && isSafeCssColorValue(color)))
+  const layoutStylesheet = Object.entries(entry.blockLayoutStyles || {})
+    .filter(([className, declarations]) => /^wp-container-[a-z\d][a-z\d-]*$/i.test(className) && typeof declarations === 'string' && declarations.length <= 2000)
+    .map(([className, declarations]) => `.${className}{${declarations}}`)
+    .join('\n')
+  const blockLayoutStyles = Object.fromEntries(extractWordPressBlockLayoutStyles(`<style>${layoutStylesheet}</style>`))
+
+  return {
+    route,
+    signature: entry.signature.toLowerCase(),
+    linkColors,
+    palette,
+    blockLayoutStyles,
+  }
+}
+
+/**
+ * Reads only bounded, validated public style metadata from the private build cache.
+ * @returns {Map<string, object>} Validated page-style cache entries.
+ */
+function readWordPressPageStyleCache() {
+  try {
+    if (!fs.existsSync(PAGE_STYLE_CACHE_FILE) || fs.statSync(PAGE_STYLE_CACHE_FILE).size > 5_000_000) return new Map()
+    const cached = JSON.parse(fs.readFileSync(PAGE_STYLE_CACHE_FILE, 'utf8'))
+    if (cached?.version !== PAGE_STYLE_CACHE_VERSION || !cached.records || typeof cached.records !== 'object') return new Map()
+    return new Map(Object.entries(cached.records)
+      .slice(-500)
+      .flatMap(([key, entry]) => {
+        if (!/^(?:page|post|product|post-category|product-category):\d+$/.test(key)) return []
+        const safeEntry = sanitizePageStyleCacheEntry(entry)
+        return safeEntry ? [[key, safeEntry]] : []
+      }))
+  } catch (error) {
+    console.warn(`[wordpress] Could not read the page-style cache: ${error.message}`)
+    return new Map()
+  }
+}
+
+/**
+ * Atomically saves extracted public style metadata without storing page HTML or credentials.
+ * @param {Map<string, object>} cache Validated page-style entries to persist.
+ * @returns {void}
+ * @sideEffects Creates or replaces the ignored `.data/wordpress-page-style-cache.json` file.
+ */
+function writeWordPressPageStyleCache(cache) {
+  const records = Object.fromEntries([...cache].slice(-500)
+    .flatMap(([key, entry]) => {
+      if (!/^(?:page|post|product|post-category|product-category):\d+$/.test(key)) return []
+      const safeEntry = sanitizePageStyleCacheEntry(entry)
+      return safeEntry ? [[key, safeEntry]] : []
+    }))
+  const temporaryPath = `${PAGE_STYLE_CACHE_FILE}.tmp-${process.pid}`
+  fs.mkdirSync(path.dirname(PAGE_STYLE_CACHE_FILE), { recursive: true })
+  fs.writeFileSync(temporaryPath, JSON.stringify({ version: PAGE_STYLE_CACHE_VERSION, records }))
+  fs.renameSync(temporaryPath, PAGE_STYLE_CACHE_FILE)
+}
+
+/**
+ * Builds retry settings and diagnostics for a rendered-page style request.
+ * @param {string} label Request description included in retry diagnostics.
+ * @returns {object} Retry policy accepted by `fetchWithRetry`.
+ */
+function wordPressPageStyleRetryOptions(label) {
+  return {
+    ...PAGE_STYLE_RETRY_OPTIONS,
+    onRetry: ({ status, nextAttempt, maxAttempts, delayMs }) => {
+      const reason = status ? `HTTP ${status}` : 'a network error'
+      console.warn(`[wordpress] ${label} returned ${reason}; retry ${nextAttempt}/${maxAttempts} after ${delayMs}ms.`)
+    },
+  }
+}
 
 /**
  * Fetches a WordPress collection through the shared REST client with a type-specific context policy.
@@ -1500,7 +1596,12 @@ function findElementRange(html, tagName, searchFrom = 0) {
  * @throws {Error} When the public page does not contain the expected shared header/footer structure.
  */
 async function fetchRenderedFrontPage(contentContext) {
-  const response = await fetchWithRetry(`${WORDPRESS_ORIGIN}/`, 'homepage', { headers: { Accept: 'text/html' } })
+  const response = await fetchWithRetry(
+    `${WORDPRESS_ORIGIN}/`,
+    'homepage',
+    { headers: { Accept: 'text/html' } },
+    wordPressPageStyleRetryOptions('Homepage styles'),
+  )
   const html = await response.text()
   const colorPalette = extractWordPressColorPalette(html)
   contentContext.wordpressColorPalette = new Map(Object.entries(colorPalette))
@@ -1542,9 +1643,19 @@ async function fetchRenderedFrontPage(contentContext) {
   }
 }
 
-/** Fetches page-local WordPress color and layout rules only for records that reference them. */
-async function fetchWordPressElementLinkColors(records, contentContext) {
+/**
+ * Fetches page-local WordPress color and layout rules with throttling and a content-matched fallback cache.
+ * @param {Array<{record: object, kind: string}>} records WordPress records that reference page-local styles.
+ * @param {object} contentContext Build-scoped style registry and source color palette.
+ * @param {Map<string, object>} [cachedPageStyleCache] Previously validated public style metadata.
+ * @returns {Promise<{results: Map<string, Map<string, string>>, pageStyleCache: Map<string, object>, failures: string[]}>} Extracted styles, refreshed cache, and records that still lack required styles.
+ * @sideEffects Writes layout styles and palette values into the build context.
+ */
+async function fetchWordPressElementLinkColors(records, contentContext, cachedPageStyleCache = new Map()) {
   contentContext.recordBlockLayoutStyles = new Map()
+  const sourcePaletteSignature = createHash('sha256')
+    .update(JSON.stringify([...contentContext.wordpressColorPalette].sort(([firstSlug], [secondSlug]) => firstSlug.localeCompare(secondSlug))))
+    .digest('hex')
   const requests = records.flatMap(({ record, kind }) => {
     const html = [record.content?.rendered, record.description, record.short_description].filter((value) => typeof value === 'string').join('\n')
     if (!/\b(?:wp-elements|wp-container)-[a-z0-9][a-z0-9-]*\b/i.test(html)) return []
@@ -1553,37 +1664,93 @@ async function fetchWordPressElementLinkColors(records, contentContext) {
     try {
       const route = localPath(sourceUrl)
       if (!route) return []
-      return [{ record, kind, url: new URL(route, WORDPRESS_ORIGIN) }]
+      const key = `${kind}:${record.id}`
+      const signature = createHash('sha256').update(`${route}\0${sourcePaletteSignature}\0${html}`).digest('hex')
+      return [{ record, kind, key, route, signature, url: new URL(route, WORDPRESS_ORIGIN) }]
     } catch {
       return []
     }
   })
   const results = new Map()
+  const pageStyleCache = new Map(cachedPageStyleCache)
+  const failures = []
+  let cachedFallbackCount = 0
+  let consecutiveTransientFailures = 0
+  let circuitOpen = false
   let nextRequest = 0
+
+  const applyStyleEntry = (request, entry) => {
+    contentContext.recordBlockLayoutStyles.set(`${request.kind}:${request.record.id}`, new Map(Object.entries(entry.blockLayoutStyles)))
+    for (const [slug, value] of Object.entries(entry.palette)) {
+      if (!contentContext.wordpressColorPalette.has(slug)) contentContext.wordpressColorPalette.set(slug, value)
+    }
+    const colors = new Map(Object.entries(entry.linkColors))
+    if (colors.size) results.set(`${request.kind}:${request.record.id}`, colors)
+  }
+
+  const useMatchingCache = (request) => {
+    const entry = pageStyleCache.get(request.key)
+    if (!entry || entry.route !== request.route || entry.signature !== request.signature) return false
+    applyStyleEntry(request, entry)
+    return true
+  }
+
+  const formatRecord = (request) => `${request.kind} ${request.record.slug || request.record.id} (${request.route})`
   const worker = async () => {
     while (nextRequest < requests.length) {
       const request = requests[nextRequest++]
-      const key = `${request.kind}:${request.record.id}`
+      if (circuitOpen) {
+        if (useMatchingCache(request)) cachedFallbackCount += 1
+        else failures.push(`${formatRecord(request)}: skipped after repeated WordPress failures and no matching cache`)
+        continue
+      }
+
       try {
         const response = await fetchWithRetry(request.url, `color styles for ${request.kind} ${request.record.slug || request.record.id}`, {
           headers: { Accept: 'text/html' },
-        })
+        }, wordPressPageStyleRetryOptions(`Page styles for ${formatRecord(request)}`))
         const html = await response.text()
-        contentContext.recordBlockLayoutStyles.set(key, extractWordPressBlockLayoutStyles(html))
         const pagePalette = extractWordPressColorPalette(html)
-        for (const [slug, value] of Object.entries(pagePalette)) {
-          if (!contentContext.wordpressColorPalette.has(slug)) contentContext.wordpressColorPalette.set(slug, value)
-        }
         const colorPalette = Object.fromEntries(contentContext.wordpressColorPalette)
-        const colors = new Map(Object.entries(extractWordPressLinkColors(html, { colorPalette })))
-        if (colors.size) results.set(key, colors)
+        const linkColors = extractWordPressLinkColors(html, { colorPalette: { ...pagePalette, ...colorPalette } })
+        const blockLayoutStyles = Object.fromEntries(extractWordPressBlockLayoutStyles(html))
+        const entry = sanitizePageStyleCacheEntry({
+          route: request.route,
+          signature: request.signature,
+          linkColors,
+          palette: pagePalette,
+          blockLayoutStyles,
+        })
+        if (entry) {
+          pageStyleCache.set(request.key, entry)
+          applyStyleEntry(request, entry)
+        }
+        consecutiveTransientFailures = 0
       } catch (error) {
-        console.warn(`[wordpress] Could not extract link colors for ${request.kind} ${request.record.slug || request.record.id}: ${error.message}`)
+        if (useMatchingCache(request)) {
+          cachedFallbackCount += 1
+        } else {
+          failures.push(`${formatRecord(request)}: ${error.message}`)
+        }
+
+        const status = Number(error.status)
+        const transientFailure = !Number.isFinite(status) || status === 0 || status === 429 || status >= 500
+        consecutiveTransientFailures = transientFailure ? consecutiveTransientFailures + 1 : 0
+        // Stop creating more load after repeated host failures; remaining pages use matching cached styles.
+        if (consecutiveTransientFailures >= 3) circuitOpen = true
       }
     }
   }
-  await Promise.all(Array.from({ length: Math.min(6, requests.length) }, worker))
-  return results
+  await Promise.all(Array.from({ length: Math.min(PAGE_STYLE_FETCH_CONCURRENCY, requests.length) }, worker))
+
+  if (cachedFallbackCount) {
+    console.warn(`[wordpress] Reused page-style cache for ${cachedFallbackCount} records after transient WordPress failures.`)
+  }
+  if (failures.length) {
+    console.error(`[wordpress] ${failures.length} page(s) with WordPress style references have no fresh styles or content-matched cache.`)
+  }
+
+  return { results, pageStyleCache, failures }
 }
 
 /** Builds the external root variables that preserve the source WordPress palette values. */
@@ -1826,10 +1993,11 @@ function summarizeContentPipeline(records) {
 
 /**
  * Fetches, normalizes, selects, and assembles all public data consumed by Eleventy templates.
- * @returns {Promise<object>} Complete site data, route selection, diagnostics, and style rules.
+ * @param {Map<string, object>} [cachedPageStyleCache] Previously validated public page-style metadata.
+ * @returns {Promise<object>} Complete site data, route selection, diagnostics, style rules, and style-fetch failures.
  * @throws {Error} When canonical public content cannot be fetched or route conflicts are found.
  */
-async function loadWordPressData() {
+async function loadWordPressData(cachedPageStyleCache = new Map()) {
   const contentContext = { contentStyleRules: new Map(), wordpressColorPalette: new Map() }
   const pagePolicy = resolveWordPressContentPolicy(SITE_PROFILE.content, 'page')
   const postPolicy = resolveWordPressContentPolicy(SITE_PROFILE.content, 'post')
@@ -1846,16 +2014,16 @@ async function loadWordPressData() {
   const rawProductCategories = await wooCommerceStoreApi.listCategories()
   const rawNavigation = await fetchCollection('wp/v2/navigation', 'WordPress navigation', { params: { status: 'publish' } })
   const renderedFrontPage = await fetchRenderedFrontPage(contentContext)
-  const [recordElementLinkColors, sitemaps] = await Promise.all([
-    fetchWordPressElementLinkColors([
-      ...rawPages.map((record) => ({ record, kind: 'page' })),
-      ...rawPosts.map((record) => ({ record, kind: 'post' })),
-      ...rawProducts.map((record) => ({ record, kind: 'product' })),
-      ...rawPostCategories.map((record) => ({ record, kind: 'post-category' })),
-      ...rawProductCategories.map((record) => ({ record, kind: 'product-category' })),
-    ], contentContext),
-    fetchPublicSitemaps(),
-  ])
+  // Keep sitemap traffic separate from per-record HTML requests to avoid overloading WordPress.
+  const sitemaps = await fetchPublicSitemaps()
+  const pageStyleFetch = await fetchWordPressElementLinkColors([
+    ...rawPages.map((record) => ({ record, kind: 'page' })),
+    ...rawPosts.map((record) => ({ record, kind: 'post' })),
+    ...rawProducts.map((record) => ({ record, kind: 'product' })),
+    ...rawPostCategories.map((record) => ({ record, kind: 'post-category' })),
+    ...rawProductCategories.map((record) => ({ record, kind: 'product-category' })),
+  ], contentContext, cachedPageStyleCache)
+  const recordElementLinkColors = pageStyleFetch.results
   contentContext.recordElementLinkColors = recordElementLinkColors
   const homepageHtml = renderedFrontPage.content
 
@@ -1996,6 +2164,8 @@ async function loadWordPressData() {
   return {
     contentStyleRules: [wordpressColorPaletteRule(contentContext.wordpressColorPalette), ...contentContext.contentStyleRules.values()].filter(Boolean),
     wordpressColorPalette: Object.fromEntries(contentContext.wordpressColorPalette),
+    pageStyleCache: Object.fromEntries(pageStyleFetch.pageStyleCache),
+    pageStyleFailures: pageStyleFetch.failures,
     contentPipeline,
     siteOrigin: SITE_ORIGIN,
     fetchedAt: new Date().toISOString(),
@@ -2028,11 +2198,30 @@ async function loadWordPressData() {
 /**
  * Eleventy global-data provider for canonical public WordPress content.
  * @returns {Promise<object>} Normalized site data and generated-route metadata.
- * @sideEffects Fetches WordPress resources and refreshes the private build cache on success.
+ * @throws {Error} When canonical content or required page styles are unavailable and no allowed public snapshot can be used.
+ * @sideEffects Fetches WordPress resources, refreshes validated page-style metadata, and refreshes the private public snapshot on success.
  */
 module.exports = async function () {
+  const cachedPageStyleCache = readWordPressPageStyleCache()
   try {
-    const data = await loadWordPressData()
+    const data = await loadWordPressData(cachedPageStyleCache)
+    const pageStyleCache = new Map(Object.entries(data.pageStyleCache || {}))
+    const pageStyleFailures = Array.isArray(data.pageStyleFailures) ? data.pageStyleFailures : []
+    delete data.pageStyleCache
+    delete data.pageStyleFailures
+
+    try {
+      writeWordPressPageStyleCache(pageStyleCache)
+    } catch (error) {
+      console.warn(`[wordpress] Could not persist the page-style cache: ${error.message}`)
+    }
+
+    if (pageStyleFailures.length) {
+      const examples = pageStyleFailures.slice(0, 5).map((failure) => `- ${failure}`).join('\n')
+      const remainder = pageStyleFailures.length > 5 ? `\n- and ${pageStyleFailures.length - 5} more record(s)` : ''
+      throw new Error(`WordPress page styles are incomplete for ${pageStyleFailures.length} record(s); no content-matched cache is available.\n${examples}${remainder}`)
+    }
+
     fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true })
     // Persist only the last successful public snapshot; auth-only raw content is removed upstream.
     fs.writeFileSync(CACHE_FILE, JSON.stringify(data))

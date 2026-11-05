@@ -7,7 +7,7 @@
 # Email: christian.denat@orange.fr
 #
 # Created on: 2026-10-06
-# Last modified: 2026-10-06
+# Last modified: 2026-11-05
 #
 # Copyright © 2026 Christian Denat
 # ******************************************************************************
@@ -92,8 +92,25 @@ jobs:
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
 
+      # Unique keys let each successful run refresh the cache while restoring the most recent prior run.
+      - name: Restore the public WordPress page-style cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .data/wordpress-page-style-cache.json
+          key: cd2027-production-page-styles-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            cd2027-production-page-styles-
+
       - name: Build and validate all generated routes
+        id: build
         run: bun run check
+
+      - name: Save refreshed public WordPress page styles
+        if: always() && !cancelled() && steps.build.outcome != 'skipped' && hashFiles('.data/wordpress-page-style-cache.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .data/wordpress-page-style-cache.json
+          key: cd2027-production-page-styles-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Install password-based SSH client
         run: sudo apt-get update && sudo apt-get install --yes sshpass
